@@ -1,5 +1,5 @@
 'use client'
-import axios from 'axios';
+import axios from '@/lib/axios/public';
 import { useRouter } from 'next/navigation';
 import { authAtom } from '@/atoms/auth';
 import { useSetAtom } from 'jotai';
@@ -11,7 +11,7 @@ export const useLogout = () => {
     const router = useRouter();
 
     const logout = () => {
-        fetcher('/api/auth/logout')
+        fetcher('/auth/logout')
             .then(() => {
                 setIsAuthenticated(false);
                 router.push('/login');
