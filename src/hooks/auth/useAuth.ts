@@ -10,7 +10,7 @@ const fetcher = async (url: string) => await axios.get(url).then(res => res.data
 export const useAuth = () => {
     const [isAuthenticated, setIsAuthenticated] = useAtom(authAtom);
     const { data, isLoading, error } = useSWR(
-        isAuthenticated ? '/api/users/me': null,
+        'api/users/me',
         fetcher
     );
 
