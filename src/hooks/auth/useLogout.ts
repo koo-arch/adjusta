@@ -1,5 +1,6 @@
 'use client'
 import axios from '@/lib/axios/public';
+import { mutate } from 'swr';
 import { useRouter } from 'next/navigation';
 import { authAtom } from '@/atoms/auth';
 import { useSetAtom } from 'jotai';
@@ -14,6 +15,7 @@ export const useLogout = () => {
         fetcher('/auth/logout')
             .then(() => {
                 setIsAuthenticated(false);
+                mutate(() => true, null, false);
                 router.push('/login');
             })
             .catch(err => console.error(err));
