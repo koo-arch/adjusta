@@ -4,13 +4,16 @@ import axios from "@/lib/axios/public";
 import useSWR from "swr";
 import { useAtom } from "jotai";
 import { authAtom } from "@/atoms/auth";
+import { useExistToken } from "./useExistToken";
 
 const fetcher = async (url: string) => await axios.get(url).then(res => res.data);
 
 export const useAuth = () => {
+    const { isExistToken } = useExistToken();
     const [isAuthenticated, setIsAuthenticated] = useAtom(authAtom);
+
     const { data, isLoading, error } = useSWR(
-        'api/users/me',
+        isExistToken ? '/api/users/me' : null,
         fetcher
     );
 
