@@ -12,20 +12,20 @@ import momentPlugin from '@fullcalendar/moment';
 import { useFetchEvent } from '@/hooks/calendar/useFetchEvent';
 
 
-const Calendar = () => {
+const Calendar: React.FC = () => {
     const { events, isLoading, error } = useFetchEvent();
 
     if (isLoading) return <div>Loading...</div>;
 
-    const eventList = events?.flatMap((account) => {
-        return account.events.map((event) => {
-            return {
+    const eventList = events
+        ?.filter(account => account?.events)
+        ?.flatMap(account => account.events.map(event => ({
                 title: event.summary,
                 start: event.start,
-                end: event.end,
+                end: event.end
             }
-        })
-    })
+        ))
+    );
 
     const renderDayCell = (e: DayCellContentArg) => {
         const { date, dayNumberText, isToday } = e
