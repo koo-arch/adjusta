@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useRef } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
-import { EventClickArg } from '@fullcalendar/core';
+import type { EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { selectedDatesAtom, selectedEventsAtom } from '@/atoms/calendar';
 import Calendar from './Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
@@ -23,6 +24,7 @@ const SelectableCalendar: React.FC = () => {
         setSelectedDates([...selectedDates, newDate]);
     }
 
+    // イベントをクリックした時にポップアップを表示する
     const handleEventClick = (e: EventClickArg) => {
         if (buttonRef.current) {
             buttonRef.current.click();
@@ -31,6 +33,39 @@ const SelectableCalendar: React.FC = () => {
         setPopupPosition({ top: e.jsEvent.clientY, left: e.jsEvent.clientX });
     }
 
+    // イベントのドラッグ＆ドロップ時の処理
+    const handleEventDrop = (e: EventDropArg) => {
+        const updatedDates = selectedDates.map((date) => {
+            if (date.id === e.event.id) {
+                return {
+                    ...date,
+                    start: e.event.start || date.start,
+                    end: e.event.end || date.end
+                };
+            }
+            return date;
+        });
+
+        setSelectedDates(updatedDates);
+    }
+
+    // イベントの開始・終了時間の変更時の処理
+    const handleEventResize = (e: EventResizeDoneArg) => {
+        const updatedDates = selectedDates.map((date) => {
+            if (date.id === e.event.id) {
+                return {
+                    ...date,
+                    start: e.event.start || date.start,
+                    end: e.event.end || date.end
+                };
+            }
+            return date;
+        });
+
+        setSelectedDates(updatedDates);
+    }
+
+    // イベントの削除時の処理
     const handleDeleteEvent = () => {
         if (clickedEvent) {
             clickedEvent.remove();
@@ -49,7 +84,9 @@ const SelectableCalendar: React.FC = () => {
                 }}
                 select={handleDateSelect}
                 selectedEvents={selectedEvents}
-                handleEventClick={handleEventClick}
+                eventClick={handleEventClick}
+                eventDrop={handleEventDrop}
+                eventResize={handleEventResize}
             />
             <PopupMenu
                 items={[

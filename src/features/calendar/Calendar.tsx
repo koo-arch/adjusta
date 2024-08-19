@@ -2,7 +2,8 @@
 import React from 'react';
 import { StyleWrapper } from './style';
 import FullCalendar from '@fullcalendar/react';
-import type { ToolbarInput, EventClickArg } from '@fullcalendar/core';
+import type { ToolbarInput, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -17,10 +18,12 @@ interface CalendarProps {
     headerToolbar?: ToolbarInput;
     select?: (arg: { start: Date, end: Date }) => void;
     selectedEvents?: SelectedEvent[];
-    handleEventClick?: (e: EventClickArg) => void;
+    eventClick?: (e: EventClickArg) => void;
+    eventDrop?: (e: EventDropArg) => void;
+    eventResize?: (e: EventResizeDoneArg) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ initialView, headerToolbar, select, selectedEvents, handleEventClick }) => {
+const Calendar: React.FC<CalendarProps> = ({ initialView, headerToolbar, select, selectedEvents, eventClick, eventDrop, eventResize }) => {
     const { events, isLoading, error } = useFetchEvent();
 
     if (isLoading) return <div>Loading...</div>;
@@ -38,7 +41,7 @@ const Calendar: React.FC<CalendarProps> = ({ initialView, headerToolbar, select,
     );
 
     const conbinedEvents = selectedEvents && eventList ? [...eventList, ...selectedEvents] : eventList;
-    
+
     return (
         <StyleWrapper>
             <FullCalendar
@@ -50,9 +53,14 @@ const Calendar: React.FC<CalendarProps> = ({ initialView, headerToolbar, select,
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 }}
                 businessHours={{ daysOfWeek: [1, 2, 3, 4, 5] }}
-                eventClick={handleEventClick || (() => {})}
+                eventClick={eventClick || (() => {})}
+                snapDuration={'00:10:00'}
                 selectable={true}
                 selectMirror={true}
+                editable={true} // イベントのドラッグ＆ドロップを可能に
+                eventDrop={eventDrop || (() => {})}
+                eventResizableFromStart={true} // イベントの開始時間もリサイズ可能にする
+                eventResize={eventResize || (() => {})}
                 select={select || (() => {})}
                 dayCellContent={renderDayCell}
                 dayHeaderContent={renderDayHeader}
