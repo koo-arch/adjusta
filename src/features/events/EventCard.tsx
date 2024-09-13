@@ -38,7 +38,7 @@ const statusColor = (status: string) => {
 
 const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
     return (
-        <Card variant="outlined" background="inherit" onClick={onClick}>
+        <Card variant="outlined" background="inherit" isButton={true} onClick={onClick}>
             <div>
                 <div className="flex justify-between items-center mb-2">
                     <h2 className="text-lg font-bold">{event?.title}</h2>
