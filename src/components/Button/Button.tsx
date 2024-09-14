@@ -7,8 +7,9 @@ const buttonSize = cva("inline-flex items-center justify-center", {
     variants: {
         size: {
             sm: "px-2 py-1 text-sm",
-            md: "px-4 py-2 text-base",
-            lg: "px-6 py-3 text-lg",
+            md: "px-3 py-1.5 text-base",
+            lg: "px-4 py-2 text-lg",
+            xl: "px-5 py-2.5 text-xl",
         },
     },
     defaultVariants: {
@@ -22,6 +23,7 @@ const icon = cva("", {
             sm: "h-4 w-4",
             md: "h-5 w-5",
             lg: "h-6 w-6",
+            xl: "h-7 w-7",
         },
     },
     defaultVariants: {
