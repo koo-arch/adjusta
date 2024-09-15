@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import { Field, Label, Description, Textarea } from '@headlessui/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const textareaStyle = cva('block w-full mt-1 border', {
