@@ -34,7 +34,6 @@ type Story = StoryObj<typeof DateTimePicker>;
 
 export const Default: Story = {
     args: {
-        initialDate: new Date(),
         label: 'Label',
         error: false,
         helperText: 'Helper text',

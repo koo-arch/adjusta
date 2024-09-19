@@ -91,7 +91,7 @@ export interface BaseButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
     to?: string;
 }
 
-export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, children}) => {
+export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, type, children}) => {
     const router = useRouter();
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -109,8 +109,8 @@ export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, 
     }
 
     return (
-        <Button className={className} onClick={handleClick}>
+        <button className={className} onClick={handleClick}>
             {children}
-        </Button>
+        </button>
     )
 }

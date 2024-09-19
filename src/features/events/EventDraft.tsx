@@ -1,13 +1,13 @@
 'use client'
 import React, { useEffect } from 'react';
 import axios from '@/lib/axios/public';
-import { TextField } from '@mui/material';
 import { selectedDatesAtom, titleAtom, prioritizedSelectedDatesAtom } from '@/atoms/calendar';
 import { useAtom } from 'jotai';
 import { useForm, type SubmitHandler, FormProvider } from 'react-hook-form';
 import type { EventDraftForm } from './type';
 import SelectableCalendar from '@/features/calendar/SelectableCalendar';
 import DraggableEventList from './DraggableEventList';
+import TextField from '@/components/TextField';
 
 const EventDraft: React.FC = () => {
     const method = useForm<EventDraftForm>();
@@ -45,19 +45,16 @@ const EventDraft: React.FC = () => {
                     <TextField
                         {...register('title')}
                         label="Title"
-                        variant="outlined"
-                        value={title}
+                        defaultValue={title}
                         onChange={(e) => setTitle(e.target.value)}
                     />
                     <TextField
                         {...register('description')}
                         label="Description"
-                        variant="outlined"
                     />
                     <TextField
                         {...register('location')}
                         label="Location"
-                        variant="outlined"
                     />
                     <SelectableCalendar />
                     <button type="submit">Submit</button>

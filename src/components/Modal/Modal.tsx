@@ -10,7 +10,7 @@ interface ModalProps {
     description?: string;
     children?: React.ReactNode;
     actions?: React.ReactNode;
-    hideCloseButton?: boolean;
+    hideCloseButton?: true;
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, description, actions, hideCloseButton }) => {

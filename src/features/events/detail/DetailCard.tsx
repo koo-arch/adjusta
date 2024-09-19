@@ -5,6 +5,7 @@ import { formatJaDate } from '@/lib/date/format';
 import type { EventDraftDetail } from '@/hooks/event/type';
 import { MapPinIcon } from '@heroicons/react/20/solid';
 import EditButton from './EditButton';
+import ConfirmButton from './ConfirmButton';
 
 type DetailCardProps = {
     id: string;
@@ -21,7 +22,10 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                 </div>
 
                 <div className="space-y-2">
-                    <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
+                    <div className="flex items-center space-x-2">
+                        <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
+                        <ConfirmButton id={id} selectedDates={detail.proposed_dates || []} />
+                    </div>
                     {detail.proposed_dates?.map((date) => (
                         <p key={date.id} className="text-sm text-gray-500">
                             <span className="font-medium">第{date.priority}候補：</span>
