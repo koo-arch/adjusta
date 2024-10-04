@@ -29,7 +29,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                     {detail.proposed_dates?.map((date) => (
                         <p key={date.id} className="text-sm text-gray-500">
                             <span className="font-medium">第{date.priority}候補：</span>
-                            {formatJaDate(date.start_date)} 〜 {formatJaDate(date.end_date)}
+                            {formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
                         </p>
                     ))}
                 </div>

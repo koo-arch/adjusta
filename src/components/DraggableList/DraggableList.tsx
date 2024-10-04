@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, MouseSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from './SortableItem';
 
@@ -35,8 +35,17 @@ const DraggableList = <T extends unknown>({
         }
     }
 
+    const mouseSensor = useSensor(MouseSensor, {
+        activationConstraint: {
+            distance: 5,
+        },
+    });
+    const keyboardSensor = useSensor(KeyboardSensor);
+    const sensors = useSensors(mouseSensor, keyboardSensor);
+
+
     return (
-        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
             <SortableContext items={items.map(getKey)} strategy={verticalListSortingStrategy}>
                 {items.map((item) => (
                     <SortableItem key={getKey(item)} id={getKey(item)}>

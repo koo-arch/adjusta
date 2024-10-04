@@ -1,27 +1,49 @@
 'use client'
 import React from 'react';
 import { useAtom } from 'jotai';
-import { selectedDatesAtom, type SelectedDate } from '@/atoms/calendar';
+import type { SelectedDate, ProposedDate } from '@/atoms/calendar';
 import DraggableList from '@/components/DraggableList';
 import { formatJaDate } from '@/lib/date/format';
+import IconButton from '@/components/IconButton';
+import { TrashIcon } from '@heroicons/react/20/solid';
 
-const DraggableEventList = () => {
-    const [selectedDates, setSelectedDates] = useAtom(selectedDatesAtom);
+interface DraggableEventListProps {
+    atom: any;
+}
 
-    const handleReorder = (newDates: SelectedDate[]) => {
-        setSelectedDates(newDates);
+const DraggableEventList = <T extends SelectedDate | ProposedDate>({
+    atom,
+ }: DraggableEventListProps) => {
+    const [dates, setDates] = useAtom<T[]>(atom);
+
+    const handleReorder = (newDates: T[]) => {
+        setDates(newDates);
+    }
+
+    const handleDelete = (id: string) => {
+        setDates(dates.filter(date => date.id !== id));
     }
 
     return (
         <DraggableList
-            items={selectedDates}
+            items={dates}
             onReorder={handleReorder}
-            renderItem={(date) => (
-                <div>
-                    {formatJaDate(date.start)} - {formatJaDate(date.end)}
+            renderItem={(date: T) => (
+                <div className="flex justify-between items-center">
+                    <span>
+                        {formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
+                    </span>
+                    <IconButton
+                        onClick={() => handleDelete(date.id)}
+                        className="ml-2"
+                        iconSize="md"
+                        iconColor="clear"
+                    >
+                        <TrashIcon />
+                    </IconButton>
                 </div>
             )}
-            getKey={(date) => date.id}
+            getKey={(date: T) => date.id}
         />
     )
 }

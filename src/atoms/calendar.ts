@@ -1,5 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
 import { atom } from "jotai";
+import { validateUUID } from "@/lib/validation/uuid";
 
 export interface SelectedDate {
     id: string;
@@ -12,7 +13,8 @@ export interface SelectedEvent extends SelectedDate {
     origin: string;
 }
 
-export interface PrioritizedSelectedDate extends SelectedDate {
+export interface SendSelectedDate extends Omit<SelectedDate, "id"> {
+    id: string | null;
     priority: number;
 }
 
@@ -40,12 +42,65 @@ export const selectedEventsAtom = atom<SelectedEvent[]>(
     }
 );
 
-export const prioritizedSelectedDatesAtom = atom<PrioritizedSelectedDate[]>(
+// SelectedDateを送信するために調整したatom
+export const sendSelectedDatesAtom = atom<SendSelectedDate[]>(
     (get) => {
         const selectedDates = get(selectedDatesAtom);
         return selectedDates.map((date, index) => ({
             ...date,
+            id: validateUUID(date.id) ? date.id : null,
             priority: index + 1,
         }))
+    }
+);
+
+export interface ProposedDate extends SelectedDate {
+    event_id: string;
+    priority: number;
+    is_finalized: boolean;
+}
+
+export interface ProposedEvent extends SelectedEvent {
+    title: string;
+    origin: string;
+}
+
+export interface SendProposedDate extends Omit<ProposedDate, "id"> {
+    id: string | null;
+}
+
+// 編集する候補日程を保存するatom
+export const proposedDatesAtom = atom<ProposedDate[]>([]);
+
+export const updateTitleAtom = atom<string>("");
+
+// proposedDatesAtomに基づいてイベントを生成するatom
+export const proposedEventsAtom = atom<ProposedEvent[]>(
+    (get) => {
+        const proposedDates = get(proposedDatesAtom);
+        let title = get(updateTitleAtom);
+
+        if (!title) {
+            title = "新しいイベント";
+        }
+
+        return proposedDates.map((date, index) => ({
+            ...date,
+            title: `${title} ${index + 1}`,
+            origin: "local",
+            priority: index + 1,
+        }));
+    }
+);
+
+// ProposedDateを送信するために調整したatom
+export const sendProposedDatesAtom = atom<SendProposedDate[]>(
+    (get) => {
+        const proposedDates = get(proposedDatesAtom);
+        return proposedDates.map((date, index) => ({
+            ...date,
+            id: validateUUID(date.id) ? date.id : null,
+            priority: index + 1,
+        }));
     }
 );

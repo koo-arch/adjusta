@@ -1,4 +1,4 @@
-import type { PrioritizedSelectedDate } from '@/atoms/calendar';
+import type { SendSelectedDate, SendProposedDate } from '@/atoms/calendar';
 
 export interface EventDraftForm {
     title: string;
@@ -6,7 +6,7 @@ export interface EventDraftForm {
     allDay: boolean;
     location: string;
     url: string;
-    selected_dates: PrioritizedSelectedDate[];
+    selected_dates: SendSelectedDate[];
 }
 
 export interface EventUpdateForm {
@@ -16,5 +16,5 @@ export interface EventUpdateForm {
     allDay?: boolean;
     location?: string;
     url?: string;
-    selected_dates?: PrioritizedSelectedDate[];
+    proposed_dates?: SendProposedDate[];
 }

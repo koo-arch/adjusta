@@ -3,14 +3,38 @@ import React, { useState, useRef } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import type { EventClickArg, EventDropArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
-import { selectedDatesAtom, selectedEventsAtom } from '@/atoms/calendar';
+import type { ProposedDate } from '@/atoms/calendar';
 import Calendar from './Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
 import PopupMenu from '@/components/PopupMenu';
 
-const SelectableCalendar: React.FC = () => {
-    const [selectedDates, setSelectedDates] = useAtom(selectedDatesAtom);
-    const selectedEvents = useAtomValue(selectedEventsAtom);
+type DateSelectInfo = {
+    id: string;
+    start: Date;
+    end: Date;
+}
+
+type CalendarEvent = {
+    id: string;
+    title: string;
+    start: Date;
+    end: Date;
+    origin: "google" | "local";
+}
+
+interface SelectableCalendarProps<TDate extends DateSelectInfo, TEvent extends CalendarEvent> {
+    dateAtom: any;
+    eventAtom: any;
+    editingEvent?: ProposedDate[];
+}
+
+const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends CalendarEvent>({
+    dateAtom,
+    eventAtom,
+    editingEvent,
+}:SelectableCalendarProps<TDate, TEvent>) => {
+    const [selectedDates, setSelectedDates] = useAtom<TDate[]>(dateAtom);
+    const selectedEvents = useAtomValue<TEvent[]>(eventAtom);
     const [clickedEvent, setClickedEvent] = useState<EventImpl>();
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -20,7 +44,7 @@ const SelectableCalendar: React.FC = () => {
             id : new Date().getTime().toString(),
             start: selectInfo.start,
             end: selectInfo.end,
-        }
+        } as TDate;
         setSelectedDates([...selectedDates, newDate]);
     }
 
@@ -87,6 +111,7 @@ const SelectableCalendar: React.FC = () => {
                 eventClick={handleEventClick}
                 eventDrop={handleEventDrop}
                 eventResize={handleEventResize}
+                editEvent={editingEvent}
             />
             <PopupMenu
                 items={[

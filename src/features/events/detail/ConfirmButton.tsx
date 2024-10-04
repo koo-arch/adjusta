@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import ToggleButton from '@/components/ToggleButton';
 import Modal from '@/components/Modal';
 import DropdownSelect from '@/components/DropdownSelect';
-import type { ProposedDate } from '@/hooks/event/type';
+import type { ProposedDate } from '@/atoms/calendar';
 import { formatJaDate } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
 
@@ -113,7 +113,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, selectedDates }) => {
                                     date && (
                                         <>
                                             {`第${date.priority}候補: 
-                                            ${formatJaDate(date.start_date)} ~ ${formatJaDate(date.end_date)}`}
+                                            ${formatJaDate(date.start)} ~ ${formatJaDate(date.end)}`}
                                         </>
                                     )
                                 }

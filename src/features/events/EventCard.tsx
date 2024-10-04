@@ -46,7 +46,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
                 </div>
                 {event.proposed_dates?.map((date) => (
                     <p key={date.id} className="text-sm text-gray-500 mb-1">
-                        第{date.priority}希望：{formatJaDate(date.start_date)} 〜 {formatJaDate(date.end_date)}
+                        第{date.priority}希望：{formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
                     </p>
                 ))}
                 <p className="text-sm mt-2">{event.description}</p>
