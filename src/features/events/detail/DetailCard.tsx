@@ -6,6 +6,7 @@ import type { EventDraftDetail } from '@/hooks/event/type';
 import { MapPinIcon } from '@heroicons/react/20/solid';
 import EditButton from './EditButton';
 import ConfirmButton from './ConfirmButton';
+import DeleteButton from './DeleteButton';
 
 type DetailCardProps = {
     id: string;
@@ -42,6 +43,9 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                 <div className="mt-4">
                     <h2 className="text-lg font-semibold text-gray-700">説明</h2>
                     <p className="text-sm text-gray-700 mt-2">{detail.description}</p>
+                </div>
+                <div className="flex justify-end items-end">
+                    <DeleteButton id={id} detail={detail} />
                 </div>
             </div>
         </Card>
