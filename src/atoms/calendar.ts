@@ -57,7 +57,6 @@ export const sendSelectedDatesAtom = atom<SendSelectedDate[]>(
 export interface ProposedDate extends SelectedDate {
     event_id: string;
     priority: number;
-    is_finalized: boolean;
 }
 
 export interface ProposedEvent extends SelectedEvent {

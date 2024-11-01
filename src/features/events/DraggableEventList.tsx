@@ -9,10 +9,12 @@ import { TrashIcon } from '@heroicons/react/20/solid';
 
 interface DraggableEventListProps {
     atom: any;
+    enableTopHighlight?: boolean;
 }
 
 const DraggableEventList = <T extends SelectedDate | ProposedDate>({
     atom,
+    enableTopHighlight
  }: DraggableEventListProps) => {
     const [dates, setDates] = useAtom<T[]>(atom);
 
@@ -44,6 +46,7 @@ const DraggableEventList = <T extends SelectedDate | ProposedDate>({
                 </div>
             )}
             getKey={(date: T) => date.id}
+            enableTopHighlight={enableTopHighlight}
         />
     )
 }

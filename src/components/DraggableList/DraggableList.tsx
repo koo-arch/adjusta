@@ -9,6 +9,7 @@ interface DraggableListProps<T> {
     onReorder: (newItems: T[]) => void;
     renderItem: (item: T) => React.ReactNode;
     getKey: (item: T) => string;
+    enableTopHighlight?: boolean;
 }
 
 const DraggableList = <T extends unknown>({
@@ -16,6 +17,7 @@ const DraggableList = <T extends unknown>({
     onReorder,
     renderItem,
     getKey,
+    enableTopHighlight,
 }: DraggableListProps<T>) => {
 
     // どの要素がドラッグされているかを管理するための変数
@@ -47,8 +49,13 @@ const DraggableList = <T extends unknown>({
     return (
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
             <SortableContext items={items.map(getKey)} strategy={verticalListSortingStrategy}>
-                {items.map((item) => (
-                    <SortableItem key={getKey(item)} id={getKey(item)}>
+                {items.map((item, index) => (
+                    <SortableItem 
+                        key={getKey(item)}
+                        id={getKey(item)}
+                        index={index}
+                        enableTopHighlight={enableTopHighlight}
+                    >
                         {renderItem(item)}
                     </SortableItem>
                 ))}

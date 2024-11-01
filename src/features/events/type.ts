@@ -16,5 +16,6 @@ export interface EventUpdateForm {
     allDay?: boolean;
     location?: string;
     url?: string;
+    status?: string;
     proposed_dates?: SendProposedDate[];
 }
