@@ -14,6 +14,8 @@ type DetailCardProps = {
 }
 
 const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
+    const confirmedDate = detail.proposed_dates.find((date) => date.id === detail.confirmed_date_id);
+    const isConfirmed = detail.status === 'confirmed' && !!detail.confirmed_date_id && !!confirmedDate;
     return (
         <Card variant="outlined" className="w-full shadow-md">
             <div className="space-y-6">
@@ -22,18 +24,32 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                     <EditButton to={`/schedule/draft/${id}/edit`} />
                 </div>
 
-                <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                        <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
-                        <ConfirmButton id={id} selectedDates={detail.proposed_dates || []} />
-                    </div>
-                    {detail.proposed_dates?.map((date) => (
-                        <p key={date.id} className="text-sm text-gray-500">
-                            <span className="font-medium">第{date.priority}候補：</span>
-                            {formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
+                {isConfirmed && (
+                    <div className='mb-2'>
+                        <div className="flex items-center space-x-2 mb-2">
+                            <h2 className="text-lg font-semibold text-gray-700">確定日時</h2>
+                            <ConfirmButton id={id} selectedDates={detail.proposed_dates || []} />
+                        </div>
+                        <p className="text-lg text-indigo-500">
+                            {formatJaDate(confirmedDate?.start)} 〜 {formatJaDate(confirmedDate?.end)}
                         </p>
-                    ))}
-                </div>
+                    </div>
+                )}
+
+                {!isConfirmed && (
+                    <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                            <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
+                            <ConfirmButton id={id} selectedDates={detail.proposed_dates || []} />
+                        </div>
+                        {detail.proposed_dates?.map((date) => (
+                            <p key={date.id} className="text-sm text-gray-500">
+                                <span className="font-medium">第{date.priority}候補：</span>
+                                {formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
+                            </p>
+                        ))}
+                    </div>
+                )}
 
                 <div className="flex items-center mt-4">
                     <MapPinIcon className="w-6 h-6 text-gray-500 mr-2" />

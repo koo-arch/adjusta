@@ -37,6 +37,9 @@ const statusColor = (status: string) => {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
+    const confirmedDate= event.proposed_dates.find((date) => date.id === event.confirmed_date_id);
+    const isConfirmed = event.status === 'confirmed' && !!event.confirmed_date_id && !!confirmedDate;
+
     return (
         <Card variant="outlined" background="inherit" isButton={true} onClick={onClick}>
             <div>
@@ -44,11 +47,18 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
                     <h2 className="text-lg font-bold">{event?.title}</h2>
                     <StatusBadge label={statusLabel(event.status)} color={statusColor(event.status)} />
                 </div>
-                {event.proposed_dates?.map((date) => (
+
+                {isConfirmed ? (
+                    <p className="text-sm text-gray-500 mb-1">
+                        確定日時：{formatJaDate(confirmedDate?.start)} 〜 {formatJaDate(confirmedDate?.end)}
+                    </p>
+                ) : (
+                    event.proposed_dates?.map((date) => (
                     <p key={date.id} className="text-sm text-gray-500 mb-1">
                         第{date.priority}希望：{formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
                     </p>
-                ))}
+                )))}
+
                 <p className="text-sm mt-2">{event.description}</p>
             </div>
         </Card>

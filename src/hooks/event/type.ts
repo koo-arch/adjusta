@@ -8,5 +8,6 @@ export interface EventDraftDetail {
     location: string;
     url: string;
     status: string;
+    confirmed_date_id: string | null;
     proposed_dates: ProposedDate[];
 }
