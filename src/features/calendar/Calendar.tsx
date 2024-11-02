@@ -48,24 +48,22 @@ const Calendar = <T extends CalendarEvent>({
 
     console.log(events);
 
-    const eventList = events
-        ?.filter(account => account?.events)
-        ?.flatMap(account => account.events.map(event => ({
-                id: event.id,
-                title: event.summary,
-                start: event.start,
-                end: event.end,
-                origin: "google"
-            }
-        ))
+    const eventList = events?.map(event => {
+        return {
+            id: event.id,
+            title: event.summary,
+            start: event.start,
+            end: event.end,
+            origin: "google"
+        };
+    })
         ?.filter(event => {
             // 編集中のイベントは除外する
             if (editEvent) {
                 return !editEvent.some(date => date.event_id === event.id);
             }
             return true;
-        })
-    );
+    })
 
     const conbinedEvents = selectedEvents && eventList ? [...eventList, ...selectedEvents] : eventList;
 

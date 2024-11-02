@@ -1,10 +1,6 @@
-export interface AcccountsEvents {
-    accountID : string;
-    email : string;
-    events : Event[];
-}
 
-interface Event {
+
+export interface GoogleEvent {
     id : string;
     summary : string;
     color : string;
