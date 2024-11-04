@@ -23,8 +23,8 @@ type CalendarEvent = {
 }
 
 interface SelectableCalendarProps<TDate extends DateSelectInfo, TEvent extends CalendarEvent> {
-    dateAtom: any;
-    eventAtom: any;
+    dateAtom?: any;
+    eventAtom?: any;
     editingEvent?: ProposedDate[];
 }
 

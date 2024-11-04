@@ -22,7 +22,7 @@ const EventBasicForm: React.FC<EventBasicFormProps> =({ title, description, loca
        if (title) {
            setUpdateTitle(title);
        }
-    }, [updateTitle, setUpdateTitle]);
+    }, [updateTitle, setUpdateTitle, title]);
 
     return (
         <Card variant="outlined" background="inherit" className="w-full">

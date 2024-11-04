@@ -19,7 +19,7 @@ const EventDraft: React.FC = () => {
 
     useEffect(() => {
         setValue('selected_dates', sendSelectedDate);
-    }, [selectedDates, setValue]);
+    }, [selectedDates, setValue, sendSelectedDate]);
 
     const postEventDraft = async (data: EventDraftForm) => {
         return await axios.post('api/calendar/event/draft', data);
