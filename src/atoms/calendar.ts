@@ -10,7 +10,7 @@ export interface SelectedDate {
 
 export interface SelectedEvent extends SelectedDate {
     title: string;
-    origin: string;
+    origin: "google" | "local";
 }
 
 export interface SendSelectedDate extends Omit<SelectedDate, "id"> {
@@ -55,13 +55,11 @@ export const sendSelectedDatesAtom = atom<SendSelectedDate[]>(
 );
 
 export interface ProposedDate extends SelectedDate {
-    event_id: string;
     priority: number;
 }
 
 export interface ProposedEvent extends SelectedEvent {
     title: string;
-    origin: string;
 }
 
 export interface SendProposedDate extends Omit<ProposedDate, "id"> {

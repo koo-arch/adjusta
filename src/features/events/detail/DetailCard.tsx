@@ -28,7 +28,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                     <div className='mb-2'>
                         <div className="flex items-center space-x-2 mb-2">
                             <h2 className="text-lg font-semibold text-gray-700">確定日時</h2>
-                            <ConfirmButton id={id} selectedDates={detail.proposed_dates || []} />
+                            <ConfirmButton id={id} detail={detail} />
                         </div>
                         <p className="text-lg text-indigo-500">
                             {formatJaDate(confirmedDate?.start)} 〜 {formatJaDate(confirmedDate?.end)}
@@ -40,7 +40,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                     <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                             <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
-                            <ConfirmButton id={id} selectedDates={detail.proposed_dates || []} />
+                            <ConfirmButton id={id} detail={detail} />
                         </div>
                         {detail.proposed_dates?.map((date) => (
                             <p key={date.id} className="text-sm text-gray-500">

@@ -6,35 +6,35 @@ import Button from '@/components/Button';
 import ToggleButton from '@/components/ToggleButton';
 import Modal from '@/components/Modal';
 import DropdownSelect from '@/components/DropdownSelect';
-import type { ProposedDate } from '@/atoms/calendar';
 import { formatJaDate } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
-
+import type { EventDraftDetail } from '@/hooks/event/type';
 interface ConfrimForm {
     confirm_date: {
         id: string | null;
-        event_id: string;
-        start_date: Date | null;
-        end_date: Date | null;
+        google_event_id: string;
+        start: Date | null;
+        end: Date | null;
         priority: number;
     };
 }
 
 interface ConfirmButtonProps {
     id: string;
-    selectedDates: ProposedDate[];
+    detail: EventDraftDetail;
 }
 
-const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, selectedDates }) => {
+const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const proposedDates = detail.proposed_dates || [];
     const [isDropdownSelected, setIsDropdownSelected] = useState(true); // ドロップダウンが選ばれているかどうか
     const method = useForm<ConfrimForm>({
         defaultValues: {
             confirm_date: {
                 id: null,
-                event_id: "",
-                start_date: null,
-                end_date: null,
+                google_event_id: detail.google_event_id,
+                start: null,
+                end: null,
                 priority: 0,
             }
         }
@@ -108,7 +108,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, selectedDates }) => {
                         render={({ field }) => (
                             <DropdownSelect
                                 label='日程'
-                                options={selectedDates}
+                                options={proposedDates}
                                 renderLabel={(date) => 
                                     date && (
                                         <>
@@ -126,25 +126,26 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, selectedDates }) => {
                     <div>
                         <Controller
                             control={control}
-                            name='confirm_date.start_date'
+                            name='confirm_date.start'
                             render={({ field }) => (
                                 <DateTimePicker
                                     label='開始日時'
                                     onChange={field.onChange}
-                                    error={!!errors.confirm_date?.start_date}
-                                    helperText={errors.confirm_date?.start_date?.message}
+                                    error={!!errors.confirm_date?.start
+                                    }
+                                    helperText={errors.confirm_date?.start?.message}
                                 />
                             )}
                         />
                         <Controller
                             control={control}
-                            name='confirm_date.end_date'
+                            name='confirm_date.end'
                             render={({ field }) => (
                                 <DateTimePicker
                                     label='終了日時'
                                     onChange={field.onChange}
-                                    error={!!errors.confirm_date?.end_date}
-                                    helperText={errors.confirm_date?.end_date?.message}
+                                    error={!!errors.confirm_date?.end}
+                                    helperText={errors.confirm_date?.end?.message}
                                 />
                             )}
                         />

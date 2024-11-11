@@ -3,10 +3,11 @@ import React, { useState, useRef } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import type { EventClickArg, EventDropArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
-import type { ProposedDate } from '@/atoms/calendar';
 import Calendar from './Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
 import PopupMenu from '@/components/PopupMenu';
+import type { CalendarEvent } from './type';
+import type { EventDraftDetail } from '@/hooks/event/type';
 
 type DateSelectInfo = {
     id: string;
@@ -14,18 +15,10 @@ type DateSelectInfo = {
     end: Date;
 }
 
-type CalendarEvent = {
-    id: string;
-    title: string;
-    start: Date;
-    end: Date;
-    origin: "google" | "local";
-}
-
 interface SelectableCalendarProps<TDate extends DateSelectInfo, TEvent extends CalendarEvent> {
-    dateAtom?: any;
-    eventAtom?: any;
-    editingEvent?: ProposedDate[];
+    dateAtom: any;
+    eventAtom: any;
+    editingEvent?: EventDraftDetail;
 }
 
 const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends CalendarEvent>({

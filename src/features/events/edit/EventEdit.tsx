@@ -76,7 +76,7 @@ const EventEdit = () => {
                             location={eventDetail.location}
                         />
                         <SelectableCalendar
-                            editingEvent={eventDetail.proposed_dates}
+                            editingEvent={eventDetail}
                             dateAtom={proposedDatesAtom}
                             eventAtom={proposedEventsAtom}
                         />

@@ -9,5 +9,14 @@ export interface EventDraftDetail {
     url: string;
     status: string;
     confirmed_date_id: string | null;
+    google_event_id: string;
     proposed_dates: ProposedDate[];
+}
+
+export interface SearchParams {
+    title?: string;
+    location?: string;
+    startTime?: string;
+    endTime?: string;
+    status?: "confirmed" | "pending" | "rejected";
 }
