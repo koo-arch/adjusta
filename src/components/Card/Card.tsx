@@ -74,9 +74,7 @@ interface CardProps extends VariantProps<typeof cardStyle> {
 const Card: React.FC<CardProps> = ({ variant, background, isButton, footer, actions, children, onClick, className }) => {
     return (
         <div className={`${cardStyle({ variant, background, isButton })} ${className}`} onClick={onClick}>
-            <div className="mb-4">
-                {children}
-            </div>
+            {children}
             {actions && (
                 <div className="flex justify-end space-x-2">
                     {actions}

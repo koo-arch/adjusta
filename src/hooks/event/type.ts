@@ -20,3 +20,8 @@ export interface SearchParams {
     endTime?: string;
     status?: "confirmed" | "pending" | "rejected";
 }
+
+export interface UpcomingEvent extends Omit<EventDraftDetail, 'proposed_dates'> {
+    start: Date;
+    end: Date;
+}

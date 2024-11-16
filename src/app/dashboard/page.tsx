@@ -1,12 +1,11 @@
 import React from 'react';
-import UserInfo from '@/features/auth/UserInfo';
 import Calendar from '@/features/calendar/Calendar';
+import UpcomingEvents from '@/features/dashboard/UpcomingEvents';
 
 const DashboardPage = () => {
     return (
         <div>
-            <h1>Dashboard</h1>
-            <UserInfo />
+            <UpcomingEvents />
             <Calendar />
         </div>
     )
