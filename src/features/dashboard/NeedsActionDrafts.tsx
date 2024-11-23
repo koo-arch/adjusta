@@ -1,12 +1,12 @@
 'use client'
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useFetchUpcomingEvents } from '@/hooks/event/useFetchUpcomingEvents';
+import { useFetchNeedsActionDrafts } from '@/hooks/event/useFetchNeedsActionDrafts';
 import MiniEventCard from '@/features/events/MiniEventCard';
 
-const UpcomingEvents: React.FC = () => {
+const NeedsActionDrafts: React.FC = () => {
     const router = useRouter();
-    const { upcomingEvents, isLoading, error } = useFetchUpcomingEvents();
+    const { needsActionDrafts, isLoading, error } = useFetchNeedsActionDrafts();
 
     if (isLoading) {
         return <p>Loading...</p>;
@@ -14,10 +14,10 @@ const UpcomingEvents: React.FC = () => {
 
     return (
         <section className="bg-white">
-            <h2 className="text-lg font-bold mb-4">直近のイベント</h2>
-            {upcomingEvents && upcomingEvents.length > 0 ? (
+            <h2 className="text-lg font-bold mb-4">対応が必要なイベント</h2>
+            {needsActionDrafts && needsActionDrafts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {upcomingEvents.map((event) => (
+                    {needsActionDrafts.map((event) => (
                         <MiniEventCard
                             key={event.id}
                             onClick={() => router.push(`/schedule/draft/${event.id}`)}
@@ -29,7 +29,7 @@ const UpcomingEvents: React.FC = () => {
                 <p>イベントはありません。</p>
             )}
         </section>
-    );
-};
+    )
+}
 
-export default UpcomingEvents;
+export default NeedsActionDrafts;

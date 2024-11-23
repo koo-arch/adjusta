@@ -25,3 +25,7 @@ export interface UpcomingEvent extends Omit<EventDraftDetail, 'proposed_dates'> 
     start: Date;
     end: Date;
 }
+
+export interface NeedsActionDraft extends Omit<UpcomingEvent, 'confirmed_date_id' | 'google_event_id'> {
+    needs_attention: boolean;
+}

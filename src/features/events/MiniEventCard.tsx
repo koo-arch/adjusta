@@ -1,15 +1,17 @@
 import React from 'react';
 import Card from '@/components/Card';
-import { UpcomingEvent } from '@/hooks/event/type';
 import { formatJaDateSpan } from '@/lib/date/format';
-import { MapPinIcon } from '@heroicons/react/20/solid';
+import { CalendarIcon, ExclamationCircleIcon } from '@heroicons/react/20/solid';
 
 interface MiniEventCardProps {
-    event: UpcomingEvent;
+    title : string;
+    start: Date;
+    end: Date;
+    needs_attention?: boolean;
     onClick: () => void;
 }
 
-const MiniEventCard: React.FC<MiniEventCardProps> = ({ event, onClick }) => {
+const MiniEventCard: React.FC<MiniEventCardProps> = ({ title, start, end, needs_attention, onClick }) => {
     return (
         <Card
             isButton
@@ -17,13 +19,15 @@ const MiniEventCard: React.FC<MiniEventCardProps> = ({ event, onClick }) => {
             background="white"
             onClick={onClick}
         >
-            <h3 className="text-indigo-600 font-semibold truncate">{event.title}</h3>
-            <p className="text-sm text-gray-500">
-                {formatJaDateSpan(event.start, event.end)}
-            </p>
+            <div className="flex justify-between items-center">
+                <h3 className="text-indigo-600 font-semibold truncate">{title}</h3>
+               {needs_attention && 
+                   <ExclamationCircleIcon className="w-5 h-5 text-red-500" title="要調整" />
+                }
+            </div>
             <div className="flex items-center mt-2">
-                <MapPinIcon className="w-4 h-4 text-gray-500 mr-2" />
-                <p className="text-xs text-gray-700">{event.location || '未設定'}</p>
+                <CalendarIcon className="w-4 h-4 text-gray-500 mr-2" />
+                <p className="text-xs text-gray-700">{formatJaDateSpan(start, end)}</p>
             </div>
         </Card>
     )
