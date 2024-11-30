@@ -2,6 +2,8 @@
 import React from 'react';
 import { Description, Dialog, DialogPanel, DialogTitle, DialogBackdrop } from '@headlessui/react';
 import Button from '@/components/Button';
+import IconButton from '@/components/IconButton';
+import { XMarkIcon } from '@heroicons/react/20/solid';
 
 interface ModalProps {
     isOpen: boolean;
@@ -26,7 +28,18 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, descrip
                         transition
                         className="w-full max-w-md rounded-xl bg-white p-6 duration-300 ease-out data-[closed]:transform-[scale(95%)] data-[closed]:opacity-0"
                     >
-                        <DialogTitle as="h3" className="text-inherit font-medium text-lg">{title}</DialogTitle>
+                        <div className="flex items-start justify-between">
+                            <DialogTitle as="h3" className="text-inherit font-medium text-lg">{title}</DialogTitle>
+                            {!hideCloseButton && (
+                                <IconButton
+                                    onClick={onClose}
+                                    iconColor="clear"
+                                    className="relative -top-2 -right-2"
+                                >
+                                    <XMarkIcon className="w-7 h-7" />
+                                </IconButton>
+                            )}
+                        </div>
                         {description && (
                             <Description className="text-sm text-gray-500">
                                 {description}

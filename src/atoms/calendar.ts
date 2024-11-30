@@ -1,6 +1,7 @@
 import { atomWithStorage } from "jotai/utils";
 import { atom } from "jotai";
 import { validateUUID } from "@/lib/validation/uuid";
+import { CalendarEvent } from "@/features/calendar/type";
 
 export interface SelectedDate {
     id: string;
@@ -101,3 +102,5 @@ export const sendProposedDatesAtom = atom<SendProposedDate[]>(
         }));
     }
 );
+
+export const allEventsAtom = atom<CalendarEvent[]>([]);
