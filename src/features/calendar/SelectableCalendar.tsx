@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
-import type { EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import Calendar from './Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
@@ -32,22 +32,27 @@ const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends Calenda
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
 
-    const handleDateSelect = (selectInfo: { start: Date, end: Date }) => {
+    const handleDateSelect = (e: DateSelectArg) => {
         const newDate = {
             id : new Date().getTime().toString(),
-            start: selectInfo.start,
-            end: selectInfo.end,
+            start: e.start,
+            end: e.end,
         } as TDate;
         setSelectedDates([...selectedDates, newDate]);
     }
 
     // イベントをクリックした時にポップアップを表示する
     const handleEventClick = (e: EventClickArg) => {
-        if (buttonRef.current) {
-            buttonRef.current.click();
+        const event = selectedDates.find((date) => date.id === e.event.id);
+
+        if (event) {
+            if (buttonRef.current) {
+                buttonRef.current.click();
+            }
+
+            setClickedEvent(e.event);
+            setPopupPosition({ top: e.jsEvent.pageY, left: e.jsEvent.pageX });
         }
-        setClickedEvent(e.event);
-        setPopupPosition({ top: e.jsEvent.clientY, left: e.jsEvent.clientX });
     }
 
     // イベントのドラッグ＆ドロップ時の処理

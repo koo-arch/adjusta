@@ -7,7 +7,7 @@ import SortableItem from './SortableItem';
 interface DraggableListProps<T> {
     items: T[];
     onReorder: (newItems: T[]) => void;
-    renderItem: (item: T) => React.ReactNode;
+    renderItem: (item: T, index: number) => React.ReactNode;
     getKey: (item: T) => string;
     enableTopHighlight?: boolean;
 }
@@ -56,7 +56,7 @@ const DraggableList = <T extends unknown>({
                         index={index}
                         enableTopHighlight={enableTopHighlight}
                     >
-                        {renderItem(item)}
+                        {renderItem(item, index)}
                     </SortableItem>
                 ))}
             </SortableContext>

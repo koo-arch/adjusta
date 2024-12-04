@@ -4,7 +4,7 @@ import { useAtom } from 'jotai';
 import { allEventsAtom } from '@/atoms/calendar';
 import { StyleWrapper } from './style';
 import FullCalendar from '@fullcalendar/react';
-import type { ToolbarInput, DateRangeInput, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { ToolbarInput, DateRangeInput, EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -22,7 +22,7 @@ interface CalendarProps<T extends CalendarEvent> {
     initialView?: "dayGridMonth" | "dayGridWeek" | "timeGridWeek" | "timeGridDay";
     firstDay?: number;
     headerToolbar?: ToolbarInput;
-    select?: (arg: { start: Date, end: Date }) => void;
+    select?: (arg: DateSelectArg) => void;
     selectedEvents?: T[];
     visibleRange?: DateRangeInput;
     eventClick?: (e: EventClickArg) => void;
@@ -89,10 +89,6 @@ const Calendar = <T extends CalendarEvent>({
         }
     }, [events, searchEvents, isGoogleEventLoading, isSearchLoading, editEvent, setAllEvents, selectedEvents]);
     
-    
-    if (isGoogleEventLoading || isSearchLoading) {
-        return <p>Loading...</p>;
-    }
 
     return (
         <div>

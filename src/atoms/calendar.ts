@@ -22,7 +22,7 @@ export interface SendSelectedDate extends Omit<SelectedDate, "id"> {
 // 既存の日付データを保存するatom
 export const selectedDatesAtom = atomWithStorage<SelectedDate[]>("selectedDates", []);
 
-export const titleAtom = atomWithStorage<string>("title", "");
+export const titleAtom = atom<string>("");
 
 // 日付に基づいてイベントを生成するatom
 export const selectedEventsAtom = atom<SelectedEvent[]>(
@@ -70,13 +70,11 @@ export interface SendProposedDate extends Omit<ProposedDate, "id"> {
 // 編集する候補日程を保存するatom
 export const proposedDatesAtom = atom<ProposedDate[]>([]);
 
-export const updateTitleAtom = atom<string>("");
-
 // proposedDatesAtomに基づいてイベントを生成するatom
 export const proposedEventsAtom = atom<ProposedEvent[]>(
     (get) => {
         const proposedDates = get(proposedDatesAtom);
-        let title = get(updateTitleAtom);
+        let title = get(titleAtom);
 
         if (!title) {
             title = "新しいイベント";

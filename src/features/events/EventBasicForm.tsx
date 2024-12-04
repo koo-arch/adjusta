@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
-import { updateTitleAtom } from '@/atoms/calendar';
+import { titleAtom } from '@/atoms/calendar';
 import { useFormContext } from 'react-hook-form';
 import Card from '@/components/Card';
 import TextField from '@/components/TextField';
@@ -16,7 +16,7 @@ interface EventBasicFormProps {
 
 const EventBasicForm: React.FC<EventBasicFormProps> =({ title, description, location }) => {
     const { register, formState: { errors } } = useFormContext<EventDraftForm>();
-    const [updateTitle, setUpdateTitle] = useAtom(updateTitleAtom);
+    const [updateTitle, setUpdateTitle] = useAtom(titleAtom);
 
     useEffect(() => {
        if (title) {
@@ -26,11 +26,12 @@ const EventBasicForm: React.FC<EventBasicFormProps> =({ title, description, loca
 
     return (
         <Card variant="outlined" background="inherit" className="w-full">
+            <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300">基本情報</h2>
+            <p className="text-sm text-gray-500 mb-4">日程調整するイベントのタイトルや詳細を入力してください</p>
             <div className="space-y-6">
                 <TextField
                     {...register('title')}
                     label="タイトル"
-                    defaultValue={title}
                     error={!!errors.title}
                     helperText={errors.title?.message}
                     onChange={(e) => setUpdateTitle(e.target.value)}

@@ -3,7 +3,8 @@ import React from 'react';
 import { useAtom } from 'jotai';
 import type { SelectedDate, ProposedDate } from '@/atoms/calendar';
 import DraggableList from '@/components/DraggableList';
-import { formatJaDate } from '@/lib/date/format';
+import BreakWords from '@/components/WrapText';
+import { formatJaDateSpan } from '@/lib/date/format';
 import IconButton from '@/components/IconButton';
 import { TrashIcon } from '@heroicons/react/20/solid';
 
@@ -30,14 +31,19 @@ const DraggableEventList = <T extends SelectedDate | ProposedDate>({
         <DraggableList
             items={dates}
             onReorder={handleReorder}
-            renderItem={(date: T) => (
+            renderItem={(date: T, index) => (
                 <div className="flex justify-between items-center">
                     <span>
-                        {formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
+                        {index + 1}.
                     </span>
+                    <BreakWords 
+                        text={formatJaDateSpan(date.start, date.end)}
+                        maxLength={22}
+                        marker='-'
+                    />
                     <IconButton
                         onClick={() => handleDelete(date.id)}
-                        className="ml-2"
+                        className="ml-1"
                         iconSize="md"
                         iconColor="clear"
                     >
