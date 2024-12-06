@@ -1,25 +1,21 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import axios from '@/lib/axios/public';
 import { useAtom } from 'jotai';
-import { ProposedDate, proposedDatesAtom, proposedEventsAtom, sendProposedDatesAtom } from '@/atoms/calendar';
+import {  proposedDatesAtom, sendProposedDatesAtom } from '@/atoms/calendar';
+import { isConfirmedAtomFamily } from '@/atoms/event';
 import { useFetchEventDetail } from '@/hooks/event/useFetchEventDetail';
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
 import { useParams } from 'next/navigation';
 import type { EventUpdateForm } from '../type';
-import EventBasicForm from '../EventBasicForm';
-import SelectableCalendar from '@/features/calendar/SelectableCalendar';
-import DraggableEventList from '../DraggableEventList';
-import ToggleSwitch from '@/components/ToggleSwitch';
+import EventForm from '../EventForm';
 
 const EventEdit = () => {
     const params = useParams<{ id: string }>();
     const { eventDetail, isLoading, error } = useFetchEventDetail(params.id);
     const [proposedDates, setProposedDates] = useAtom(proposedDatesAtom);
     const [sendProposedDates] = useAtom(sendProposedDatesAtom);
-
-    const status = eventDetail?.status;
-    const [isConfirmed, setIsConfirmed] = useState<boolean>(status === "confirmed");
+    const [isConfirmed] = useAtom(isConfirmedAtomFamily(params.id));
 
     const method = useForm<EventUpdateForm>({
         defaultValues: {
@@ -70,26 +66,10 @@ const EventEdit = () => {
             {eventDetail &&
                 <FormProvider {...method}>
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <EventBasicForm
-                            title={eventDetail.title}
-                            description={eventDetail.description}
-                            location={eventDetail.location}
+                        <EventForm
+                            formType="edit"
+                            eventDetail={eventDetail}
                         />
-                        <SelectableCalendar
-                            editingEvent={eventDetail}
-                            dateAtom={proposedDatesAtom}
-                            eventAtom={proposedEventsAtom}
-                        />
-                        <ToggleSwitch
-                            checked={isConfirmed}
-                            onChange={() => setIsConfirmed(!isConfirmed)}
-                            label="候補日程の確定"
-                        />
-                        <DraggableEventList<ProposedDate> 
-                            atom={proposedDatesAtom}
-                            enableTopHighlight={isConfirmed}
-                        />
-                        <button type="submit">Submit</button>
                     </form>
                 </FormProvider>
             }

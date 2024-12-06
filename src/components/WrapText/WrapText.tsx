@@ -8,7 +8,6 @@ interface WrapTextProps {
 }
 
 const WrapText: React.FC<WrapTextProps> = ({ text, maxLength, marker }) => {
-    console.log(text.length)
     const brokenText = insertLineBreakAtMarker(text, marker, maxLength);
     return (
         <div>

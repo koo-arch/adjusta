@@ -1,3 +1,3 @@
-import BreakWords from "./WrapText";
+import WrapText from "./WrapText";
 
-export default BreakWords;
+export default WrapText;

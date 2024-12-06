@@ -14,7 +14,7 @@ type DetailCardProps = {
 }
 
 const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
-    const confirmedDate = detail.proposed_dates.find((date) => date.id === detail.confirmed_date_id);
+    const confirmedDate = detail.proposed_dates?.find((date) => date.id === detail.confirmed_date_id);
     const isConfirmed = detail.status === 'confirmed' && !!detail.confirmed_date_id && !!confirmedDate;
     return (
         <Card variant="outlined" className="w-full shadow-md">

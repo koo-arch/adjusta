@@ -1,6 +1,5 @@
 'use client'
 import React from 'react';
-import { Button } from '@headlessui/react'
 import { useRouter } from 'next/navigation';
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -91,7 +90,7 @@ export interface BaseButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
     to?: string;
 }
 
-export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, type, children}) => {
+export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, children, ...props }) => {
     const router = useRouter();
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -109,7 +108,11 @@ export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, 
     }
 
     return (
-        <button className={className} onClick={handleClick}>
+        <button
+            className={className}
+            onClick={handleClick}
+            {...props}
+        >
             {children}
         </button>
     )

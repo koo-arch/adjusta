@@ -1,18 +1,20 @@
 'use client'
 import React, { useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import axios from '@/lib/axios/public';
-import { selectedDatesAtom, titleAtom, sendSelectedDatesAtom } from '@/atoms/calendar';
+import { selectedDatesAtom, sendSelectedDatesAtom, titleAtomFamily } from '@/atoms/calendar';
 import { useAtom } from 'jotai';
 import { useForm, type SubmitHandler, FormProvider } from 'react-hook-form';
 import type { EventDraftForm } from './type';
 import EventForm from './EventForm';
 
 const EventDraft: React.FC = () => {
+    const { id } = useParams<{ id?: string }>()
     const method = useForm<EventDraftForm>();
     const { handleSubmit, setValue, formState: { errors } } = method;
     const [selectedDates, setSelectedDates] = useAtom(selectedDatesAtom);
     const [sendSelectedDate] = useAtom(sendSelectedDatesAtom);
-    const [title, setTitle] = useAtom(titleAtom);
+    const [title, setTitle] = useAtom(titleAtomFamily(id));
 
     useEffect(() => {
         setValue('selected_dates', sendSelectedDate);
@@ -39,7 +41,9 @@ const EventDraft: React.FC = () => {
         <div>
             <FormProvider {...method}>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <EventForm />
+                    <EventForm
+                        formType="draft"
+                     />
                 </form>
             </FormProvider>
         </div>

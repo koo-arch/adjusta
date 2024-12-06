@@ -1,7 +1,8 @@
 'use client'
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useParams } from 'next/navigation';
 import { useAtom } from 'jotai';
-import { titleAtom } from '@/atoms/calendar';
+import { titleAtomFamily } from '@/atoms/calendar';
 import { useFormContext } from 'react-hook-form';
 import Card from '@/components/Card';
 import TextField from '@/components/TextField';
@@ -9,20 +10,14 @@ import TextArea from '@/components/TextArea';
 import type { EventDraftForm } from './type';
 
 interface EventBasicFormProps {
-    title?: string;
     description?: string;
     location?: string;
 }
 
-const EventBasicForm: React.FC<EventBasicFormProps> =({ title, description, location }) => {
+const EventBasicForm: React.FC<EventBasicFormProps> =({ description, location }) => {
+    const { id } = useParams<{ id?: string }>();
     const { register, formState: { errors } } = useFormContext<EventDraftForm>();
-    const [updateTitle, setUpdateTitle] = useAtom(titleAtom);
-
-    useEffect(() => {
-       if (title) {
-           setUpdateTitle(title);
-       }
-    }, [updateTitle, setUpdateTitle, title]);
+    const [title, setUpdateTitle] = useAtom(titleAtomFamily(id));
 
     return (
         <Card variant="outlined" background="inherit" className="w-full">
@@ -32,6 +27,7 @@ const EventBasicForm: React.FC<EventBasicFormProps> =({ title, description, loca
                 <TextField
                     {...register('title')}
                     label="タイトル"
+                    defaultValue={title}
                     error={!!errors.title}
                     helperText={errors.title?.message}
                     onChange={(e) => setUpdateTitle(e.target.value)}

@@ -71,7 +71,7 @@ const Calendar = <T extends CalendarEvent>({
             
             const searchEventList: CalendarEvent[] = searchEvents?.flatMap(event => {
                 return event.proposed_dates
-                .filter(date => !editEvent?.proposed_dates?.some(edit => edit.id === date.id))
+                ?.filter(date => !editEvent?.proposed_dates?.some(edit => edit.id === date.id))
                 .map(date => ({
                     id: date.id,
                     title: event.title,

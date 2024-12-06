@@ -37,7 +37,7 @@ const statusColor = (status: string) => {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
-    const confirmedDate= event.proposed_dates.find((date) => date.id === event.confirmed_date_id);
+    const confirmedDate= event.proposed_dates?.find((date) => date.id === event.confirmed_date_id);
     const isConfirmed = event.status === 'confirmed' && !!event.confirmed_date_id && !!confirmedDate;
 
     return (
