@@ -11,12 +11,23 @@ const meta: Meta<typeof StatusBadge> = {
     },
     tags: ['autodocs'],
     argTypes: {
-        color: {
+        label: {
+            control: 'text',
+        },
+        circleSize: {
+            options: ['sm', 'md', 'lg'],
+            control: { type: 'radio' },
+        },
+        circleColor: {
             options: ['gray', 'red', 'green', 'blue', 'yellow', 'indigo', 'purple', 'pink'],
             control: { type: 'radio' },
         },
-        size: {
-            options: ['sm', 'md', 'lg'],
+        textSize: {
+            options: ['sm', 'md', 'lg', 'xl'],
+            control: { type: 'radio' },
+        },
+        textColor: {
+            options: ['gray', 'red', 'green', 'blue', 'yellow', 'indigo', 'purple', 'pink'],
             control: { type: 'radio' },
         },
     },
@@ -35,6 +46,9 @@ export const Default: Story = {
 export const CustomColor: Story = {
     args: {
         label: 'Status',
-        color: 'green',
+        circleColor: 'green',
+        circleSize: 'lg',
+        textColor: 'green',
+        textSize: 'xl',
     },
 };
