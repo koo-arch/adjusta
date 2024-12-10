@@ -3,12 +3,16 @@ import React, { useState } from 'react';
 import axios from '@/lib/axios/public';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import Button from '@/components/Button';
+import IconButton from '@/components/IconButton';
 import ToggleButton from '@/components/ToggleButton';
 import Modal from '@/components/Modal';
 import DropdownSelect from '@/components/DropdownSelect';
 import { formatJaDate } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { EventDraftDetail } from '@/hooks/event/type';
+import { MdEditCalendar } from 'react-icons/md';
+import { FaRegCalendarCheck } from 'react-icons/fa6';
+
 interface ConfrimForm {
     confirm_date: {
         id: string | null;
@@ -22,9 +26,10 @@ interface ConfrimForm {
 interface ConfirmButtonProps {
     id: string;
     detail: EventDraftDetail;
+    isConfirmed: boolean;
 }
 
-const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail }) => {
+const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }) => {
     const [isOpen, setIsOpen] = useState(false);
     const proposedDates = detail.proposed_dates || [];
     const [isDropdownSelected, setIsDropdownSelected] = useState(true); // ドロップダウンが選ばれているかどうか
@@ -65,19 +70,21 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail }) => {
 
     return (
         <>
-            <Button
-                shape='full'
-                variant='solid'
-                intent='primary'
-                size='sm'
+            <IconButton
+                iconColor={isConfirmed? 'primary': 'success'}
+                iconSize={"lg"}
                 onClick={() => setIsOpen(true)}
             >
-                日程確定
-            </Button>
+                {isConfirmed ? (
+                    <MdEditCalendar />
+                ) : (
+                    <FaRegCalendarCheck />
+                )}
+            </IconButton>
             <Modal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                title='日程確定'
+                title={isConfirmed ? '日程を変更' : '日程を確定'}
                 description="確定させる日程を選択してください。"
                 actions={
                     <Button

@@ -1,7 +1,7 @@
 'use client'
 import React from 'react';
 import Card from '@/components/Card';
-import { formatJaDate } from '@/lib/date/format';
+import { formatJaDateSpan } from '@/lib/date/format';
 import type { EventDraftDetail } from '@/hooks/event/type';
 import { MapPinIcon } from '@heroicons/react/20/solid';
 import EditButton from './EditButton';
@@ -28,10 +28,14 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                     <div className='mb-2'>
                         <div className="flex items-center space-x-2 mb-2">
                             <h2 className="text-lg font-semibold text-gray-700">確定日時</h2>
-                            <ConfirmButton id={id} detail={detail} />
+                            <ConfirmButton
+                                id={id}
+                                detail={detail}
+                                isConfirmed={isConfirmed}
+                            />
                         </div>
                         <p className="text-lg text-indigo-500">
-                            {formatJaDate(confirmedDate?.start)} 〜 {formatJaDate(confirmedDate?.end)}
+                            {formatJaDateSpan(confirmedDate.start, confirmedDate.end)}
                         </p>
                     </div>
                 )}
@@ -40,12 +44,16 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, id }) => {
                     <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                             <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
-                            <ConfirmButton id={id} detail={detail} />
+                            <ConfirmButton 
+                                id={id}
+                                detail={detail}
+                                isConfirmed={isConfirmed}
+                            />
                         </div>
                         {detail.proposed_dates?.map((date) => (
                             <p key={date.id} className="text-sm text-gray-500">
                                 <span className="font-medium">第{date.priority}候補：</span>
-                                {formatJaDate(date.start)} 〜 {formatJaDate(date.end)}
+                                {formatJaDateSpan(date.start, date.end)}
                             </p>
                         ))}
                     </div>
