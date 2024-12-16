@@ -8,17 +8,12 @@ import SelectEventList from './SelectEventList';
 import type { EventDraftDetail } from '@/hooks/event/type';
 
 interface EventFormProps {
-    formType: 'draft' | 'edit';
     eventDetail?: EventDraftDetail;
 }
 
 
-const EventForm: React.FC<EventFormProps> = ({ formType, eventDetail }) => {
+const EventForm: React.FC<EventFormProps> = ({ eventDetail }) => {
     const isMobile = useMediaQuery({ maxWidth: 768 });
-
-    if (formType == 'edit' && !eventDetail) {
-        return null;
-    }
 
     return (
         <div>
@@ -32,24 +27,16 @@ const EventForm: React.FC<EventFormProps> = ({ formType, eventDetail }) => {
                     </section>
                     {isMobile && (
                         <section>
-                            <CalendarForm
-                                formType={formType}
-                                editingEvent={eventDetail}
-                            />
+                            <CalendarForm editingEvent={eventDetail} />
                         </section>
                     )}
                     <section>
-                        <SelectEventList
-                            formType={formType}
-                        />
+                        <SelectEventList />
                     </section>
                 </div>
                 {!isMobile && (
                     <section className="md:col-span-6">
-                        <CalendarForm
-                            formType={formType}
-                            editingEvent={eventDetail}
-                        />
+                        <CalendarForm editingEvent={eventDetail} />
                     </section>
                 )}
             </div>

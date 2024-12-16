@@ -3,6 +3,7 @@ import { atom } from "jotai";
 import { atomWithDefault } from "jotai/utils";
 import { validateUUID } from "@/lib/validation/uuid";
 import { CalendarEvent } from "@/features/calendar/type";
+import { SendSelectedDate } from "@/features/events/zod";
 import { fetchEventDetailAtomFamily } from "./queries/event";
 
 export interface SelectedDate {
@@ -14,11 +15,6 @@ export interface SelectedDate {
 export interface SelectedEvent extends SelectedDate {
     title: string;
     origin: "google" | "local";
-}
-
-export interface SendSelectedDate extends Omit<SelectedDate, "id"> {
-    id: string | null;
-    priority: number;
 }
 
 // 既存の日付データを保存するatom

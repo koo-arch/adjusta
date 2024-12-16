@@ -1,5 +1,6 @@
 'use client'
 import React from 'react';
+import { useFormContext } from 'react-hook-form';
 import { useParams } from 'next/navigation';
 import SelectableCalendar from '@/features/calendar/SelectableCalendar';
 import type { EventDraftDetail } from '@/hooks/event/type';
@@ -9,14 +10,17 @@ import {
     proposedDatesAtom,
     proposedEventsAtomFamily,
 } from '@/atoms/calendar';
+import type { DiscriminatedEventForm } from './zod';
 
 interface CalendarFormProps {
-    formType: 'draft' | 'edit';
     editingEvent?: EventDraftDetail
 }
 
-const CalendarForm: React.FC<CalendarFormProps> = ({ formType, editingEvent }) => {
+const CalendarForm: React.FC<CalendarFormProps> = ({ editingEvent }) => {
     const { id } = useParams<{ id?: string}>();
+    const { getValues } = useFormContext<DiscriminatedEventForm>();
+    
+    const formType = getValues('form_type');
     const dateAtom = formType === 'draft' ? selectedDatesAtom : proposedDatesAtom;
     const eventAtom = formType === 'draft' ? selectedEventsAtomFamily(id) : proposedEventsAtomFamily(id);
 

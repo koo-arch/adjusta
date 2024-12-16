@@ -7,7 +7,7 @@ import { isConfirmedAtomFamily } from '@/atoms/event';
 import { useFetchEventDetail } from '@/hooks/event/useFetchEventDetail';
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
 import { useParams } from 'next/navigation';
-import type { EventUpdateForm } from '../type';
+import { type DiscriminatedEventForm, DiscriminatedEventFormResolver } from '../zod';
 import EventForm from '../EventForm';
 
 const EventEdit = () => {
@@ -17,8 +17,10 @@ const EventEdit = () => {
     const [sendProposedDates] = useAtom(sendProposedDatesAtom);
     const [isConfirmed] = useAtom(isConfirmedAtomFamily(params.id));
 
-    const method = useForm<EventUpdateForm>({
+    const method = useForm<DiscriminatedEventForm>({
+        resolver: DiscriminatedEventFormResolver,
         defaultValues: {
+            form_type: "edit",
             id: params.id,
         }
     }
@@ -37,11 +39,11 @@ const EventEdit = () => {
         }
     }, [eventDetail, setProposedDates]);
 
-    const putEventUpdate = async (data: EventUpdateForm) => {
+    const putEventUpdate = async (data: DiscriminatedEventForm) => {
         return await axios.put(`api/calendar/event/draft/${params.id}`, data);
     }
 
-    const onSubmit: SubmitHandler<EventUpdateForm> = (data) => {
+    const onSubmit: SubmitHandler<DiscriminatedEventForm> = (data) => {
         // statusをisConfirmedの値に応じて変更
         const updateData = {
             ...data,
@@ -66,10 +68,7 @@ const EventEdit = () => {
             {eventDetail &&
                 <FormProvider {...method}>
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <EventForm
-                            formType="edit"
-                            eventDetail={eventDetail}
-                        />
+                        <EventForm eventDetail={eventDetail} />
                     </form>
                 </FormProvider>
             }

@@ -7,7 +7,7 @@ import { useFormContext } from 'react-hook-form';
 import Card from '@/components/Card';
 import TextField from '@/components/TextField';
 import TextArea from '@/components/TextArea';
-import type { EventDraftForm } from './type';
+import type { DiscriminatedEventForm } from './zod';
 
 interface EventBasicFormProps {
     description?: string;
@@ -16,7 +16,7 @@ interface EventBasicFormProps {
 
 const EventBasicForm: React.FC<EventBasicFormProps> =({ description, location }) => {
     const { id } = useParams<{ id?: string }>();
-    const { register, formState: { errors } } = useFormContext<EventDraftForm>();
+    const { register, formState: { errors } } = useFormContext<DiscriminatedEventForm>();
     const [title, setUpdateTitle] = useAtom(titleAtomFamily(id));
 
     return (
