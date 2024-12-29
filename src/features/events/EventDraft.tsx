@@ -1,7 +1,8 @@
 'use client'
 import React, { useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import axios from '@/lib/axios/public';
+import { toast } from 'react-toastify';
 import { selectedDatesAtom, sendSelectedDatesAtom, titleAtomFamily } from '@/atoms/calendar';
 import { useAtom } from 'jotai';
 import { useForm, type SubmitHandler, FormProvider } from 'react-hook-form';
@@ -9,7 +10,8 @@ import { type DiscriminatedEventForm, DiscriminatedEventFormResolver } from './z
 import EventForm from './EventForm';
 
 const EventDraft: React.FC = () => {
-    const { id } = useParams<{ id?: string }>()
+    const { id } = useParams<{ id?: string }>();
+    const router = useRouter();
     const method = useForm<DiscriminatedEventForm>({
         resolver: DiscriminatedEventFormResolver,
         defaultValues: {
@@ -35,10 +37,12 @@ const EventDraft: React.FC = () => {
                 console.log(res);
                 setSelectedDates([]);
                 setTitle('');
+                toast.success('イベントを作成しました');
+                router.push(`/schedule/draft/${res.data.id}`);
             })
             .catch(err => {
                 console.log(err);
-                // Todo: エラーメッセージを表示する
+                toast.error('イベントの作成に失敗しました');
             })
     }
 
