@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import Providers from "./providers";
+import ToastProvider from "./ToastProvider";
 import { Inter } from "next/font/google";
+import 'react-datepicker/dist/react-datepicker.css';
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -24,13 +26,15 @@ export default function RootLayout({
     >
       <body className={inter.className}>
         <Providers>
-          <ThemeProvider
-            defaultTheme="system"
-            enableSystem
-          >
-            <Header />
-            {children}
-          </ThemeProvider>
+          <ToastProvider>
+            <ThemeProvider
+              defaultTheme="system"
+              enableSystem
+            >
+              <Header />
+              {children}
+            </ThemeProvider>
+          </ToastProvider>
         </Providers>
       </body>
     </html>

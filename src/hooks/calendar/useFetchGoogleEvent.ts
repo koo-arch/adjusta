@@ -3,31 +3,21 @@ import useSWR from 'swr';
 import axios from '@/lib/axios/public';
 import { authAtom } from '@/atoms/auth';
 import { useAtom } from 'jotai';
-
-interface Accounts {
-    account_id: string;
-    user_info: AccountInfo;
-}
-
-interface AccountInfo {
-    sub: string;
-    name: string;
-    email: string;
-    picture: string;
-}
+import type { GoogleEvent } from './type';
 
 const fetcher = async (url: string) => await axios.get(url).then(res => res.data);
 
-export const useAccounts = () => {
+export const useFetchGoogleEvent = () => {
     const [isAuthenticated] = useAtom(authAtom);
-    const { data, isLoading, error } = useSWR<Accounts[]>(
-        isAuthenticated ? '/api/account/list' : null,
+    const { data, isLoading, error } = useSWR<GoogleEvent[]>(
+        isAuthenticated ? '/api/calendar/list' : null,
         fetcher
     );
 
     return {
-        accounts: data,
+        events: data,
         isLoading,
         error
     }
 }
+

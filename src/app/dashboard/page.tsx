@@ -1,13 +1,23 @@
 import React from 'react';
-import UserInfo from '@/features/auth/UserInfo';
-import Calendar from '@/features/calendar/Calendar';
+import ModalCalendar from '@/features/calendar/ModalCalendar';
+import UpcomingEvents from '@/features/dashboard/UpcomingEvents';
+import NeedsActionDrafts from '@/features/dashboard/NeedsActionDrafts';
 
 const DashboardPage = () => {
     return (
-        <div>
-            <h1>Dashboard</h1>
-            <UserInfo />
-            <Calendar />
+        <div className="mx-auto max-w-screen-lg p-4">
+            <main className="">
+                <section className="mb-4">
+                    <NeedsActionDrafts />
+                </section>
+                <section className="mb-4">
+                    <UpcomingEvents />
+                </section>
+                <section className="mb-4">
+                    <h2 className="text-lg font-bold">カレンダー</h2>
+                    <ModalCalendar />
+                </section>
+            </main>
         </div>
     )
 }

@@ -1,16 +1,16 @@
 'use client'
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import UserButton from '../UserButton';
+import DraftRegisterButton from '@/features/events/DraftRegisterButton';
 import { usePathname } from 'next/navigation';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/20/solid';
 
 const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'About', href: '/about' },
-    { name: 'Contact', href: '/contact' },
+    { name: 'ホーム', href: '/' },
+    { name: 'イベント一覧', href: '/schedule/draft' },
 ]
 
 const classNames = (...classes: string[]) => {
@@ -18,14 +18,45 @@ const classNames = (...classes: string[]) => {
 }
 
 const Header: React.FC = () => {
+    const [hasShadow, setHasShadow] = useState(false);
     const pathname = usePathname();
 
+    // スクロール時の影を制御する
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 0) {
+                setHasShadow(true);
+            } else {
+                setHasShadow(false);
+            }
+        };
+
+        let ticking = false;
+
+        const onScroll = () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    handleScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
+
+        window.addEventListener('scroll', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+        };
+    }, []);
+
+    const isActived = (href: string) => pathname === href || (href === '/' && pathname === '/dashboard');
+
     return (
-        <Disclosure as="nav" className="lg:pb-12">
+        <Disclosure as="nav" className={`sticky top-0 z-10 bg-white transition-shadow ${hasShadow ? 'shadow-md' : ''}`}>
             {({ open }) => (
                 <>
                     <div className="mx-auto max-w-screen-2xl px-4 md:px-8">
-                        <div className='relative flex items-center justify-between py-4 md:py-8'>
+                        <div className='relative flex items-center justify-between py-4'>
                             <div className="absolute inset-y-0 left-0 flex items-center md:hidden">
 
                                 <DisclosureButton className="relative inline-flex items-center justify-center rounded-md p-2">
@@ -52,8 +83,8 @@ const Header: React.FC = () => {
                                     <div className="flex gap-12">
                                         {navigation.map((item) => (
                                             <Link key={item.name} href={item.href} className={classNames(
-                                                item.href === pathname ? 'text-indigo-500' : 'hover:text-indigo-500 active:text-indigo-700',
-                                                "text-lg font-semibold transiton duration-100"
+                                                isActived(item.href) ? 'text-indigo-500' : 'hover:text-indigo-500 active:text-indigo-700',
+                                                "text-lg font-semibold transition duration-100"
                                             )}
                                             >
                                                     {item.name}
@@ -62,7 +93,10 @@ const Header: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            <UserButton classNames={classNames} />
+                            <div className="flex items-center space-x-4">
+                                <DraftRegisterButton />
+                                <UserButton classNames={classNames} />
+                            </div>
                         </div>
                     </div>
 
@@ -77,7 +111,7 @@ const Header: React.FC = () => {
                                     as={Link}
                                     href={item.href}
                                     className={classNames(
-                                        item.href === pathname ? 'text-indigo-500' : 'hover:text-indigo-500 active:text-indigo-700',
+                                        isActived(item.href) ? 'text-indigo-500' : 'hover:text-indigo-500 active:text-indigo-700',
                                         "block text-lg font-semibold"
                                     )}
                                 >

@@ -1,13 +1,12 @@
 'use client'
 import React from 'react';
-import { Button } from '@headlessui/react'
 import { useRouter } from 'next/navigation';
 import { cva, type VariantProps } from "class-variance-authority";
 
 export const baseButton = cva("text-center", {
     variants: {
         variant: {
-            outline: "border bg-transparent hover:opacity-60 active:opacity-20",
+            outline: "border bg-transparent",
             solid: "",
         },
         shape: {
@@ -47,7 +46,7 @@ export const baseButton = cva("text-center", {
         {
             variant: "outline",
             intent: "clear",
-            className: "border-inherit text-inherit"
+            className: "border-inherit text-inherit hover:border-gray-500 hover:shadow-md active:border-gray-600 active:shadow-sm active:bg-inherit"
         },
         {
             variant: "solid",
@@ -91,7 +90,7 @@ export interface BaseButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
     to?: string;
 }
 
-export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, children}) => {
+export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, children, ...props }) => {
     const router = useRouter();
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -109,8 +108,12 @@ export const BaseButton: React.FC<BaseButtonProps> = ({ className, onClick, to, 
     }
 
     return (
-        <Button className={className} onClick={handleClick}>
+        <button
+            className={className}
+            onClick={handleClick}
+            {...props}
+        >
             {children}
-        </Button>
+        </button>
     )
 }

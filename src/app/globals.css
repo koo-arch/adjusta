@@ -21,3 +21,15 @@
     text-wrap: balance;
   }
 }
+
+/* Splideボタンの非表示ロジックを追加 */
+
+/* 左矢印（Prev）が無効なとき非表示 */
+.splide__arrow--prev[disabled] {
+    display: none;
+}
+
+/* 右矢印（Next）が無効なとき非表示 */
+.splide__arrow--next[disabled] {
+    display: none;
+}

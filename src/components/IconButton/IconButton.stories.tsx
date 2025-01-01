@@ -12,14 +12,6 @@ const meta: Meta<typeof IconButton> = {
     },
     tags: ["autodocs"],
     argTypes: {
-        intent: {
-            options: ["primary", "secondary", "danger", "warning", "success", "clear"],
-            control: { type: "select" },
-        },
-        shape: {
-            options: ["rounded", "md", "lg", "full"],
-            control: { type: "radio" },
-        },
         iconSize: {
             options: ["sm", "md", "lg"],
             control: { type: "radio" },

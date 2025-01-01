@@ -29,7 +29,7 @@ const ThemeButton: React.FC<ThemeButtonProps> = ({ className }) => {
 
     return (
         <IconButton
-            intent='clear'
+            iconColor="clear"
             iconSize='lg'
             className={className}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
