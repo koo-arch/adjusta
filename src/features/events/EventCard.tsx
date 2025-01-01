@@ -6,7 +6,6 @@ import { formatJaDateSpan } from '@/lib/date/format';
 import { EventDraftDetail } from '@/hooks/event/type';
 import { ChevronRightIcon } from '@heroicons/react/20/solid';
 import { CalendarIcon } from '@heroicons/react/20/solid';
-import { MapPinIcon } from '@heroicons/react/20/solid';
 
 interface EventCardProps {
     event: EventDraftDetail;

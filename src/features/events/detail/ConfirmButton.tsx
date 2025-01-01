@@ -1,27 +1,19 @@
 'use client'
 import React, { useState } from 'react';
 import axios from '@/lib/axios/public';
+import { toast } from 'react-toastify';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import ToggleButton from '@/components/ToggleButton';
 import Modal from '@/components/Modal';
 import DropdownSelect from '@/components/DropdownSelect';
-import { formatJaDate } from '@/lib/date/format';
+import { formatJaDateSpan } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { EventDraftDetail } from '@/hooks/event/type';
 import { MdEditCalendar } from 'react-icons/md';
 import { FaRegCalendarCheck } from 'react-icons/fa6';
-
-interface ConfrimForm {
-    confirm_date: {
-        id: string | null;
-        google_event_id: string;
-        start: Date | null;
-        end: Date | null;
-        priority: number;
-    };
-}
+import { type ConfirmForm, ConfirmFormResolver } from './zod';
 
 interface ConfirmButtonProps {
     id: string;
@@ -33,13 +25,13 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }
     const [isOpen, setIsOpen] = useState(false);
     const proposedDates = detail.proposed_dates || [];
     const [isDropdownSelected, setIsDropdownSelected] = useState(true); // ドロップダウンが選ばれているかどうか
-    const method = useForm<ConfrimForm>({
+
+    const method = useForm<ConfirmForm>({
+        resolver: ConfirmFormResolver,
         defaultValues: {
             confirm_date: {
                 id: null,
                 google_event_id: detail.google_event_id,
-                start: null,
-                end: null,
                 priority: 0,
             }
         }
@@ -51,19 +43,22 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }
         reset();
     }
 
-    const patchConfirmDate = async (data: ConfrimForm) => {
+    const patchConfirmDate = async (data: ConfirmForm) => {
         return await axios.patch(`api/calendar/event/confirm/${id}`, data);
     }
 
-    const onSubmit: SubmitHandler<ConfrimForm> = (data) => {
+
+    const onSubmit: SubmitHandler<ConfirmForm> = (data) => {
         console.log(data);
         patchConfirmDate(data)
             .then(res => {
                 console.log(res);
                 setIsOpen(false);
+                toast.success('日程を確定しました');
             })
             .catch(err => {
                 console.log(err);
+                toast.error('日程の確定に失敗しました');
             }
         )
     }
@@ -120,7 +115,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }
                                     date && (
                                         <>
                                             {`第${date.priority}候補: 
-                                            ${formatJaDate(date.start)} ~ ${formatJaDate(date.end)}`}
+                                            ${formatJaDateSpan(date.start, date.end)}`}
                                         </>
                                     )
                                 }
@@ -138,8 +133,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }
                                 <DateTimePicker
                                     label='開始日時'
                                     onChange={field.onChange}
-                                    error={!!errors.confirm_date?.start
-                                    }
+                                    error={!!errors.confirm_date?.start}
                                     helperText={errors.confirm_date?.start?.message}
                                 />
                             )}
