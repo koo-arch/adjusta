@@ -3,8 +3,7 @@ import UserInfo from '@/features/auth/UserInfo';
 
 const AccountPage = () => {
     return (
-        <div>
-            <h1>Account</h1>
+        <div className="mx-auto max-w-screen-md p-4">
             <UserInfo />
         </div>
     )
