@@ -21,7 +21,7 @@ export const baseButton = cva("text-center", {
         {
             variant: "outline",
             intent: "primary",
-            className: "border-blue-500 text-blue-500"
+            className: "border-indigo-500 text-indigo-500"
         },
         {
             variant: "outline",
@@ -51,7 +51,7 @@ export const baseButton = cva("text-center", {
         {
             variant: "solid",
             intent: "primary",
-            className: "bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white"
+            className: "bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white"
         },
         {
             variant: "solid",
