@@ -3,6 +3,7 @@ import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import Providers from "./providers";
 import ToastProvider from "./ToastProvider";
+import AuthErrorModal from "@/components/AuthErrorModal";
 import { Inter } from "next/font/google";
 import 'react-datepicker/dist/react-datepicker.css';
 import "./globals.css";
@@ -33,6 +34,7 @@ export default function RootLayout({
             >
               <Header />
               {children}
+              <AuthErrorModal />
             </ThemeProvider>
           </ToastProvider>
         </Providers>
