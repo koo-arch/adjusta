@@ -12,7 +12,7 @@ const LoginButton: React.FC = () => {
             shape={'full'}
             variant='outline'
             intent='clear'
-            size={'md'}
+            size="lg"
             onClick={loginHandler}
             startIcon={
                 <Image
@@ -24,7 +24,7 @@ const LoginButton: React.FC = () => {
                 ></Image>
             }
         >
-            Login with Google
+            Googleでログイン
         </Button>
     )
 }

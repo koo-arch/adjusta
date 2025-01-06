@@ -1,7 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import UserButton from '../UserButton';
 import DraftRegisterButton from '@/features/events/DraftRegisterButton';
 import { usePathname } from 'next/navigation';
@@ -71,13 +70,11 @@ const Header: React.FC = () => {
                             </div>
                             <div className="flex flex-1 items-center justify-center md:items-stretch md:justify-start">
                                 <div className="flex flex-shrink-0 items-center">
-                                    <Image
-                                        className="h-6 w-auto"
-                                        height={24}
-                                        width={24}
-                                        src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-                                        alt="Your Company"
-                                    />
+                                    <Link href="/">
+                                        <div className="cursor-pointer text-xl font-extrabold">
+                                            Adjusta
+                                        </div>
+                                    </Link>
                                 </div>
                                 <div className="hidden md:ml-6 md:block">
                                     <div className="flex gap-12">

@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import ScheduleManage from '../..//public/images/schedule_manage.jpg';
+import schduleManage from "../../public/images/schedule_manage.jpg";
 import Button from '@/components/Button';
 
 const Home: React.FC = () => {
@@ -11,8 +11,8 @@ const Home: React.FC = () => {
         <h1 className="text-4xl font-extrabold text-gray-800 mb-4 break-keep">
           日程調整を<wbr />もっとシンプルに
         </h1>
-        <p className="text-lg text-gray-600 mb-6">
-          あなたのイベントの日程調整を<wbr />効率的にサポートします。
+        <p className="text-lg text-gray-600 mb-6 break-keep">
+          あなたのイベントの日程調整を効率的に<wbr />サポートします。
         </p>
         <Button
           to="/login"
@@ -26,12 +26,11 @@ const Home: React.FC = () => {
       {/* Right Section */}
       <div className="w-full lg:w-1/2 h-64 lg:h-screen relative">
         <Image
-          src={ScheduleManage}
+          src={schduleManage}
           alt="スケジュール管理のイメージ"
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          objectFit='cover'
-          objectPosition='center'
+          className="object-cover object-center"
           priority
         />
       </div>
