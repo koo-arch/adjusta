@@ -17,12 +17,12 @@ interface CalendarFormProps {
 }
 
 const CalendarForm: React.FC<CalendarFormProps> = ({ editingEvent }) => {
-    const { id } = useParams<{ id?: string}>();
+    const { slug } = useParams<{ slug?: string}>();
     const { getValues } = useFormContext<DiscriminatedEventForm>();
     
     const formType = getValues('form_type');
     const dateAtom = formType === 'draft' ? selectedDatesAtom : proposedDatesAtom;
-    const eventAtom = formType === 'draft' ? selectedEventsAtomFamily(id) : proposedEventsAtomFamily(id);
+    const eventAtom = formType === 'draft' ? selectedEventsAtomFamily(slug) : proposedEventsAtomFamily(slug);
 
     return (
         <div>

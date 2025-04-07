@@ -5,9 +5,9 @@ import { useParams } from 'next/navigation';
 import DetailCard from './DetailCard';
 
 const EventDetail = () => {
-    const params = useParams<{id: string}>();
+    const params = useParams<{slug: string}>();
 
-    const { eventDetail, isLoading, error } = useFetchEventDetail(params.id);
+    const { eventDetail, isLoading, error } = useFetchEventDetail(params.slug);
 
     if (isLoading) {
         return <p>Loading...</p>;
@@ -16,7 +16,7 @@ const EventDetail = () => {
     return (
         <div>
             {eventDetail &&
-                <DetailCard detail={eventDetail} id={params.id} />
+                <DetailCard detail={eventDetail} slug={params.slug} />
             }
         </div>
     );

@@ -22,7 +22,7 @@ const UpcomingEvents: React.FC = () => {
                     {upcomingEvents.map((event) => (
                         <MiniEventCard
                         key={event.id}
-                        onClick={() => router.push(`/schedule/draft/${event.id}`)}
+                        onClick={() => router.push(`/schedule/draft/${event.slug}`)}
                         {...event}
                         />
                     ))}

@@ -38,7 +38,7 @@ const EventDraft: React.FC = () => {
                 setSelectedDates([]);
                 setTitle('');
                 toast.success('イベントを作成しました');
-                router.push(`/schedule/draft/${res.data.id}`);
+                router.push(`/schedule/draft/${res.data.slug}`);
             })
             .catch(err => {
                 console.log(err);
