@@ -16,12 +16,12 @@ import { FaRegCalendarCheck } from 'react-icons/fa6';
 import { type ConfirmForm, ConfirmFormResolver } from './zod';
 
 interface ConfirmButtonProps {
-    id: string;
+    slug: string;
     detail: EventDraftDetail;
     isConfirmed: boolean;
 }
 
-const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }) => {
+const ConfirmButton: React.FC<ConfirmButtonProps> = ({ slug, detail, isConfirmed }) => {
     const [isOpen, setIsOpen] = useState(false);
     const proposedDates = detail.proposed_dates || [];
     const [isDropdownSelected, setIsDropdownSelected] = useState(true); // ドロップダウンが選ばれているかどうか
@@ -44,7 +44,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ id, detail, isConfirmed }
     }
 
     const patchConfirmDate = async (data: ConfirmForm) => {
-        return await axios.patch(`api/calendar/event/confirm/${id}`, data);
+        return await axios.patch(`api/calendar/event/confirm/${slug}`, data);
     }
 
 

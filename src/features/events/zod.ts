@@ -9,10 +9,15 @@ const EventBasicFormSchema = z.object({
     url: z.string().url().optional(),
 });
 
+const safeDate = z.preprocess((val) => {
+    const date = val instanceof Date ? val : new Date(val as string);
+    return isNaN(date.getTime()) ? undefined : date;
+}, z.date({ required_error: '日付は必須です' , invalid_type_error: '日付は不正な形式です' }));
+
 const SendSelectedDateSchema = z.object({
     id: z.string().nullable(),
-    start: z.date(),
-    end: z.date(),
+    start: safeDate,
+    end: safeDate,
     priority: z.number(),
 });
 
@@ -25,7 +30,8 @@ const EventDraftFormSchema = EventBasicFormSchema.merge(z.object({
 
 const EventUpdateFormSchema = EventBasicFormSchema.merge(z.object({
     form_type: z.literal('edit'),
-    id: z.string(),
+    id: z.string().nullable(),
+    slug: z.string(),
     status: z.string().optional(),
     proposed_dates: z.array(SendSelectedDateSchema)
         .min(1, { message: '日程は1つ以上選択してください' })

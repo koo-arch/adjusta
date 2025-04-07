@@ -11,17 +11,18 @@ import { type DiscriminatedEventForm, DiscriminatedEventFormResolver } from '../
 import EventForm from '../EventForm';
 
 const EventEdit = () => {
-    const params = useParams<{ id: string }>();
-    const { eventDetail, isLoading, error } = useFetchEventDetail(params.id);
+    const params = useParams<{ slug: string }>();
+    const { eventDetail, isLoading, error } = useFetchEventDetail(params.slug);
     const [proposedDates, setProposedDates] = useAtom(proposedDatesAtom);
     const [sendProposedDates] = useAtom(sendProposedDatesAtom);
-    const [isConfirmed] = useAtom(isConfirmedAtomFamily(params.id));
+    const [isConfirmed] = useAtom(isConfirmedAtomFamily(params.slug));
 
     const method = useForm<DiscriminatedEventForm>({
         resolver: DiscriminatedEventFormResolver,
         defaultValues: {
+            id: null,
             form_type: "edit",
-            id: params.id,
+            slug: params.slug,
         }
     }
     );
@@ -39,8 +40,12 @@ const EventEdit = () => {
         }
     }, [eventDetail, setProposedDates]);
 
+    useEffect(() => {
+        console.log("errors", errors);
+    }, [errors]);
+
     const putEventUpdate = async (data: DiscriminatedEventForm) => {
-        return await axios.put(`api/calendar/event/draft/${params.id}`, data);
+        return await axios.put(`api/calendar/event/draft/${params.slug}`, data);
     }
 
     const onSubmit: SubmitHandler<DiscriminatedEventForm> = (data) => {
@@ -71,7 +76,7 @@ const EventEdit = () => {
                         <EventForm eventDetail={eventDetail} />
                     </form>
                 </FormProvider>
-            }
+            }    
         </div>
     )
 }

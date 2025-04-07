@@ -10,6 +10,7 @@ export interface EventDraftDetail {
     status: string;
     confirmed_date_id: string | null;
     google_event_id: string;
+    slug: string;
     proposed_dates: ProposedDate[];
 }
 

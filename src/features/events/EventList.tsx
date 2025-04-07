@@ -18,7 +18,7 @@ const EventList: React.FC = () => {
                 <EventCard
                     key={event.id}
                     event={event}
-                    onClick={() => router.push(`/schedule/draft/${event.id}`)}
+                    onClick={() => router.push(`/schedule/draft/${event.slug}`)}
                 />
             ))}
         </div>
