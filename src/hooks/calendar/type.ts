@@ -7,3 +7,12 @@ export interface GoogleEvent {
     start : Date;
     end : Date;
 }
+
+export interface WarningCalendars {
+    failed_calendars: string[];
+}
+
+export interface GoogleCalendarResponse {
+    events: GoogleEvent[];
+    warning: WarningCalendars;
+}

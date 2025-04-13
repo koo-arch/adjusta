@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
+import { toast } from 'react-toastify';
 import { allEventsAtom } from '@/atoms/calendar';
 import { StyleWrapper } from './style';
 import FullCalendar from '@fullcalendar/react';
@@ -47,10 +48,11 @@ const Calendar = <T extends CalendarEvent>({
     const { searchEvents, isLoading: isSearchLoading, error: searchError } = useSearchEvents({ status: "pending" });
     const [allEvents, setAllEvents] = useAtom(allEventsAtom);
 
+    const warningToastId = 'google-calendar-warning';
 
     useEffect(() => {
         if (!isGoogleEventLoading && !isSearchLoading) {
-            const googleEventList: CalendarEvent[]  = events?.map(event => {
+            const googleEventList: CalendarEvent[]  = events?.events.map(event => {
                 return {
                     id: event.id,
                     title: event.summary,
@@ -88,6 +90,14 @@ const Calendar = <T extends CalendarEvent>({
             setAllEvents(allEvents);
         }
     }, [events, searchEvents, isGoogleEventLoading, isSearchLoading, editEvent, setAllEvents, selectedEvents]);
+
+    useEffect(() => {
+        if (events?.warning?.failed_calendars) {
+            toast.warn(`取得に失敗したカレンダーがあります: ${events.warning.failed_calendars.join(', ')}`,{
+                toastId: warningToastId,
+            });
+        }
+    }, [events?.warning])
     
 
     return (
