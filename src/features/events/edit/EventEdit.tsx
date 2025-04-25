@@ -6,12 +6,13 @@ import {  proposedDatesAtom, sendProposedDatesAtom } from '@/atoms/calendar';
 import { isConfirmedAtomFamily } from '@/atoms/event';
 import { useFetchEventDetail } from '@/hooks/event/useFetchEventDetail';
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { type DiscriminatedEventForm, DiscriminatedEventFormResolver } from '../zod';
 import EventForm from '../EventForm';
 
 const EventEdit = () => {
     const params = useParams<{ slug: string }>();
+    const router = useRouter();
     const { eventDetail, isLoading, error } = useFetchEventDetail(params.slug);
     const [proposedDates, setProposedDates] = useAtom(proposedDatesAtom);
     const [sendProposedDates] = useAtom(sendProposedDatesAtom);
@@ -40,10 +41,6 @@ const EventEdit = () => {
         }
     }, [eventDetail, setProposedDates]);
 
-    useEffect(() => {
-        console.log("errors", errors);
-    }, [errors]);
-
     const putEventUpdate = async (data: DiscriminatedEventForm) => {
         return await axios.put(`api/calendar/event/draft/${params.slug}`, data);
     }
@@ -64,8 +61,18 @@ const EventEdit = () => {
             })
     }
 
+    useEffect(() => {
+        if (!isLoading && (!eventDetail || error)) {
+            router.replace('/schedule/draft');
+        }
+    })
+
     if (isLoading) {
         return <p>Loading...</p>;
+    }
+
+    if (error || !eventDetail) {
+        return null;
     }
 
     return (
