@@ -51,29 +51,25 @@ const Calendar = <T extends CalendarEvent>({
     const warningToastId = 'google-calendar-warning';
 
     useEffect(() => {
-        if (!isGoogleEventLoading && !isSearchLoading) {
-            const googleEventList: CalendarEvent[]  = events?.events.map(event => {
-                return {
-                    id: event.id,
-                    title: event.summary,
-                    start: event.start,
-                    end: event.end,
-                    location: event.location,
-                    description: event.description,
-                    origin: "google" as "google" | "local"
-                };
-            })
-            ?.filter(event => {
-                // 編集中のイベントは除外する
-                if (editEvent) {
-                    return !(editEvent.google_event_id === event.id);
-                }
-                return true;
-            }) || [];
-            
-            const searchEventList: CalendarEvent[] = searchEvents?.flatMap(event => {
-                return event.proposed_dates
-                ?.filter(date => !editEvent?.proposed_dates?.some(edit => edit.id === date.id))
+        if (isGoogleEventLoading || isSearchLoading) return;
+
+        const googleEventList: CalendarEvent[]  = events?.events
+            .filter(ge => !editEvent || editEvent.google_event_id !== ge.id)
+            .map(event => ({
+                id: event.id,
+                title: event.summary,
+                start: event.start,
+                end: event.end,
+                location: event.location,
+                description: event.description,
+                origin: "google",
+                slug: null,
+                local_event_id: null,
+            })) ?? [];
+        
+        const searchEventList: CalendarEvent[] = searchEvents?.flatMap(event => 
+            event.proposed_dates
+                .filter(date => !editEvent?.proposed_dates?.some(edit => edit.id === date.id))
                 .map(date => ({
                     id: date.id,
                     title: event.title,
@@ -81,14 +77,14 @@ const Calendar = <T extends CalendarEvent>({
                     end: date.end,
                     location: event.location,
                     description: event.description,
-                    origin: "local" as "google" | "local",
+                    origin: "local",
+                    slug: event.slug,
                     local_event_id: event.id
-                }));
-            }) || [];
+                }))
+        ) ?? [];
 
-            const allEvents: CalendarEvent[] = [...googleEventList, ...searchEventList, ...(selectedEvents || [])];
-            setAllEvents(allEvents);
-        }
+        const allEvents: CalendarEvent[] = [...googleEventList, ...searchEventList, ...(selectedEvents || [])];
+        setAllEvents(allEvents);
     }, [events, searchEvents, isGoogleEventLoading, isSearchLoading, editEvent, setAllEvents, selectedEvents]);
 
     useEffect(() => {

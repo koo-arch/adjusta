@@ -60,7 +60,7 @@ const ModalCalendar: React.FC = () => {
                             {selectedEvent.origin === "local" && (
                                 <div className="mt-4">
                                     <Link 
-                                        href={`/schedule/draft/${selectedEvent.local_event_id}`}
+                                        href={`/schedule/draft/${selectedEvent.slug}`}
                                         className="text-sm no-underline text-blue-500 hover:underline"
                                     >
                                        詳細ページ
