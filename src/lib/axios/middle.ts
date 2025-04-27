@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 
 export const axiosConfig = {
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.BASE_URL,
     withCredentials: true,
     headers: {
         "Content-Type": "application/json",
