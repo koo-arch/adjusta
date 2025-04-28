@@ -12,7 +12,7 @@ export const useLogout = () => {
     const router = useRouter();
 
     const logout = () => {
-        fetcher('/auth/logout')
+        fetcher('api/auth/logout')
             .then(() => {
                 setIsAuthenticated(false);
                 mutate(() => true, null, false);
