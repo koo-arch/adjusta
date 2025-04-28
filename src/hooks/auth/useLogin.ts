@@ -7,6 +7,6 @@ export const useLogin = () => {
 
     return () => {
         setIsAuthenticated(true);
-        window.location.href = `${baseURL}/auth/google/login`;
+        window.location.href = `${baseURL}/api/auth/google/login`;
     }
 }
