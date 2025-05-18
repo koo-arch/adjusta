@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
-    const backend = process.env.BACKEND_URL!;
+    const backend = process.env.INTERNAL_BACKEND_URL!;
     const url = `${backend}/auth/logout`;
 
     // クッキーを引き継いで呼び出し

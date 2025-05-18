@@ -4,7 +4,7 @@ export async function GET(req: Request) {
     // クエリ文字列を取得
     const { search } = new URL(req.url);
     // バックエンドのコールバック URL を組み立て
-    const backend = process.env.BACKEND_URL!;
+    const backend = process.env.INTERNAL_BACKEND_URL!;
     const url = `${backend}/auth/google/callback${search}`;
 
     //　リダイレクトせずにバックエンドを呼び出し
