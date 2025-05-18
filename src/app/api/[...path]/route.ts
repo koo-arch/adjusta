@@ -8,7 +8,7 @@ export async function PATCH(request: Request) { return proxy(request) }
 
 async function proxy(request: Request) {
     const { pathname, search } = new URL(request.url);
-    const backend = process.env.BACKEND_URL;
+    const backend = process.env.INTERNAL_BACKEND_URL;
     const url = `${backend}${pathname}${search}`;
 
     // リクエストボディとヘッダをそのまま転送
