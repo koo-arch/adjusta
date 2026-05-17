@@ -1,0 +1,48 @@
+# バイナリ出力
+main
+*.exe
+*.dll
+*.so
+*.dylib
+
+# ログファイル
+*.log
+
+# アーカイブファイル
+*.zip
+*.tar.gz
+*.rar
+
+# コンパイルされたオブジェクトファイル
+*.o
+*.a
+*.out
+
+# パッケージディレクトリ
+vendor/
+
+# ローカルバイナリ
+.DS_Store
+
+# モジュールキャッシュ
+go.sum
+
+# 一時ファイル
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# IDE設定ファイル
+.vscode/
+.idea/
+*.iml
+
+# Docker関連ファイル
+docker-compose.override.yml
+
+# 環境変数ファイル
+.env
+
+# Google Cloud関連ファイル
+config
