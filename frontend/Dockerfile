@@ -1,10 +1,7 @@
-FROM node:18-alpine
+FROM node:25.9-bookworm
 
 # コンテナ内の作業ディレクトリを指定
 WORKDIR /frontend
-
-# Gitなどのツールのインストール
-RUN apk update && apk add --no-cache git
 
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
@@ -14,9 +11,6 @@ COPY . .
 
 # モジュールのダウンロード
 RUN npm install
-
-# ビルド
-RUN npm run build
 
 # ポートの公開
 EXPOSE 3000
