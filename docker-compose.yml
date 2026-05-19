@@ -1,0 +1,46 @@
+services:
+  backend:
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/backend
+      - ./backend/config/service-account.json:/backend/config/service-account.json:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: "/backend/config/service-account.json"
+    depends_on:
+      - db
+    networks:
+      - app-network
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/frontend
+    networks:
+      - app-network
+  db:
+    image: "postgres:18-bookworm"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
+      TZ: "${DB_TZ}"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,42 @@
+{
+	"name": "adjusta-workspace",
+	"dockerComposeFile": [
+		"../docker-compose.yml",
+		"docker-compose.devcontainer.yml"
+	],
+	"service": "workspace",
+	"workspaceFolder": "/workspace",
+	"features": {
+		"ghcr.io/devcontainers/features/go:1": {
+			"version": "1.26.0"
+		},
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "25.9"
+		}
+	},
+	"shutdownAction": "stopCompose",
+	"remoteEnv": {
+		"PATH": "/usr/bin:${containerEnv:PATH}"
+	},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"go.toolsManagement.autoUpdate": true,
+				"editor.formatOnSave": true,
+				"files.exclude": {
+					"**/.turbo": true,
+					"**/node_modules": true
+				}
+			},
+			"extensions": [
+				"golang.Go",
+				"ms-vscode.vscode-typescript-next",
+				"esbenp.prettier-vscode",
+				"bradlc.vscode-tailwindcss",
+				"ms-azuretools.vscode-docker",
+				"openai.chatgpt"
+			]
+		}
+	},
+	"remoteUser": "root"
+}

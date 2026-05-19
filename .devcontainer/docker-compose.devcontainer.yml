@@ -1,0 +1,16 @@
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+
+    working_dir: /workspace
+
+    volumes:
+      - .:/workspace:cached
+      - codex_config:/root/.codex
+
+    command: sleep infinity
+
+    networks:
+      - app-network
+volumes:
+  codex_config:
