@@ -52,6 +52,70 @@
 - `users:accounts = 1:1` とし、1ユーザーにつき1つの Google アカウント連携情報を持つ
 - `accounts` は Google 前提の論理設計とし、provider は持たない
 
+#### 4.1.1 認証セッションの正本
+
+- Adjusta のログイン状態は `sessions` を正本とする
+- ブラウザが保持する認証情報は、アプリ用のセッション cookie のみとする
+- session cookie には Google の access token や refresh token を入れない
+- 認証済み判定は「有効な session cookie があり、対応する `sessions` レコードが有効期限内であること」で判断する
+- backend の保護 API は、session から user を解決して認可コンテキストを構築する
+
+#### 4.1.2 Google OAuth token の責務
+
+- Google Calendar API 用の token は `accounts` に保存する
+- `accounts.access_token` / `refresh_token` / `expires_at` / `scope` は、Google API 呼び出し時にのみ参照する
+- Google token の期限切れ時は backend で refresh し、更新結果を `accounts` に書き戻す
+- Google token の refresh に失敗した場合は、「Adjusta のログイン状態が無効」ではなく「Google 連携の再認可が必要」として扱う
+- したがって、アプリ認証と Google 外部連携状態は分けて扱う
+
+#### 4.1.3 cookie 方針
+
+- cookie は session cookie のみを採用する
+- `access_token` cookie や `refresh_token` cookie は採用しない
+- session cookie は `HttpOnly` を前提とし、`Secure` / `SameSite` は環境ごとの設定で管理する
+- frontend は cookie の中身で認証判定をせず、session に基づく API 応答または server-side の認証結果で画面遷移を決める
+
+#### 4.1.4 ログインフローの最終形
+
+1. ユーザーが `/auth/google/login` にアクセスする
+2. backend は OAuth state を発行し、必要なら一時的に session に保持する
+3. Google callback で code を exchange する
+4. Google の userinfo を取得し、`users` と `accounts` を upsert する
+5. backend は `sessions` にログインセッションを作成する
+6. ブラウザには session cookie のみを返却する
+7. frontend は認証済み画面へ遷移する
+
+補足:
+
+- このフローではアプリ独自 JWT を発行しない
+- Google OAuth callback は、Google token 保存と Adjusta session 作成を同一 transaction で扱える形を優先する
+
+#### 4.1.5 logout / middleware / 認可の責務
+
+- logout は `sessions` の無効化または削除と session cookie の破棄を行う
+- auth middleware は session を検証し、`user_id` と必要最小限の user 情報を context に積む
+- auth middleware は Google access token の検証や refresh を担当しない
+- Google token の取得と refresh は、Google Calendar を呼ぶ usecase または service 側で行う
+- これにより「ログイン確認」と「Google 連携確認」の責務を分離する
+
+#### 4.1.6 Phase 2 完了時に廃止対象とするもの
+
+- `JWTManager`
+- `KeyManager`
+- `JWTKey` schema / table
+- `access_token` cookie / `refresh_token` cookie
+- `users.refresh_token`
+- `users.refresh_token_expiry`
+- `OAuthToken` schema / table / repository
+- app JWT の refresh を行う auth middleware
+- frontend の「cookie があるか」で行う認証判定
+
+#### 4.1.7 現時点の変更の扱い
+
+- `accounts` に Google token を集約する変更は、最終アーキテクチャでも継続利用できる
+- 一方で、`accounts` を現行 JWT ベース実装へ接続したコードは暫定であり、Phase 2 で session 主体の実装へ置き換える前提で扱う
+- 今後 auth 実装を進める際は、「JWT を残すための改善」ではなく「JWT を撤去するための移行」に限定して変更を入れる
+
 ### 4.2 カレンダー用途の語彙
 
 初期実装で扱うロールは以下で統一する。
@@ -178,14 +242,18 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 主な作業:
 
-- セッション主体の認証フローへ寄せる
-- `accounts` / `sessions` を前提にした永続化と middleware を整理する
-- cookie 保存内容と責務を明確にする
+- session 作成 / 検証 / logout の usecase と repository interface を定義する
+- OAuth callback で `users` / `accounts` / `sessions` を扱うフローへ寄せる
+- auth middleware を session 検証専用に差し替える
+- Google token refresh を Google Calendar 利用側の service / usecase に寄せる
+- `JWTManager` / `KeyManager` / `JWTKey` / `OAuthToken` / `users.refresh_token*` の依存を順に除去する
+- frontend の認証判定を session ベースに寄せる
 
 成果物:
 
 - 更新済み認証フロー
 - 認証関連の API / middleware 実装
+- JWT 非依存化された認証基盤
 
 ### Phase 3: backend の層構成整理
 
@@ -302,9 +370,9 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 次に着手する候補は以下の順とする。
 
-1. `backend/ent/schema` の現状と docs の差分を洗い出す
-2. `accounts` / `sessions` を前提に認証フローと middleware の再設計方針を固める
-3. Event / ProposedDate / UserCalendar を中心に repository interface と usecase 入出力の語彙を決める
-4. その前提で ent schema の再設計と API の再実装に入る
+1. `JWTManager` / `KeyManager` / `JWTKey` / `OAuthToken` / `users.refresh_token*` の依存箇所を洗い出す
+2. session 作成 / 検証 / logout を担う auth usecase と repository interface を決める
+3. OAuth callback / auth middleware / logout を session 主体へ差し替える
+4. その前提で backend の usecase 分離と frontend の認証判定更新に入る
 
-以上を起点に、Phase 1 から順に実装へ着手する。
+以上を起点に、認証は Phase 2 を優先して実装へ着手する。
