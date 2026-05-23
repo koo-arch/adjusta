@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/user"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
-	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 type UserRepositoryImpl struct {
@@ -49,33 +48,31 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, tx *ent.Tx, email 
 	if opt.WithOAuthToken {
 		findUser = findUser.WithOauthToken()
 	}
-	
+
 	return findUser.
 		Where(user.EmailEQ(email)).
 		Only(ctx)
 }
 
-func (r *UserRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, email string, jwtToken *models.JWTToken) (*ent.User, error) {
+func (r *UserRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, email string, opt UserMutationOptions) (*ent.User, error) {
 	userCreate := r.client.User.Create()
 	if tx != nil {
 		userCreate = tx.User.Create()
 	}
-	return userCreate.
-		SetEmail(email).
-		SetNillableRefreshToken(&jwtToken.RefreshToken).
-		SetNillableRefreshTokenExpiry(&jwtToken.RefreshExpiration).
-		Save(ctx)
+	userCreate.SetEmail(email)
+	applyUserCreateOptions(userCreate, opt)
+
+	return userCreate.Save(ctx)
 }
 
-func (r *UserRepositoryImpl) Update(ctx context.Context,tx *ent.Tx, id uuid.UUID, jwtToken *models.JWTToken) (*ent.User, error) {
+func (r *UserRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt UserMutationOptions) (*ent.User, error) {
 	userUpdate := r.client.User.UpdateOneID(id)
 	if tx != nil {
 		userUpdate = tx.User.UpdateOneID(id)
 	}
-	return userUpdate.
-		SetNillableRefreshToken(&jwtToken.RefreshToken).
-		SetNillableRefreshTokenExpiry(&jwtToken.RefreshExpiration).
-		Save(ctx)
+	applyUserUpdateOptions(userUpdate, opt)
+
+	return userUpdate.Save(ctx)
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
@@ -245,4 +242,18 @@ func (r *UserRepositoryImpl) RestoreWithRelations(ctx context.Context, tx *ent.T
 	}
 
 	return nil
+}
+
+func applyUserCreateOptions(create *ent.UserCreate, opt UserMutationOptions) {
+	create.SetNillableName(opt.Name)
+	create.SetNillableAvatarURL(opt.AvatarURL)
+	create.SetNillableRefreshToken(opt.RefreshToken)
+	create.SetNillableRefreshTokenExpiry(opt.RefreshTokenExpiry)
+}
+
+func applyUserUpdateOptions(update *ent.UserUpdateOne, opt UserMutationOptions) {
+	update.SetNillableName(opt.Name)
+	update.SetNillableAvatarURL(opt.AvatarURL)
+	update.SetNillableRefreshToken(opt.RefreshToken)
+	update.SetNillableRefreshTokenExpiry(opt.RefreshTokenExpiry)
 }

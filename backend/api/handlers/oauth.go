@@ -1,18 +1,18 @@
 package handlers
 
 import (
-	"net/http"
-	"time"
 	"log"
+	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/cookie"
+	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/configs"
+	"github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	"github.com/koo-arch/adjusta-backend/internal/google/userinfo"
-	"golang.org/x/oauth2"
 	"github.com/koo-arch/adjusta-backend/utils"
+	"golang.org/x/oauth2"
 )
 
 type OauthHandler struct {
@@ -24,21 +24,36 @@ func NewOauthHandler(handler *Handler) *OauthHandler {
 }
 
 func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
-	url := oauth.GetGoogleAuthConfig().AuthCodeURL("state", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	session := sessions.Default(c)
+	state := uuid.NewString()
+	session.Set("oauth_state", state)
+	if err := session.Save(); err != nil {
+		log.Printf("failed to save oauth state: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "認証状態の保存に失敗しました"})
+		return
+	}
+
+	url := oauth.GetGoogleAuthConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
-	// セッションをクリア
 	session := sessions.Default(c)
+	sessionToken, _ := session.Get("session_token").(string)
+
+	authManager := oh.handler.Server.AuthManager
+	if err := authManager.DeleteSession(c.Request.Context(), sessionToken); err != nil {
+		utils.HandleAPIError(c, err, "セッションの削除に失敗しました")
+		return
+	}
+
 	session.Clear()
 	if err := session.Save(); err != nil {
-		log.Printf("failed to save session for account: %v", err)
+		log.Printf("failed to save cleared session: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "セッションの保存に失敗しました"})
 		return
 	}
 
-	// クッキーを削除
 	cookie.DeleteCookie(c, "access_token")
 	cookie.DeleteCookie(c, "refresh_token")
 	cookie.DeleteCookie(c, "session")
@@ -48,9 +63,8 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 
 func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		client := oh.handler.Server.Client
 		session := sessions.Default(c)
-		// クエリパラメータからcodeを取得
+		state := c.Query("state")
 		code := c.Query("code")
 		if code == "" {
 			log.Printf("missing code")
@@ -58,17 +72,22 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
+		expectedState, ok := session.Get("oauth_state").(string)
+		if !ok || expectedState == "" || state != expectedState {
+			log.Printf("invalid oauth state")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "stateが不正です"})
+			return
+		}
+
 		ctx := c.Request.Context()
 
-		// Googleからトークンを取得
 		oauthToken, err := oauth.GetGoogleAuthConfig().Exchange(ctx, code)
 		if err != nil {
-			log.Printf("failed to exchange oauthToken: %v", err)
+			log.Printf("failed to exchange oauth token: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "OAuthトークンの取得に失敗しました"})
 			return
 		}
 
-		// Googleからユーザー情報を取得
 		userInfo, err := userinfo.FetchGoogleUserInfo(ctx, oauthToken)
 		if err != nil {
 			log.Printf("failed to fetch user info: %v", err)
@@ -76,47 +95,29 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		jwtManager := oh.handler.Server.JWTManager
 		authManager := oh.handler.Server.AuthManager
-		// アプリ独自のJWTトークンを生成
-		jwtToken, err := jwtManager.GenerateTokens(ctx, client, userInfo.Email)
-		if err != nil {
-			log.Printf("failed to generate jwtToken: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "JWTトークンの生成に失敗しました"})
-			return
-		}
-
-		// ユーザー情報をデータベースに保存
-		u, err := authManager.ProcessUserSignIn(ctx, userInfo, jwtToken, oauthToken)
+		u, err := authManager.ProcessUserSignIn(ctx, userInfo, oauthToken)
 		if err != nil {
 			log.Printf("failed to create or update user: %v", err)
 			utils.HandleAPIError(c, err, "ユーザーの作成または更新に失敗しました")
 			return
 		}
 
-		
-		// アカウントのoauthトークンを検証
-		_, err = authManager.VerifyOAuthToken(ctx, u.ID)
+		entSession, err := authManager.CreateSession(ctx, u.ID)
 		if err != nil {
-			log.Printf("failed to reuse token source for account: %s, error: %v", u.Email, err)
-			utils.HandleAPIError(c, err, "OAuthトークンの再利用に失敗しました")
+			log.Printf("failed to create app session: %v", err)
+			utils.HandleAPIError(c, err, "ログインセッションの作成に失敗しました")
 			return
 		}
 
-		// クッキーにトークンをセット
-		maxAge := int(jwtToken.RefreshExpiration.Sub(time.Now()).Seconds())
-		cookie.SetCookie(c, "access_token", jwtToken.AccessToken, maxAge)
-
-		// セッションにユーザー情報をセット
-		session.Set("googleid", userInfo.GoogleID)
-		session.Set("userid", u.ID.String())
+		session.Delete("oauth_state")
+		session.Set("session_token", entSession.SessionToken)
 		if err := session.Save(); err != nil {
-			log.Printf("failed to save session for account: %s, error: %v", u.Email, err)
+			log.Printf("failed to save session token for account: %s, error: %v", u.Email, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "セッションの保存に失敗しました"})
 			return
 		}
 
-		// リダイレクト
 		c.Redirect(http.StatusTemporaryRedirect, configs.GetEnv("REDIRECT_URL_AFTER_LOGIN"))
 	}
 }
