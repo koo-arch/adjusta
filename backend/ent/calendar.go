@@ -25,6 +25,14 @@ type Calendar struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// GoogleCalendarID holds the value of the "google_calendar_id" field.
+	GoogleCalendarID *string `json:"google_calendar_id,omitempty"`
+	// Summary holds the value of the "summary" field.
+	Summary *string `json:"summary,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
+	// Timezone holds the value of the "timezone" field.
+	Timezone *string `json:"timezone,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CalendarQuery when eager-loading is set.
 	Edges          CalendarEdges `json:"edges"`
@@ -40,9 +48,13 @@ type CalendarEdges struct {
 	GoogleCalendarInfos []*GoogleCalendarInfo `json:"google_calendar_infos,omitempty"`
 	// Events holds the value of the events edge.
 	Events []*Event `json:"events,omitempty"`
+	// UserCalendars holds the value of the user_calendars edge.
+	UserCalendars []*UserCalendar `json:"user_calendars,omitempty"`
+	// PrimaryEvents holds the value of the primary_events edge.
+	PrimaryEvents []*Event `json:"primary_events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [5]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -74,11 +86,31 @@ func (e CalendarEdges) EventsOrErr() ([]*Event, error) {
 	return nil, &NotLoadedError{edge: "events"}
 }
 
+// UserCalendarsOrErr returns the UserCalendars value or an error if the edge
+// was not loaded in eager-loading.
+func (e CalendarEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
+	if e.loadedTypes[3] {
+		return e.UserCalendars, nil
+	}
+	return nil, &NotLoadedError{edge: "user_calendars"}
+}
+
+// PrimaryEventsOrErr returns the PrimaryEvents value or an error if the edge
+// was not loaded in eager-loading.
+func (e CalendarEdges) PrimaryEventsOrErr() ([]*Event, error) {
+	if e.loadedTypes[4] {
+		return e.PrimaryEvents, nil
+	}
+	return nil, &NotLoadedError{edge: "primary_events"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Calendar) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case calendar.FieldGoogleCalendarID, calendar.FieldSummary, calendar.FieldDescription, calendar.FieldTimezone:
+			values[i] = new(sql.NullString)
 		case calendar.FieldCreatedAt, calendar.FieldUpdatedAt, calendar.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		case calendar.FieldID:
@@ -125,6 +157,34 @@ func (c *Calendar) assignValues(columns []string, values []any) error {
 				c.DeletedAt = new(time.Time)
 				*c.DeletedAt = value.Time
 			}
+		case calendar.FieldGoogleCalendarID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field google_calendar_id", values[i])
+			} else if value.Valid {
+				c.GoogleCalendarID = new(string)
+				*c.GoogleCalendarID = value.String
+			}
+		case calendar.FieldSummary:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field summary", values[i])
+			} else if value.Valid {
+				c.Summary = new(string)
+				*c.Summary = value.String
+			}
+		case calendar.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				c.Description = new(string)
+				*c.Description = value.String
+			}
+		case calendar.FieldTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field timezone", values[i])
+			} else if value.Valid {
+				c.Timezone = new(string)
+				*c.Timezone = value.String
+			}
 		case calendar.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field user_calendars", values[i])
@@ -160,6 +220,16 @@ func (c *Calendar) QueryEvents() *EventQuery {
 	return NewCalendarClient(c.config).QueryEvents(c)
 }
 
+// QueryUserCalendars queries the "user_calendars" edge of the Calendar entity.
+func (c *Calendar) QueryUserCalendars() *UserCalendarQuery {
+	return NewCalendarClient(c.config).QueryUserCalendars(c)
+}
+
+// QueryPrimaryEvents queries the "primary_events" edge of the Calendar entity.
+func (c *Calendar) QueryPrimaryEvents() *EventQuery {
+	return NewCalendarClient(c.config).QueryPrimaryEvents(c)
+}
+
 // Update returns a builder for updating this Calendar.
 // Note that you need to call Calendar.Unwrap() before calling this method if this Calendar
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -192,6 +262,26 @@ func (c *Calendar) String() string {
 	if v := c.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := c.GoogleCalendarID; v != nil {
+		builder.WriteString("google_calendar_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.Summary; v != nil {
+		builder.WriteString("summary=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.Timezone; v != nil {
+		builder.WriteString("timezone=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

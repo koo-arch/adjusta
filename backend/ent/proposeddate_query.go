@@ -25,7 +25,6 @@ type ProposedDateQuery struct {
 	inters     []Interceptor
 	predicates []predicate.ProposedDate
 	withEvent  *EventQuery
-	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -371,18 +370,11 @@ func (pdq *ProposedDateQuery) prepareQuery(ctx context.Context) error {
 func (pdq *ProposedDateQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ProposedDate, error) {
 	var (
 		nodes       = []*ProposedDate{}
-		withFKs     = pdq.withFKs
 		_spec       = pdq.querySpec()
 		loadedTypes = [1]bool{
 			pdq.withEvent != nil,
 		}
 	)
-	if pdq.withEvent != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, proposeddate.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*ProposedDate).scanValues(nil, columns)
 	}
@@ -414,10 +406,10 @@ func (pdq *ProposedDateQuery) loadEvent(ctx context.Context, query *EventQuery, 
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*ProposedDate)
 	for i := range nodes {
-		if nodes[i].event_proposed_dates == nil {
+		if nodes[i].EventID == nil {
 			continue
 		}
-		fk := *nodes[i].event_proposed_dates
+		fk := *nodes[i].EventID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -434,7 +426,7 @@ func (pdq *ProposedDateQuery) loadEvent(ctx context.Context, query *EventQuery, 
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "event_proposed_dates" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "event_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -467,6 +459,9 @@ func (pdq *ProposedDateQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != proposeddate.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if pdq.withEvent != nil {
+			_spec.Node.AddColumnOnce(proposeddate.FieldEventID)
 		}
 	}
 	if ps := pdq.predicates; len(ps) > 0 {

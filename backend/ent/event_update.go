@@ -16,6 +16,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 // EventUpdate is the builder for updating Event entities.
@@ -57,6 +58,46 @@ func (eu *EventUpdate) ClearDeletedAt() *EventUpdate {
 	return eu
 }
 
+// SetUserID sets the "user_id" field.
+func (eu *EventUpdate) SetUserID(u uuid.UUID) *EventUpdate {
+	eu.mutation.SetUserID(u)
+	return eu
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (eu *EventUpdate) SetNillableUserID(u *uuid.UUID) *EventUpdate {
+	if u != nil {
+		eu.SetUserID(*u)
+	}
+	return eu
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (eu *EventUpdate) ClearUserID() *EventUpdate {
+	eu.mutation.ClearUserID()
+	return eu
+}
+
+// SetPrimaryCalendarID sets the "primary_calendar_id" field.
+func (eu *EventUpdate) SetPrimaryCalendarID(u uuid.UUID) *EventUpdate {
+	eu.mutation.SetPrimaryCalendarID(u)
+	return eu
+}
+
+// SetNillablePrimaryCalendarID sets the "primary_calendar_id" field if the given value is not nil.
+func (eu *EventUpdate) SetNillablePrimaryCalendarID(u *uuid.UUID) *EventUpdate {
+	if u != nil {
+		eu.SetPrimaryCalendarID(*u)
+	}
+	return eu
+}
+
+// ClearPrimaryCalendarID clears the value of the "primary_calendar_id" field.
+func (eu *EventUpdate) ClearPrimaryCalendarID() *EventUpdate {
+	eu.mutation.ClearPrimaryCalendarID()
+	return eu
+}
+
 // SetSummary sets the "summary" field.
 func (eu *EventUpdate) SetSummary(s string) *EventUpdate {
 	eu.mutation.SetSummary(s)
@@ -74,6 +115,26 @@ func (eu *EventUpdate) SetNillableSummary(s *string) *EventUpdate {
 // ClearSummary clears the value of the "summary" field.
 func (eu *EventUpdate) ClearSummary() *EventUpdate {
 	eu.mutation.ClearSummary()
+	return eu
+}
+
+// SetTitle sets the "title" field.
+func (eu *EventUpdate) SetTitle(s string) *EventUpdate {
+	eu.mutation.SetTitle(s)
+	return eu
+}
+
+// SetNillableTitle sets the "title" field if the given value is not nil.
+func (eu *EventUpdate) SetNillableTitle(s *string) *EventUpdate {
+	if s != nil {
+		eu.SetTitle(*s)
+	}
+	return eu
+}
+
+// ClearTitle clears the value of the "title" field.
+func (eu *EventUpdate) ClearTitle() *EventUpdate {
+	eu.mutation.ClearTitle()
 	return eu
 }
 
@@ -171,6 +232,80 @@ func (eu *EventUpdate) ClearGoogleEventID() *EventUpdate {
 	return eu
 }
 
+// SetConfirmedGoogleEventID sets the "confirmed_google_event_id" field.
+func (eu *EventUpdate) SetConfirmedGoogleEventID(s string) *EventUpdate {
+	eu.mutation.SetConfirmedGoogleEventID(s)
+	return eu
+}
+
+// SetNillableConfirmedGoogleEventID sets the "confirmed_google_event_id" field if the given value is not nil.
+func (eu *EventUpdate) SetNillableConfirmedGoogleEventID(s *string) *EventUpdate {
+	if s != nil {
+		eu.SetConfirmedGoogleEventID(*s)
+	}
+	return eu
+}
+
+// ClearConfirmedGoogleEventID clears the value of the "confirmed_google_event_id" field.
+func (eu *EventUpdate) ClearConfirmedGoogleEventID() *EventUpdate {
+	eu.mutation.ClearConfirmedGoogleEventID()
+	return eu
+}
+
+// SetSyncStatus sets the "sync_status" field.
+func (eu *EventUpdate) SetSyncStatus(es event.SyncStatus) *EventUpdate {
+	eu.mutation.SetSyncStatus(es)
+	return eu
+}
+
+// SetNillableSyncStatus sets the "sync_status" field if the given value is not nil.
+func (eu *EventUpdate) SetNillableSyncStatus(es *event.SyncStatus) *EventUpdate {
+	if es != nil {
+		eu.SetSyncStatus(*es)
+	}
+	return eu
+}
+
+// SetLastSyncedAt sets the "last_synced_at" field.
+func (eu *EventUpdate) SetLastSyncedAt(t time.Time) *EventUpdate {
+	eu.mutation.SetLastSyncedAt(t)
+	return eu
+}
+
+// SetNillableLastSyncedAt sets the "last_synced_at" field if the given value is not nil.
+func (eu *EventUpdate) SetNillableLastSyncedAt(t *time.Time) *EventUpdate {
+	if t != nil {
+		eu.SetLastSyncedAt(*t)
+	}
+	return eu
+}
+
+// ClearLastSyncedAt clears the value of the "last_synced_at" field.
+func (eu *EventUpdate) ClearLastSyncedAt() *EventUpdate {
+	eu.mutation.ClearLastSyncedAt()
+	return eu
+}
+
+// SetLastSyncError sets the "last_sync_error" field.
+func (eu *EventUpdate) SetLastSyncError(s string) *EventUpdate {
+	eu.mutation.SetLastSyncError(s)
+	return eu
+}
+
+// SetNillableLastSyncError sets the "last_sync_error" field if the given value is not nil.
+func (eu *EventUpdate) SetNillableLastSyncError(s *string) *EventUpdate {
+	if s != nil {
+		eu.SetLastSyncError(*s)
+	}
+	return eu
+}
+
+// ClearLastSyncError clears the value of the "last_sync_error" field.
+func (eu *EventUpdate) ClearLastSyncError() *EventUpdate {
+	eu.mutation.ClearLastSyncError()
+	return eu
+}
+
 // SetSlug sets the "slug" field.
 func (eu *EventUpdate) SetSlug(s string) *EventUpdate {
 	eu.mutation.SetSlug(s)
@@ -204,6 +339,21 @@ func (eu *EventUpdate) SetCalendar(c *Calendar) *EventUpdate {
 	return eu.SetCalendarID(c.ID)
 }
 
+// SetUser sets the "user" edge to the User entity.
+func (eu *EventUpdate) SetUser(u *User) *EventUpdate {
+	return eu.SetUserID(u.ID)
+}
+
+// SetPrimaryCalendar sets the "primary_calendar" edge to the Calendar entity.
+func (eu *EventUpdate) SetPrimaryCalendar(c *Calendar) *EventUpdate {
+	return eu.SetPrimaryCalendarID(c.ID)
+}
+
+// SetConfirmedDate sets the "confirmed_date" edge to the ProposedDate entity.
+func (eu *EventUpdate) SetConfirmedDate(p *ProposedDate) *EventUpdate {
+	return eu.SetConfirmedDateID(p.ID)
+}
+
 // AddProposedDateIDs adds the "proposed_dates" edge to the ProposedDate entity by IDs.
 func (eu *EventUpdate) AddProposedDateIDs(ids ...uuid.UUID) *EventUpdate {
 	eu.mutation.AddProposedDateIDs(ids...)
@@ -227,6 +377,24 @@ func (eu *EventUpdate) Mutation() *EventMutation {
 // ClearCalendar clears the "calendar" edge to the Calendar entity.
 func (eu *EventUpdate) ClearCalendar() *EventUpdate {
 	eu.mutation.ClearCalendar()
+	return eu
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (eu *EventUpdate) ClearUser() *EventUpdate {
+	eu.mutation.ClearUser()
+	return eu
+}
+
+// ClearPrimaryCalendar clears the "primary_calendar" edge to the Calendar entity.
+func (eu *EventUpdate) ClearPrimaryCalendar() *EventUpdate {
+	eu.mutation.ClearPrimaryCalendar()
+	return eu
+}
+
+// ClearConfirmedDate clears the "confirmed_date" edge to the ProposedDate entity.
+func (eu *EventUpdate) ClearConfirmedDate() *EventUpdate {
+	eu.mutation.ClearConfirmedDate()
 	return eu
 }
 
@@ -300,6 +468,11 @@ func (eu *EventUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Event.status": %w`, err)}
 		}
 	}
+	if v, ok := eu.mutation.SyncStatus(); ok {
+		if err := event.SyncStatusValidator(v); err != nil {
+			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "Event.sync_status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -330,6 +503,12 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.SummaryCleared() {
 		_spec.ClearField(event.FieldSummary, field.TypeString)
 	}
+	if value, ok := eu.mutation.Title(); ok {
+		_spec.SetField(event.FieldTitle, field.TypeString, value)
+	}
+	if eu.mutation.TitleCleared() {
+		_spec.ClearField(event.FieldTitle, field.TypeString)
+	}
 	if value, ok := eu.mutation.Description(); ok {
 		_spec.SetField(event.FieldDescription, field.TypeString, value)
 	}
@@ -345,17 +524,32 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := eu.mutation.Status(); ok {
 		_spec.SetField(event.FieldStatus, field.TypeEnum, value)
 	}
-	if value, ok := eu.mutation.ConfirmedDateID(); ok {
-		_spec.SetField(event.FieldConfirmedDateID, field.TypeUUID, value)
-	}
-	if eu.mutation.ConfirmedDateIDCleared() {
-		_spec.ClearField(event.FieldConfirmedDateID, field.TypeUUID)
-	}
 	if value, ok := eu.mutation.GoogleEventID(); ok {
 		_spec.SetField(event.FieldGoogleEventID, field.TypeString, value)
 	}
 	if eu.mutation.GoogleEventIDCleared() {
 		_spec.ClearField(event.FieldGoogleEventID, field.TypeString)
+	}
+	if value, ok := eu.mutation.ConfirmedGoogleEventID(); ok {
+		_spec.SetField(event.FieldConfirmedGoogleEventID, field.TypeString, value)
+	}
+	if eu.mutation.ConfirmedGoogleEventIDCleared() {
+		_spec.ClearField(event.FieldConfirmedGoogleEventID, field.TypeString)
+	}
+	if value, ok := eu.mutation.SyncStatus(); ok {
+		_spec.SetField(event.FieldSyncStatus, field.TypeEnum, value)
+	}
+	if value, ok := eu.mutation.LastSyncedAt(); ok {
+		_spec.SetField(event.FieldLastSyncedAt, field.TypeTime, value)
+	}
+	if eu.mutation.LastSyncedAtCleared() {
+		_spec.ClearField(event.FieldLastSyncedAt, field.TypeTime)
+	}
+	if value, ok := eu.mutation.LastSyncError(); ok {
+		_spec.SetField(event.FieldLastSyncError, field.TypeString, value)
+	}
+	if eu.mutation.LastSyncErrorCleared() {
+		_spec.ClearField(event.FieldLastSyncError, field.TypeString)
 	}
 	if value, ok := eu.mutation.Slug(); ok {
 		_spec.SetField(event.FieldSlug, field.TypeString, value)
@@ -382,6 +576,93 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.UserTable,
+			Columns: []string{event.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.UserTable,
+			Columns: []string{event.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.PrimaryCalendarCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.PrimaryCalendarTable,
+			Columns: []string{event.PrimaryCalendarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.PrimaryCalendarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.PrimaryCalendarTable,
+			Columns: []string{event.PrimaryCalendarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.ConfirmedDateCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   event.ConfirmedDateTable,
+			Columns: []string{event.ConfirmedDateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.ConfirmedDateIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   event.ConfirmedDateTable,
+			Columns: []string{event.ConfirmedDateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -480,6 +761,46 @@ func (euo *EventUpdateOne) ClearDeletedAt() *EventUpdateOne {
 	return euo
 }
 
+// SetUserID sets the "user_id" field.
+func (euo *EventUpdateOne) SetUserID(u uuid.UUID) *EventUpdateOne {
+	euo.mutation.SetUserID(u)
+	return euo
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillableUserID(u *uuid.UUID) *EventUpdateOne {
+	if u != nil {
+		euo.SetUserID(*u)
+	}
+	return euo
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (euo *EventUpdateOne) ClearUserID() *EventUpdateOne {
+	euo.mutation.ClearUserID()
+	return euo
+}
+
+// SetPrimaryCalendarID sets the "primary_calendar_id" field.
+func (euo *EventUpdateOne) SetPrimaryCalendarID(u uuid.UUID) *EventUpdateOne {
+	euo.mutation.SetPrimaryCalendarID(u)
+	return euo
+}
+
+// SetNillablePrimaryCalendarID sets the "primary_calendar_id" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillablePrimaryCalendarID(u *uuid.UUID) *EventUpdateOne {
+	if u != nil {
+		euo.SetPrimaryCalendarID(*u)
+	}
+	return euo
+}
+
+// ClearPrimaryCalendarID clears the value of the "primary_calendar_id" field.
+func (euo *EventUpdateOne) ClearPrimaryCalendarID() *EventUpdateOne {
+	euo.mutation.ClearPrimaryCalendarID()
+	return euo
+}
+
 // SetSummary sets the "summary" field.
 func (euo *EventUpdateOne) SetSummary(s string) *EventUpdateOne {
 	euo.mutation.SetSummary(s)
@@ -497,6 +818,26 @@ func (euo *EventUpdateOne) SetNillableSummary(s *string) *EventUpdateOne {
 // ClearSummary clears the value of the "summary" field.
 func (euo *EventUpdateOne) ClearSummary() *EventUpdateOne {
 	euo.mutation.ClearSummary()
+	return euo
+}
+
+// SetTitle sets the "title" field.
+func (euo *EventUpdateOne) SetTitle(s string) *EventUpdateOne {
+	euo.mutation.SetTitle(s)
+	return euo
+}
+
+// SetNillableTitle sets the "title" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillableTitle(s *string) *EventUpdateOne {
+	if s != nil {
+		euo.SetTitle(*s)
+	}
+	return euo
+}
+
+// ClearTitle clears the value of the "title" field.
+func (euo *EventUpdateOne) ClearTitle() *EventUpdateOne {
+	euo.mutation.ClearTitle()
 	return euo
 }
 
@@ -594,6 +935,80 @@ func (euo *EventUpdateOne) ClearGoogleEventID() *EventUpdateOne {
 	return euo
 }
 
+// SetConfirmedGoogleEventID sets the "confirmed_google_event_id" field.
+func (euo *EventUpdateOne) SetConfirmedGoogleEventID(s string) *EventUpdateOne {
+	euo.mutation.SetConfirmedGoogleEventID(s)
+	return euo
+}
+
+// SetNillableConfirmedGoogleEventID sets the "confirmed_google_event_id" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillableConfirmedGoogleEventID(s *string) *EventUpdateOne {
+	if s != nil {
+		euo.SetConfirmedGoogleEventID(*s)
+	}
+	return euo
+}
+
+// ClearConfirmedGoogleEventID clears the value of the "confirmed_google_event_id" field.
+func (euo *EventUpdateOne) ClearConfirmedGoogleEventID() *EventUpdateOne {
+	euo.mutation.ClearConfirmedGoogleEventID()
+	return euo
+}
+
+// SetSyncStatus sets the "sync_status" field.
+func (euo *EventUpdateOne) SetSyncStatus(es event.SyncStatus) *EventUpdateOne {
+	euo.mutation.SetSyncStatus(es)
+	return euo
+}
+
+// SetNillableSyncStatus sets the "sync_status" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillableSyncStatus(es *event.SyncStatus) *EventUpdateOne {
+	if es != nil {
+		euo.SetSyncStatus(*es)
+	}
+	return euo
+}
+
+// SetLastSyncedAt sets the "last_synced_at" field.
+func (euo *EventUpdateOne) SetLastSyncedAt(t time.Time) *EventUpdateOne {
+	euo.mutation.SetLastSyncedAt(t)
+	return euo
+}
+
+// SetNillableLastSyncedAt sets the "last_synced_at" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillableLastSyncedAt(t *time.Time) *EventUpdateOne {
+	if t != nil {
+		euo.SetLastSyncedAt(*t)
+	}
+	return euo
+}
+
+// ClearLastSyncedAt clears the value of the "last_synced_at" field.
+func (euo *EventUpdateOne) ClearLastSyncedAt() *EventUpdateOne {
+	euo.mutation.ClearLastSyncedAt()
+	return euo
+}
+
+// SetLastSyncError sets the "last_sync_error" field.
+func (euo *EventUpdateOne) SetLastSyncError(s string) *EventUpdateOne {
+	euo.mutation.SetLastSyncError(s)
+	return euo
+}
+
+// SetNillableLastSyncError sets the "last_sync_error" field if the given value is not nil.
+func (euo *EventUpdateOne) SetNillableLastSyncError(s *string) *EventUpdateOne {
+	if s != nil {
+		euo.SetLastSyncError(*s)
+	}
+	return euo
+}
+
+// ClearLastSyncError clears the value of the "last_sync_error" field.
+func (euo *EventUpdateOne) ClearLastSyncError() *EventUpdateOne {
+	euo.mutation.ClearLastSyncError()
+	return euo
+}
+
 // SetSlug sets the "slug" field.
 func (euo *EventUpdateOne) SetSlug(s string) *EventUpdateOne {
 	euo.mutation.SetSlug(s)
@@ -627,6 +1042,21 @@ func (euo *EventUpdateOne) SetCalendar(c *Calendar) *EventUpdateOne {
 	return euo.SetCalendarID(c.ID)
 }
 
+// SetUser sets the "user" edge to the User entity.
+func (euo *EventUpdateOne) SetUser(u *User) *EventUpdateOne {
+	return euo.SetUserID(u.ID)
+}
+
+// SetPrimaryCalendar sets the "primary_calendar" edge to the Calendar entity.
+func (euo *EventUpdateOne) SetPrimaryCalendar(c *Calendar) *EventUpdateOne {
+	return euo.SetPrimaryCalendarID(c.ID)
+}
+
+// SetConfirmedDate sets the "confirmed_date" edge to the ProposedDate entity.
+func (euo *EventUpdateOne) SetConfirmedDate(p *ProposedDate) *EventUpdateOne {
+	return euo.SetConfirmedDateID(p.ID)
+}
+
 // AddProposedDateIDs adds the "proposed_dates" edge to the ProposedDate entity by IDs.
 func (euo *EventUpdateOne) AddProposedDateIDs(ids ...uuid.UUID) *EventUpdateOne {
 	euo.mutation.AddProposedDateIDs(ids...)
@@ -650,6 +1080,24 @@ func (euo *EventUpdateOne) Mutation() *EventMutation {
 // ClearCalendar clears the "calendar" edge to the Calendar entity.
 func (euo *EventUpdateOne) ClearCalendar() *EventUpdateOne {
 	euo.mutation.ClearCalendar()
+	return euo
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (euo *EventUpdateOne) ClearUser() *EventUpdateOne {
+	euo.mutation.ClearUser()
+	return euo
+}
+
+// ClearPrimaryCalendar clears the "primary_calendar" edge to the Calendar entity.
+func (euo *EventUpdateOne) ClearPrimaryCalendar() *EventUpdateOne {
+	euo.mutation.ClearPrimaryCalendar()
+	return euo
+}
+
+// ClearConfirmedDate clears the "confirmed_date" edge to the ProposedDate entity.
+func (euo *EventUpdateOne) ClearConfirmedDate() *EventUpdateOne {
+	euo.mutation.ClearConfirmedDate()
 	return euo
 }
 
@@ -736,6 +1184,11 @@ func (euo *EventUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Event.status": %w`, err)}
 		}
 	}
+	if v, ok := euo.mutation.SyncStatus(); ok {
+		if err := event.SyncStatusValidator(v); err != nil {
+			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "Event.sync_status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -783,6 +1236,12 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 	if euo.mutation.SummaryCleared() {
 		_spec.ClearField(event.FieldSummary, field.TypeString)
 	}
+	if value, ok := euo.mutation.Title(); ok {
+		_spec.SetField(event.FieldTitle, field.TypeString, value)
+	}
+	if euo.mutation.TitleCleared() {
+		_spec.ClearField(event.FieldTitle, field.TypeString)
+	}
 	if value, ok := euo.mutation.Description(); ok {
 		_spec.SetField(event.FieldDescription, field.TypeString, value)
 	}
@@ -798,17 +1257,32 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 	if value, ok := euo.mutation.Status(); ok {
 		_spec.SetField(event.FieldStatus, field.TypeEnum, value)
 	}
-	if value, ok := euo.mutation.ConfirmedDateID(); ok {
-		_spec.SetField(event.FieldConfirmedDateID, field.TypeUUID, value)
-	}
-	if euo.mutation.ConfirmedDateIDCleared() {
-		_spec.ClearField(event.FieldConfirmedDateID, field.TypeUUID)
-	}
 	if value, ok := euo.mutation.GoogleEventID(); ok {
 		_spec.SetField(event.FieldGoogleEventID, field.TypeString, value)
 	}
 	if euo.mutation.GoogleEventIDCleared() {
 		_spec.ClearField(event.FieldGoogleEventID, field.TypeString)
+	}
+	if value, ok := euo.mutation.ConfirmedGoogleEventID(); ok {
+		_spec.SetField(event.FieldConfirmedGoogleEventID, field.TypeString, value)
+	}
+	if euo.mutation.ConfirmedGoogleEventIDCleared() {
+		_spec.ClearField(event.FieldConfirmedGoogleEventID, field.TypeString)
+	}
+	if value, ok := euo.mutation.SyncStatus(); ok {
+		_spec.SetField(event.FieldSyncStatus, field.TypeEnum, value)
+	}
+	if value, ok := euo.mutation.LastSyncedAt(); ok {
+		_spec.SetField(event.FieldLastSyncedAt, field.TypeTime, value)
+	}
+	if euo.mutation.LastSyncedAtCleared() {
+		_spec.ClearField(event.FieldLastSyncedAt, field.TypeTime)
+	}
+	if value, ok := euo.mutation.LastSyncError(); ok {
+		_spec.SetField(event.FieldLastSyncError, field.TypeString, value)
+	}
+	if euo.mutation.LastSyncErrorCleared() {
+		_spec.ClearField(event.FieldLastSyncError, field.TypeString)
 	}
 	if value, ok := euo.mutation.Slug(); ok {
 		_spec.SetField(event.FieldSlug, field.TypeString, value)
@@ -835,6 +1309,93 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.UserTable,
+			Columns: []string{event.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.UserTable,
+			Columns: []string{event.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.PrimaryCalendarCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.PrimaryCalendarTable,
+			Columns: []string{event.PrimaryCalendarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.PrimaryCalendarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.PrimaryCalendarTable,
+			Columns: []string{event.PrimaryCalendarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.ConfirmedDateCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   event.ConfirmedDateTable,
+			Columns: []string{event.ConfirmedDateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.ConfirmedDateIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   event.ConfirmedDateTable,
+			Columns: []string{event.ConfirmedDateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

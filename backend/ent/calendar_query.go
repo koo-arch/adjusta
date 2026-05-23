@@ -18,6 +18,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // CalendarQuery is the builder for querying Calendar entities.
@@ -30,6 +31,8 @@ type CalendarQuery struct {
 	withUser                *UserQuery
 	withGoogleCalendarInfos *GoogleCalendarInfoQuery
 	withEvents              *EventQuery
+	withUserCalendars       *UserCalendarQuery
+	withPrimaryEvents       *EventQuery
 	withFKs                 bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -126,6 +129,50 @@ func (cq *CalendarQuery) QueryEvents() *EventQuery {
 			sqlgraph.From(calendar.Table, calendar.FieldID, selector),
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, calendar.EventsTable, calendar.EventsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUserCalendars chains the current query on the "user_calendars" edge.
+func (cq *CalendarQuery) QueryUserCalendars() *UserCalendarQuery {
+	query := (&UserCalendarClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(calendar.Table, calendar.FieldID, selector),
+			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, calendar.UserCalendarsTable, calendar.UserCalendarsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPrimaryEvents chains the current query on the "primary_events" edge.
+func (cq *CalendarQuery) QueryPrimaryEvents() *EventQuery {
+	query := (&EventClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(calendar.Table, calendar.FieldID, selector),
+			sqlgraph.To(event.Table, event.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, calendar.PrimaryEventsTable, calendar.PrimaryEventsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
@@ -328,6 +375,8 @@ func (cq *CalendarQuery) Clone() *CalendarQuery {
 		withUser:                cq.withUser.Clone(),
 		withGoogleCalendarInfos: cq.withGoogleCalendarInfos.Clone(),
 		withEvents:              cq.withEvents.Clone(),
+		withUserCalendars:       cq.withUserCalendars.Clone(),
+		withPrimaryEvents:       cq.withPrimaryEvents.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
@@ -364,6 +413,28 @@ func (cq *CalendarQuery) WithEvents(opts ...func(*EventQuery)) *CalendarQuery {
 		opt(query)
 	}
 	cq.withEvents = query
+	return cq
+}
+
+// WithUserCalendars tells the query-builder to eager-load the nodes that are connected to
+// the "user_calendars" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CalendarQuery) WithUserCalendars(opts ...func(*UserCalendarQuery)) *CalendarQuery {
+	query := (&UserCalendarClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withUserCalendars = query
+	return cq
+}
+
+// WithPrimaryEvents tells the query-builder to eager-load the nodes that are connected to
+// the "primary_events" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CalendarQuery) WithPrimaryEvents(opts ...func(*EventQuery)) *CalendarQuery {
+	query := (&EventClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withPrimaryEvents = query
 	return cq
 }
 
@@ -446,10 +517,12 @@ func (cq *CalendarQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cal
 		nodes       = []*Calendar{}
 		withFKs     = cq.withFKs
 		_spec       = cq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [5]bool{
 			cq.withUser != nil,
 			cq.withGoogleCalendarInfos != nil,
 			cq.withEvents != nil,
+			cq.withUserCalendars != nil,
+			cq.withPrimaryEvents != nil,
 		}
 	)
 	if cq.withUser != nil {
@@ -495,6 +568,20 @@ func (cq *CalendarQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cal
 		if err := cq.loadEvents(ctx, query, nodes,
 			func(n *Calendar) { n.Edges.Events = []*Event{} },
 			func(n *Calendar, e *Event) { n.Edges.Events = append(n.Edges.Events, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withUserCalendars; query != nil {
+		if err := cq.loadUserCalendars(ctx, query, nodes,
+			func(n *Calendar) { n.Edges.UserCalendars = []*UserCalendar{} },
+			func(n *Calendar, e *UserCalendar) { n.Edges.UserCalendars = append(n.Edges.UserCalendars, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := cq.withPrimaryEvents; query != nil {
+		if err := cq.loadPrimaryEvents(ctx, query, nodes,
+			func(n *Calendar) { n.Edges.PrimaryEvents = []*Event{} },
+			func(n *Calendar, e *Event) { n.Edges.PrimaryEvents = append(n.Edges.PrimaryEvents, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -620,6 +707,70 @@ func (cq *CalendarQuery) loadEvents(ctx context.Context, query *EventQuery, node
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "calendar_events" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (cq *CalendarQuery) loadUserCalendars(ctx context.Context, query *UserCalendarQuery, nodes []*Calendar, init func(*Calendar), assign func(*Calendar, *UserCalendar)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Calendar)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(usercalendar.FieldCalendarID)
+	}
+	query.Where(predicate.UserCalendar(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(calendar.UserCalendarsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CalendarID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "calendar_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (cq *CalendarQuery) loadPrimaryEvents(ctx context.Context, query *EventQuery, nodes []*Calendar, init func(*Calendar), assign func(*Calendar, *Event)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Calendar)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(event.FieldPrimaryCalendarID)
+	}
+	query.Where(predicate.Event(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(calendar.PrimaryEventsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PrimaryCalendarID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "primary_calendar_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "primary_calendar_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

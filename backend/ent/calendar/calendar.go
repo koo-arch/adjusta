@@ -22,12 +22,24 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldGoogleCalendarID holds the string denoting the google_calendar_id field in the database.
+	FieldGoogleCalendarID = "google_calendar_id"
+	// FieldSummary holds the string denoting the summary field in the database.
+	FieldSummary = "summary"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeGoogleCalendarInfos holds the string denoting the google_calendar_infos edge name in mutations.
 	EdgeGoogleCalendarInfos = "google_calendar_infos"
 	// EdgeEvents holds the string denoting the events edge name in mutations.
 	EdgeEvents = "events"
+	// EdgeUserCalendars holds the string denoting the user_calendars edge name in mutations.
+	EdgeUserCalendars = "user_calendars"
+	// EdgePrimaryEvents holds the string denoting the primary_events edge name in mutations.
+	EdgePrimaryEvents = "primary_events"
 	// Table holds the table name of the calendar in the database.
 	Table = "calendars"
 	// UserTable is the table that holds the user relation/edge.
@@ -49,6 +61,20 @@ const (
 	EventsInverseTable = "events"
 	// EventsColumn is the table column denoting the events relation/edge.
 	EventsColumn = "calendar_events"
+	// UserCalendarsTable is the table that holds the user_calendars relation/edge.
+	UserCalendarsTable = "user_calendars"
+	// UserCalendarsInverseTable is the table name for the UserCalendar entity.
+	// It exists in this package in order to avoid circular dependency with the "usercalendar" package.
+	UserCalendarsInverseTable = "user_calendars"
+	// UserCalendarsColumn is the table column denoting the user_calendars relation/edge.
+	UserCalendarsColumn = "calendar_id"
+	// PrimaryEventsTable is the table that holds the primary_events relation/edge.
+	PrimaryEventsTable = "events"
+	// PrimaryEventsInverseTable is the table name for the Event entity.
+	// It exists in this package in order to avoid circular dependency with the "event" package.
+	PrimaryEventsInverseTable = "events"
+	// PrimaryEventsColumn is the table column denoting the primary_events relation/edge.
+	PrimaryEventsColumn = "primary_calendar_id"
 )
 
 // Columns holds all SQL columns for calendar fields.
@@ -57,6 +83,10 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldGoogleCalendarID,
+	FieldSummary,
+	FieldDescription,
+	FieldTimezone,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "calendars"
@@ -126,6 +156,26 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
+// ByGoogleCalendarID orders the results by the google_calendar_id field.
+func ByGoogleCalendarID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGoogleCalendarID, opts...).ToFunc()
+}
+
+// BySummary orders the results by the summary field.
+func BySummary(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSummary, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
+}
+
 // ByUserField orders the results by user field.
 func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -160,6 +210,34 @@ func ByEvents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEventsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByUserCalendarsCount orders the results by user_calendars count.
+func ByUserCalendarsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUserCalendarsStep(), opts...)
+	}
+}
+
+// ByUserCalendars orders the results by user_calendars terms.
+func ByUserCalendars(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUserCalendarsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPrimaryEventsCount orders the results by primary_events count.
+func ByPrimaryEventsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPrimaryEventsStep(), opts...)
+	}
+}
+
+// ByPrimaryEvents orders the results by primary_events terms.
+func ByPrimaryEvents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPrimaryEventsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -179,5 +257,19 @@ func newEventsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EventsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EventsTable, EventsColumn),
+	)
+}
+func newUserCalendarsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UserCalendarsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UserCalendarsTable, UserCalendarsColumn),
+	)
+}
+func newPrimaryEventsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PrimaryEventsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PrimaryEventsTable, PrimaryEventsColumn),
 	)
 }

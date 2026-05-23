@@ -3,17 +3,48 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
 
 var (
+	// AccountsColumns holds the columns for the "accounts" table.
+	AccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "google_user_id", Type: field.TypeString, Unique: true},
+		{Name: "access_token", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "refresh_token", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "scope", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "user_id", Type: field.TypeUUID, Unique: true},
+	}
+	// AccountsTable holds the schema information for the "accounts" table.
+	AccountsTable = &schema.Table{
+		Name:       "accounts",
+		Columns:    AccountsColumns,
+		PrimaryKey: []*schema.Column{AccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "accounts_users_account",
+				Columns:    []*schema.Column{AccountsColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// CalendarsColumns holds the columns for the "calendars" table.
 	CalendarsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "google_calendar_id", Type: field.TypeString, Unique: true, Nullable: true},
+		{Name: "summary", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "timezone", Type: field.TypeString, Nullable: true},
 		{Name: "user_calendars", Type: field.TypeUUID, Nullable: true},
 	}
 	// CalendarsTable holds the schema information for the "calendars" table.
@@ -24,7 +55,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "calendars_users_calendars",
-				Columns:    []*schema.Column{CalendarsColumns[4]},
+				Columns:    []*schema.Column{CalendarsColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -37,13 +68,20 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "summary", Type: field.TypeString, Nullable: true},
+		{Name: "title", Type: field.TypeString, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "location", Type: field.TypeString, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "confirmed", "cancelled"}, Default: "pending"},
-		{Name: "confirmed_date_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "active", "pending", "confirmed", "cancelled"}, Default: "pending"},
 		{Name: "google_event_id", Type: field.TypeString, Nullable: true},
+		{Name: "confirmed_google_event_id", Type: field.TypeString, Nullable: true},
+		{Name: "sync_status", Type: field.TypeEnum, Enums: []string{"not_synced", "pending_sync", "synced", "sync_failed"}, Default: "not_synced"},
+		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_sync_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "slug", Type: field.TypeString, Unique: true},
 		{Name: "calendar_events", Type: field.TypeUUID, Nullable: true},
+		{Name: "primary_calendar_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "confirmed_date_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// EventsTable holds the schema information for the "events" table.
 	EventsTable = &schema.Table{
@@ -53,9 +91,54 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "events_calendars_events",
-				Columns:    []*schema.Column{EventsColumns[11]},
+				Columns:    []*schema.Column{EventsColumns[15]},
 				RefColumns: []*schema.Column{CalendarsColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "events_calendars_primary_events",
+				Columns:    []*schema.Column{EventsColumns[16]},
+				RefColumns: []*schema.Column{CalendarsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "events_proposed_dates_confirmed_date",
+				Columns:    []*schema.Column{EventsColumns[17]},
+				RefColumns: []*schema.Column{ProposedDatesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "events_users_events",
+				Columns:    []*schema.Column{EventsColumns[18]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "event_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{EventsColumns[18]},
+			},
+			{
+				Name:    "event_primary_calendar_id",
+				Unique:  false,
+				Columns: []*schema.Column{EventsColumns[16]},
+			},
+			{
+				Name:    "event_confirmed_date_id",
+				Unique:  false,
+				Columns: []*schema.Column{EventsColumns[17]},
+			},
+			{
+				Name:    "event_status",
+				Unique:  false,
+				Columns: []*schema.Column{EventsColumns[8]},
+			},
+			{
+				Name:    "event_sync_status",
+				Unique:  false,
+				Columns: []*schema.Column{EventsColumns[11]},
 			},
 		},
 	}
@@ -129,10 +212,15 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "google_event_id", Type: field.TypeString, Nullable: true},
 		{Name: "start_time", Type: field.TypeTime},
 		{Name: "end_time", Type: field.TypeTime},
 		{Name: "priority", Type: field.TypeInt, Default: 0},
-		{Name: "event_proposed_dates", Type: field.TypeUUID, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "confirmed", "not_selected", "cancelled"}, Default: "active"},
+		{Name: "sync_status", Type: field.TypeEnum, Enums: []string{"not_synced", "pending_sync", "synced", "sync_failed"}, Default: "not_synced"},
+		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_sync_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "event_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ProposedDatesTable holds the schema information for the "proposed_dates" table.
 	ProposedDatesTable = &schema.Table{
@@ -142,9 +230,69 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "proposed_dates_events_proposed_dates",
-				Columns:    []*schema.Column{ProposedDatesColumns[7]},
+				Columns:    []*schema.Column{ProposedDatesColumns[12]},
 				RefColumns: []*schema.Column{EventsColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "proposeddate_event_id",
+				Unique:  false,
+				Columns: []*schema.Column{ProposedDatesColumns[12]},
+			},
+			{
+				Name:    "proposeddate_start_time",
+				Unique:  false,
+				Columns: []*schema.Column{ProposedDatesColumns[5]},
+			},
+			{
+				Name:    "proposeddate_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProposedDatesColumns[8]},
+			},
+			{
+				Name:    "proposeddate_sync_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProposedDatesColumns[9]},
+			},
+			{
+				Name:    "proposeddate_event_id_priority",
+				Unique:  true,
+				Columns: []*schema.Column{ProposedDatesColumns[12], ProposedDatesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
+	// SessionsColumns holds the columns for the "sessions" table.
+	SessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "session_token", Type: field.TypeString, Unique: true},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// SessionsTable holds the schema information for the "sessions" table.
+	SessionsTable = &schema.Table{
+		Name:       "sessions",
+		Columns:    SessionsColumns,
+		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sessions_users_sessions",
+				Columns:    []*schema.Column{SessionsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "session_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[5]},
 			},
 		},
 	}
@@ -155,6 +303,8 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "email", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "avatar_url", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "refresh_token", Type: field.TypeString, Nullable: true},
 		{Name: "refresh_token_expiry", Type: field.TypeTime, Nullable: true},
 	}
@@ -163,6 +313,73 @@ var (
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+	}
+	// UserCalendarsColumns holds the columns for the "user_calendars" table.
+	UserCalendarsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"primary", "adjusta_candidate", "reference"}},
+		{Name: "is_visible", Type: field.TypeBool, Default: true},
+		{Name: "sync_proposed_dates", Type: field.TypeBool, Default: false},
+		{Name: "calendar_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// UserCalendarsTable holds the schema information for the "user_calendars" table.
+	UserCalendarsTable = &schema.Table{
+		Name:       "user_calendars",
+		Columns:    UserCalendarsColumns,
+		PrimaryKey: []*schema.Column{UserCalendarsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_calendars_calendars_user_calendars",
+				Columns:    []*schema.Column{UserCalendarsColumns[7]},
+				RefColumns: []*schema.Column{CalendarsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "user_calendars_users_user_calendars",
+				Columns:    []*schema.Column{UserCalendarsColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "usercalendar_user_id_calendar_id",
+				Unique:  true,
+				Columns: []*schema.Column{UserCalendarsColumns[8], UserCalendarsColumns[7]},
+			},
+			{
+				Name:    "usercalendar_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{UserCalendarsColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "role = 'primary' AND deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "usercalendar_calendar_id",
+				Unique:  false,
+				Columns: []*schema.Column{UserCalendarsColumns[7]},
+			},
+			{
+				Name:    "usercalendar_role",
+				Unique:  false,
+				Columns: []*schema.Column{UserCalendarsColumns[4]},
+			},
+			{
+				Name:    "usercalendar_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{UserCalendarsColumns[8]},
+			},
+			{
+				Name:    "usercalendar_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{UserCalendarsColumns[8]},
+			},
+		},
 	}
 	// CalendarGoogleCalendarInfosColumns holds the columns for the "calendar_google_calendar_infos" table.
 	CalendarGoogleCalendarInfosColumns = []*schema.Column{
@@ -191,22 +408,32 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AccountsTable,
 		CalendarsTable,
 		EventsTable,
 		GoogleCalendarInfosTable,
 		JwtKeysTable,
 		OauthTokensTable,
 		ProposedDatesTable,
+		SessionsTable,
 		UsersTable,
+		UserCalendarsTable,
 		CalendarGoogleCalendarInfosTable,
 	}
 )
 
 func init() {
+	AccountsTable.ForeignKeys[0].RefTable = UsersTable
 	CalendarsTable.ForeignKeys[0].RefTable = UsersTable
 	EventsTable.ForeignKeys[0].RefTable = CalendarsTable
+	EventsTable.ForeignKeys[1].RefTable = CalendarsTable
+	EventsTable.ForeignKeys[2].RefTable = ProposedDatesTable
+	EventsTable.ForeignKeys[3].RefTable = UsersTable
 	OauthTokensTable.ForeignKeys[0].RefTable = UsersTable
 	ProposedDatesTable.ForeignKeys[0].RefTable = EventsTable
+	SessionsTable.ForeignKeys[0].RefTable = UsersTable
+	UserCalendarsTable.ForeignKeys[0].RefTable = CalendarsTable
+	UserCalendarsTable.ForeignKeys[1].RefTable = UsersTable
 	CalendarGoogleCalendarInfosTable.ForeignKeys[0].RefTable = CalendarsTable
 	CalendarGoogleCalendarInfosTable.ForeignKeys[1].RefTable = GoogleCalendarInfosTable
 }

@@ -9,19 +9,47 @@ import (
 type EventStatus string
 
 const (
+	StatusDraft     EventStatus = "draft"
+	StatusActive    EventStatus = "active"
 	StatusPending   EventStatus = "pending"
 	StatusConfirmed EventStatus = "confirmed"
 	StatusCancelled EventStatus = "cancelled"
 )
 
+type UserCalendarRole string
+
+const (
+	UserCalendarRolePrimary          UserCalendarRole = "primary"
+	UserCalendarRoleAdjustaCandidate UserCalendarRole = "adjusta_candidate"
+	UserCalendarRoleReference        UserCalendarRole = "reference"
+)
+
+type ProposedDateStatus string
+
+const (
+	ProposedDateStatusActive      ProposedDateStatus = "active"
+	ProposedDateStatusConfirmed   ProposedDateStatus = "confirmed"
+	ProposedDateStatusNotSelected ProposedDateStatus = "not_selected"
+	ProposedDateStatusCancelled   ProposedDateStatus = "cancelled"
+)
+
+type SyncStatus string
+
+const (
+	SyncStatusNotSynced SyncStatus = "not_synced"
+	SyncStatusPending   SyncStatus = "pending_sync"
+	SyncStatusSynced    SyncStatus = "synced"
+	SyncStatusFailed    SyncStatus = "sync_failed"
+)
+
 type GoogleEvent struct {
-	ID      string `json:"id"`
-	Summary string `json:"summary"`
+	ID          string `json:"id"`
+	Summary     string `json:"summary"`
 	Description string `json:"description"`
-	Location string `json:"location"`
-	ColorID string `json:"color"`
-	Start   string `json:"start"`
-	End     string `json:"end"`
+	Location    string `json:"location"`
+	ColorID     string `json:"color"`
+	Start       string `json:"start"`
+	End         string `json:"end"`
 }
 
 type EventDraftCreation struct {
@@ -45,7 +73,7 @@ type EventDraftDetail struct {
 	Status          EventStatus    `json:"status"`
 	ConfirmedDateID *uuid.UUID     `json:"confirmed_date_id"`
 	GoogleEventID   string         `json:"google_event_id"`
-	Slug			string	       `json:"slug"`
+	Slug            string         `json:"slug"`
 	ProposedDates   []ProposedDate `json:"proposed_dates"`
 }
 
@@ -56,7 +84,7 @@ type EventDraftUpdate struct {
 	Status          EventStatus    `json:"status"`
 	ConfirmedDateID *uuid.UUID     `json:"confirmed_date_id"`
 	GoogleEventID   string         `json:"google_event_id"`
-	Slug			string	       `json:"slug"`
+	Slug            string         `json:"slug"`
 	ProposedDates   []ProposedDate `json:"proposed_dates"`
 }
 
@@ -97,7 +125,7 @@ type UpcomingEvent struct {
 	Status          EventStatus `json:"status"`
 	ConfirmedDateID uuid.UUID   `json:"confirmed_date_id"`
 	GoogleEventID   string      `json:"google_event_id"`
-	Slug			string	    `json:"slug"`
+	Slug            string      `json:"slug"`
 	Start           time.Time   `json:"start"`
 	End             time.Time   `json:"end"`
 }
@@ -108,7 +136,7 @@ type NeedsActionDraft struct {
 	Location       string      `json:"location"`
 	Description    string      `json:"description"`
 	Status         EventStatus `json:"status"`
-	Slug		   string      `json:"slug"`
+	Slug           string      `json:"slug"`
 	Start          time.Time   `json:"start"`
 	End            time.Time   `json:"end"`
 	NeedsAttention bool        `json:"needs_attention"`

@@ -14,6 +14,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 // EventCreate is the builder for creating a Event entity.
@@ -65,6 +66,34 @@ func (ec *EventCreate) SetNillableDeletedAt(t *time.Time) *EventCreate {
 	return ec
 }
 
+// SetUserID sets the "user_id" field.
+func (ec *EventCreate) SetUserID(u uuid.UUID) *EventCreate {
+	ec.mutation.SetUserID(u)
+	return ec
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (ec *EventCreate) SetNillableUserID(u *uuid.UUID) *EventCreate {
+	if u != nil {
+		ec.SetUserID(*u)
+	}
+	return ec
+}
+
+// SetPrimaryCalendarID sets the "primary_calendar_id" field.
+func (ec *EventCreate) SetPrimaryCalendarID(u uuid.UUID) *EventCreate {
+	ec.mutation.SetPrimaryCalendarID(u)
+	return ec
+}
+
+// SetNillablePrimaryCalendarID sets the "primary_calendar_id" field if the given value is not nil.
+func (ec *EventCreate) SetNillablePrimaryCalendarID(u *uuid.UUID) *EventCreate {
+	if u != nil {
+		ec.SetPrimaryCalendarID(*u)
+	}
+	return ec
+}
+
 // SetSummary sets the "summary" field.
 func (ec *EventCreate) SetSummary(s string) *EventCreate {
 	ec.mutation.SetSummary(s)
@@ -75,6 +104,20 @@ func (ec *EventCreate) SetSummary(s string) *EventCreate {
 func (ec *EventCreate) SetNillableSummary(s *string) *EventCreate {
 	if s != nil {
 		ec.SetSummary(*s)
+	}
+	return ec
+}
+
+// SetTitle sets the "title" field.
+func (ec *EventCreate) SetTitle(s string) *EventCreate {
+	ec.mutation.SetTitle(s)
+	return ec
+}
+
+// SetNillableTitle sets the "title" field if the given value is not nil.
+func (ec *EventCreate) SetNillableTitle(s *string) *EventCreate {
+	if s != nil {
+		ec.SetTitle(*s)
 	}
 	return ec
 }
@@ -149,6 +192,62 @@ func (ec *EventCreate) SetNillableGoogleEventID(s *string) *EventCreate {
 	return ec
 }
 
+// SetConfirmedGoogleEventID sets the "confirmed_google_event_id" field.
+func (ec *EventCreate) SetConfirmedGoogleEventID(s string) *EventCreate {
+	ec.mutation.SetConfirmedGoogleEventID(s)
+	return ec
+}
+
+// SetNillableConfirmedGoogleEventID sets the "confirmed_google_event_id" field if the given value is not nil.
+func (ec *EventCreate) SetNillableConfirmedGoogleEventID(s *string) *EventCreate {
+	if s != nil {
+		ec.SetConfirmedGoogleEventID(*s)
+	}
+	return ec
+}
+
+// SetSyncStatus sets the "sync_status" field.
+func (ec *EventCreate) SetSyncStatus(es event.SyncStatus) *EventCreate {
+	ec.mutation.SetSyncStatus(es)
+	return ec
+}
+
+// SetNillableSyncStatus sets the "sync_status" field if the given value is not nil.
+func (ec *EventCreate) SetNillableSyncStatus(es *event.SyncStatus) *EventCreate {
+	if es != nil {
+		ec.SetSyncStatus(*es)
+	}
+	return ec
+}
+
+// SetLastSyncedAt sets the "last_synced_at" field.
+func (ec *EventCreate) SetLastSyncedAt(t time.Time) *EventCreate {
+	ec.mutation.SetLastSyncedAt(t)
+	return ec
+}
+
+// SetNillableLastSyncedAt sets the "last_synced_at" field if the given value is not nil.
+func (ec *EventCreate) SetNillableLastSyncedAt(t *time.Time) *EventCreate {
+	if t != nil {
+		ec.SetLastSyncedAt(*t)
+	}
+	return ec
+}
+
+// SetLastSyncError sets the "last_sync_error" field.
+func (ec *EventCreate) SetLastSyncError(s string) *EventCreate {
+	ec.mutation.SetLastSyncError(s)
+	return ec
+}
+
+// SetNillableLastSyncError sets the "last_sync_error" field if the given value is not nil.
+func (ec *EventCreate) SetNillableLastSyncError(s *string) *EventCreate {
+	if s != nil {
+		ec.SetLastSyncError(*s)
+	}
+	return ec
+}
+
 // SetSlug sets the "slug" field.
 func (ec *EventCreate) SetSlug(s string) *EventCreate {
 	ec.mutation.SetSlug(s)
@@ -186,6 +285,21 @@ func (ec *EventCreate) SetNillableCalendarID(id *uuid.UUID) *EventCreate {
 // SetCalendar sets the "calendar" edge to the Calendar entity.
 func (ec *EventCreate) SetCalendar(c *Calendar) *EventCreate {
 	return ec.SetCalendarID(c.ID)
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (ec *EventCreate) SetUser(u *User) *EventCreate {
+	return ec.SetUserID(u.ID)
+}
+
+// SetPrimaryCalendar sets the "primary_calendar" edge to the Calendar entity.
+func (ec *EventCreate) SetPrimaryCalendar(c *Calendar) *EventCreate {
+	return ec.SetPrimaryCalendarID(c.ID)
+}
+
+// SetConfirmedDate sets the "confirmed_date" edge to the ProposedDate entity.
+func (ec *EventCreate) SetConfirmedDate(p *ProposedDate) *EventCreate {
+	return ec.SetConfirmedDateID(p.ID)
 }
 
 // AddProposedDateIDs adds the "proposed_dates" edge to the ProposedDate entity by IDs.
@@ -258,6 +372,10 @@ func (ec *EventCreate) defaults() error {
 		v := event.DefaultStatus
 		ec.mutation.SetStatus(v)
 	}
+	if _, ok := ec.mutation.SyncStatus(); !ok {
+		v := event.DefaultSyncStatus
+		ec.mutation.SetSyncStatus(v)
+	}
 	if _, ok := ec.mutation.ID(); !ok {
 		if event.DefaultID == nil {
 			return fmt.Errorf("ent: uninitialized event.DefaultID (forgotten import ent/runtime?)")
@@ -282,6 +400,14 @@ func (ec *EventCreate) check() error {
 	if v, ok := ec.mutation.Status(); ok {
 		if err := event.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Event.status": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.SyncStatus(); !ok {
+		return &ValidationError{Name: "sync_status", err: errors.New(`ent: missing required field "Event.sync_status"`)}
+	}
+	if v, ok := ec.mutation.SyncStatus(); ok {
+		if err := event.SyncStatusValidator(v); err != nil {
+			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "Event.sync_status": %w`, err)}
 		}
 	}
 	if _, ok := ec.mutation.Slug(); !ok {
@@ -338,6 +464,10 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 		_spec.SetField(event.FieldSummary, field.TypeString, value)
 		_node.Summary = value
 	}
+	if value, ok := ec.mutation.Title(); ok {
+		_spec.SetField(event.FieldTitle, field.TypeString, value)
+		_node.Title = &value
+	}
 	if value, ok := ec.mutation.Description(); ok {
 		_spec.SetField(event.FieldDescription, field.TypeString, value)
 		_node.Description = value
@@ -350,13 +480,25 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 		_spec.SetField(event.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
-	if value, ok := ec.mutation.ConfirmedDateID(); ok {
-		_spec.SetField(event.FieldConfirmedDateID, field.TypeUUID, value)
-		_node.ConfirmedDateID = value
-	}
 	if value, ok := ec.mutation.GoogleEventID(); ok {
 		_spec.SetField(event.FieldGoogleEventID, field.TypeString, value)
 		_node.GoogleEventID = value
+	}
+	if value, ok := ec.mutation.ConfirmedGoogleEventID(); ok {
+		_spec.SetField(event.FieldConfirmedGoogleEventID, field.TypeString, value)
+		_node.ConfirmedGoogleEventID = &value
+	}
+	if value, ok := ec.mutation.SyncStatus(); ok {
+		_spec.SetField(event.FieldSyncStatus, field.TypeEnum, value)
+		_node.SyncStatus = value
+	}
+	if value, ok := ec.mutation.LastSyncedAt(); ok {
+		_spec.SetField(event.FieldLastSyncedAt, field.TypeTime, value)
+		_node.LastSyncedAt = &value
+	}
+	if value, ok := ec.mutation.LastSyncError(); ok {
+		_spec.SetField(event.FieldLastSyncError, field.TypeString, value)
+		_node.LastSyncError = &value
 	}
 	if value, ok := ec.mutation.Slug(); ok {
 		_spec.SetField(event.FieldSlug, field.TypeString, value)
@@ -377,6 +519,57 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.calendar_events = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.UserTable,
+			Columns: []string{event.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.UserID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.PrimaryCalendarIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   event.PrimaryCalendarTable,
+			Columns: []string{event.PrimaryCalendarColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PrimaryCalendarID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.ConfirmedDateIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   event.ConfirmedDateTable,
+			Columns: []string{event.ConfirmedDateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ConfirmedDateID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ec.mutation.ProposedDatesIDs(); len(nodes) > 0 {

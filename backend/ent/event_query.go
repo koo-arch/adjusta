@@ -17,18 +17,22 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 // EventQuery is the builder for querying Event entities.
 type EventQuery struct {
 	config
-	ctx               *QueryContext
-	order             []event.OrderOption
-	inters            []Interceptor
-	predicates        []predicate.Event
-	withCalendar      *CalendarQuery
-	withProposedDates *ProposedDateQuery
-	withFKs           bool
+	ctx                 *QueryContext
+	order               []event.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.Event
+	withCalendar        *CalendarQuery
+	withUser            *UserQuery
+	withPrimaryCalendar *CalendarQuery
+	withConfirmedDate   *ProposedDateQuery
+	withProposedDates   *ProposedDateQuery
+	withFKs             bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,6 +84,72 @@ func (eq *EventQuery) QueryCalendar() *CalendarQuery {
 			sqlgraph.From(event.Table, event.FieldID, selector),
 			sqlgraph.To(calendar.Table, calendar.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, event.CalendarTable, event.CalendarColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUser chains the current query on the "user" edge.
+func (eq *EventQuery) QueryUser() *UserQuery {
+	query := (&UserClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(event.Table, event.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, event.UserTable, event.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPrimaryCalendar chains the current query on the "primary_calendar" edge.
+func (eq *EventQuery) QueryPrimaryCalendar() *CalendarQuery {
+	query := (&CalendarClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(event.Table, event.FieldID, selector),
+			sqlgraph.To(calendar.Table, calendar.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, event.PrimaryCalendarTable, event.PrimaryCalendarColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryConfirmedDate chains the current query on the "confirmed_date" edge.
+func (eq *EventQuery) QueryConfirmedDate() *ProposedDateQuery {
+	query := (&ProposedDateClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(event.Table, event.FieldID, selector),
+			sqlgraph.To(proposeddate.Table, proposeddate.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, event.ConfirmedDateTable, event.ConfirmedDateColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +366,16 @@ func (eq *EventQuery) Clone() *EventQuery {
 		return nil
 	}
 	return &EventQuery{
-		config:            eq.config,
-		ctx:               eq.ctx.Clone(),
-		order:             append([]event.OrderOption{}, eq.order...),
-		inters:            append([]Interceptor{}, eq.inters...),
-		predicates:        append([]predicate.Event{}, eq.predicates...),
-		withCalendar:      eq.withCalendar.Clone(),
-		withProposedDates: eq.withProposedDates.Clone(),
+		config:              eq.config,
+		ctx:                 eq.ctx.Clone(),
+		order:               append([]event.OrderOption{}, eq.order...),
+		inters:              append([]Interceptor{}, eq.inters...),
+		predicates:          append([]predicate.Event{}, eq.predicates...),
+		withCalendar:        eq.withCalendar.Clone(),
+		withUser:            eq.withUser.Clone(),
+		withPrimaryCalendar: eq.withPrimaryCalendar.Clone(),
+		withConfirmedDate:   eq.withConfirmedDate.Clone(),
+		withProposedDates:   eq.withProposedDates.Clone(),
 		// clone intermediate query.
 		sql:  eq.sql.Clone(),
 		path: eq.path,
@@ -317,6 +390,39 @@ func (eq *EventQuery) WithCalendar(opts ...func(*CalendarQuery)) *EventQuery {
 		opt(query)
 	}
 	eq.withCalendar = query
+	return eq
+}
+
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EventQuery) WithUser(opts ...func(*UserQuery)) *EventQuery {
+	query := (&UserClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withUser = query
+	return eq
+}
+
+// WithPrimaryCalendar tells the query-builder to eager-load the nodes that are connected to
+// the "primary_calendar" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EventQuery) WithPrimaryCalendar(opts ...func(*CalendarQuery)) *EventQuery {
+	query := (&CalendarClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withPrimaryCalendar = query
+	return eq
+}
+
+// WithConfirmedDate tells the query-builder to eager-load the nodes that are connected to
+// the "confirmed_date" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EventQuery) WithConfirmedDate(opts ...func(*ProposedDateQuery)) *EventQuery {
+	query := (&ProposedDateClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withConfirmedDate = query
 	return eq
 }
 
@@ -410,8 +516,11 @@ func (eq *EventQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Event,
 		nodes       = []*Event{}
 		withFKs     = eq.withFKs
 		_spec       = eq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [5]bool{
 			eq.withCalendar != nil,
+			eq.withUser != nil,
+			eq.withPrimaryCalendar != nil,
+			eq.withConfirmedDate != nil,
 			eq.withProposedDates != nil,
 		}
 	)
@@ -442,6 +551,24 @@ func (eq *EventQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Event,
 	if query := eq.withCalendar; query != nil {
 		if err := eq.loadCalendar(ctx, query, nodes, nil,
 			func(n *Event, e *Calendar) { n.Edges.Calendar = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withUser; query != nil {
+		if err := eq.loadUser(ctx, query, nodes, nil,
+			func(n *Event, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withPrimaryCalendar; query != nil {
+		if err := eq.loadPrimaryCalendar(ctx, query, nodes, nil,
+			func(n *Event, e *Calendar) { n.Edges.PrimaryCalendar = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withConfirmedDate; query != nil {
+		if err := eq.loadConfirmedDate(ctx, query, nodes, nil,
+			func(n *Event, e *ProposedDate) { n.Edges.ConfirmedDate = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -487,6 +614,99 @@ func (eq *EventQuery) loadCalendar(ctx context.Context, query *CalendarQuery, no
 	}
 	return nil
 }
+func (eq *EventQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*Event, init func(*Event), assign func(*Event, *User)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Event)
+	for i := range nodes {
+		if nodes[i].UserID == nil {
+			continue
+		}
+		fk := *nodes[i].UserID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (eq *EventQuery) loadPrimaryCalendar(ctx context.Context, query *CalendarQuery, nodes []*Event, init func(*Event), assign func(*Event, *Calendar)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Event)
+	for i := range nodes {
+		if nodes[i].PrimaryCalendarID == nil {
+			continue
+		}
+		fk := *nodes[i].PrimaryCalendarID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(calendar.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "primary_calendar_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (eq *EventQuery) loadConfirmedDate(ctx context.Context, query *ProposedDateQuery, nodes []*Event, init func(*Event), assign func(*Event, *ProposedDate)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Event)
+	for i := range nodes {
+		fk := nodes[i].ConfirmedDateID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(proposeddate.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "confirmed_date_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (eq *EventQuery) loadProposedDates(ctx context.Context, query *ProposedDateQuery, nodes []*Event, init func(*Event), assign func(*Event, *ProposedDate)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[uuid.UUID]*Event)
@@ -497,7 +717,9 @@ func (eq *EventQuery) loadProposedDates(ctx context.Context, query *ProposedDate
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(proposeddate.FieldEventID)
+	}
 	query.Where(predicate.ProposedDate(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(event.ProposedDatesColumn), fks...))
 	}))
@@ -506,13 +728,13 @@ func (eq *EventQuery) loadProposedDates(ctx context.Context, query *ProposedDate
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.event_proposed_dates
+		fk := n.EventID
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "event_proposed_dates" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "event_id" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "event_proposed_dates" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "event_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -543,6 +765,15 @@ func (eq *EventQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != event.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if eq.withUser != nil {
+			_spec.Node.AddColumnOnce(event.FieldUserID)
+		}
+		if eq.withPrimaryCalendar != nil {
+			_spec.Node.AddColumnOnce(event.FieldPrimaryCalendarID)
+		}
+		if eq.withConfirmedDate != nil {
+			_spec.Node.AddColumnOnce(event.FieldConfirmedDateID)
 		}
 	}
 	if ps := eq.predicates; len(ps) > 0 {

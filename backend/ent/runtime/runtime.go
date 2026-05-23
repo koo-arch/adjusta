@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
@@ -13,13 +14,38 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/schema"
+	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	accountMixin := schema.Account{}.Mixin()
+	accountMixinFields0 := accountMixin[0].Fields()
+	_ = accountMixinFields0
+	accountFields := schema.Account{}.Fields()
+	_ = accountFields
+	// accountDescCreatedAt is the schema descriptor for created_at field.
+	accountDescCreatedAt := accountMixinFields0[0].Descriptor()
+	// account.DefaultCreatedAt holds the default value on creation for the created_at field.
+	account.DefaultCreatedAt = accountDescCreatedAt.Default.(func() time.Time)
+	// accountDescUpdatedAt is the schema descriptor for updated_at field.
+	accountDescUpdatedAt := accountMixinFields0[1].Descriptor()
+	// account.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	account.DefaultUpdatedAt = accountDescUpdatedAt.Default.(func() time.Time)
+	// account.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	account.UpdateDefaultUpdatedAt = accountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// accountDescGoogleUserID is the schema descriptor for google_user_id field.
+	accountDescGoogleUserID := accountFields[2].Descriptor()
+	// account.GoogleUserIDValidator is a validator for the "google_user_id" field. It is called by the builders before save.
+	account.GoogleUserIDValidator = accountDescGoogleUserID.Validators[0].(func(string) error)
+	// accountDescID is the schema descriptor for id field.
+	accountDescID := accountFields[0].Descriptor()
+	// account.DefaultID holds the default value on creation for the id field.
+	account.DefaultID = accountDescID.Default.(func() uuid.UUID)
 	calendarMixin := schema.Calendar{}.Mixin()
 	calendarMixinInters1 := calendarMixin[1].Interceptors()
 	calendar.Interceptors[0] = calendarMixinInters1[0]
@@ -161,13 +187,36 @@ func init() {
 	// proposeddate.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	proposeddate.UpdateDefaultUpdatedAt = proposeddateDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// proposeddateDescPriority is the schema descriptor for priority field.
-	proposeddateDescPriority := proposeddateFields[3].Descriptor()
+	proposeddateDescPriority := proposeddateFields[5].Descriptor()
 	// proposeddate.DefaultPriority holds the default value on creation for the priority field.
 	proposeddate.DefaultPriority = proposeddateDescPriority.Default.(int)
 	// proposeddateDescID is the schema descriptor for id field.
 	proposeddateDescID := proposeddateFields[0].Descriptor()
 	// proposeddate.DefaultID holds the default value on creation for the id field.
 	proposeddate.DefaultID = proposeddateDescID.Default.(func() uuid.UUID)
+	sessionMixin := schema.Session{}.Mixin()
+	sessionMixinFields0 := sessionMixin[0].Fields()
+	_ = sessionMixinFields0
+	sessionFields := schema.Session{}.Fields()
+	_ = sessionFields
+	// sessionDescCreatedAt is the schema descriptor for created_at field.
+	sessionDescCreatedAt := sessionMixinFields0[0].Descriptor()
+	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
+	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
+	// sessionDescUpdatedAt is the schema descriptor for updated_at field.
+	sessionDescUpdatedAt := sessionMixinFields0[1].Descriptor()
+	// session.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	session.DefaultUpdatedAt = sessionDescUpdatedAt.Default.(func() time.Time)
+	// session.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	session.UpdateDefaultUpdatedAt = sessionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// sessionDescSessionToken is the schema descriptor for session_token field.
+	sessionDescSessionToken := sessionFields[2].Descriptor()
+	// session.SessionTokenValidator is a validator for the "session_token" field. It is called by the builders before save.
+	session.SessionTokenValidator = sessionDescSessionToken.Validators[0].(func(string) error)
+	// sessionDescID is the schema descriptor for id field.
+	sessionDescID := sessionFields[0].Descriptor()
+	// session.DefaultID holds the default value on creation for the id field.
+	session.DefaultID = sessionDescID.Default.(func() uuid.UUID)
 	userMixin := schema.User{}.Mixin()
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]
@@ -195,6 +244,35 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	usercalendarMixin := schema.UserCalendar{}.Mixin()
+	usercalendarMixinInters1 := usercalendarMixin[1].Interceptors()
+	usercalendar.Interceptors[0] = usercalendarMixinInters1[0]
+	usercalendarMixinFields0 := usercalendarMixin[0].Fields()
+	_ = usercalendarMixinFields0
+	usercalendarFields := schema.UserCalendar{}.Fields()
+	_ = usercalendarFields
+	// usercalendarDescCreatedAt is the schema descriptor for created_at field.
+	usercalendarDescCreatedAt := usercalendarMixinFields0[0].Descriptor()
+	// usercalendar.DefaultCreatedAt holds the default value on creation for the created_at field.
+	usercalendar.DefaultCreatedAt = usercalendarDescCreatedAt.Default.(func() time.Time)
+	// usercalendarDescUpdatedAt is the schema descriptor for updated_at field.
+	usercalendarDescUpdatedAt := usercalendarMixinFields0[1].Descriptor()
+	// usercalendar.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	usercalendar.DefaultUpdatedAt = usercalendarDescUpdatedAt.Default.(func() time.Time)
+	// usercalendar.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	usercalendar.UpdateDefaultUpdatedAt = usercalendarDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// usercalendarDescIsVisible is the schema descriptor for is_visible field.
+	usercalendarDescIsVisible := usercalendarFields[4].Descriptor()
+	// usercalendar.DefaultIsVisible holds the default value on creation for the is_visible field.
+	usercalendar.DefaultIsVisible = usercalendarDescIsVisible.Default.(bool)
+	// usercalendarDescSyncProposedDates is the schema descriptor for sync_proposed_dates field.
+	usercalendarDescSyncProposedDates := usercalendarFields[5].Descriptor()
+	// usercalendar.DefaultSyncProposedDates holds the default value on creation for the sync_proposed_dates field.
+	usercalendar.DefaultSyncProposedDates = usercalendarDescSyncProposedDates.Default.(bool)
+	// usercalendarDescID is the schema descriptor for id field.
+	usercalendarDescID := usercalendarFields[0].Descriptor()
+	// usercalendar.DefaultID holds the default value on creation for the id field.
+	usercalendar.DefaultID = usercalendarDescID.Default.(func() uuid.UUID)
 }
 
 const (

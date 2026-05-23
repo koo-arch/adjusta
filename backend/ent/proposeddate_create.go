@@ -64,6 +64,34 @@ func (pdc *ProposedDateCreate) SetNillableDeletedAt(t *time.Time) *ProposedDateC
 	return pdc
 }
 
+// SetEventID sets the "event_id" field.
+func (pdc *ProposedDateCreate) SetEventID(u uuid.UUID) *ProposedDateCreate {
+	pdc.mutation.SetEventID(u)
+	return pdc
+}
+
+// SetNillableEventID sets the "event_id" field if the given value is not nil.
+func (pdc *ProposedDateCreate) SetNillableEventID(u *uuid.UUID) *ProposedDateCreate {
+	if u != nil {
+		pdc.SetEventID(*u)
+	}
+	return pdc
+}
+
+// SetGoogleEventID sets the "google_event_id" field.
+func (pdc *ProposedDateCreate) SetGoogleEventID(s string) *ProposedDateCreate {
+	pdc.mutation.SetGoogleEventID(s)
+	return pdc
+}
+
+// SetNillableGoogleEventID sets the "google_event_id" field if the given value is not nil.
+func (pdc *ProposedDateCreate) SetNillableGoogleEventID(s *string) *ProposedDateCreate {
+	if s != nil {
+		pdc.SetGoogleEventID(*s)
+	}
+	return pdc
+}
+
 // SetStartTime sets the "start_time" field.
 func (pdc *ProposedDateCreate) SetStartTime(t time.Time) *ProposedDateCreate {
 	pdc.mutation.SetStartTime(t)
@@ -90,6 +118,62 @@ func (pdc *ProposedDateCreate) SetNillablePriority(i *int) *ProposedDateCreate {
 	return pdc
 }
 
+// SetStatus sets the "status" field.
+func (pdc *ProposedDateCreate) SetStatus(pr proposeddate.Status) *ProposedDateCreate {
+	pdc.mutation.SetStatus(pr)
+	return pdc
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (pdc *ProposedDateCreate) SetNillableStatus(pr *proposeddate.Status) *ProposedDateCreate {
+	if pr != nil {
+		pdc.SetStatus(*pr)
+	}
+	return pdc
+}
+
+// SetSyncStatus sets the "sync_status" field.
+func (pdc *ProposedDateCreate) SetSyncStatus(ps proposeddate.SyncStatus) *ProposedDateCreate {
+	pdc.mutation.SetSyncStatus(ps)
+	return pdc
+}
+
+// SetNillableSyncStatus sets the "sync_status" field if the given value is not nil.
+func (pdc *ProposedDateCreate) SetNillableSyncStatus(ps *proposeddate.SyncStatus) *ProposedDateCreate {
+	if ps != nil {
+		pdc.SetSyncStatus(*ps)
+	}
+	return pdc
+}
+
+// SetLastSyncedAt sets the "last_synced_at" field.
+func (pdc *ProposedDateCreate) SetLastSyncedAt(t time.Time) *ProposedDateCreate {
+	pdc.mutation.SetLastSyncedAt(t)
+	return pdc
+}
+
+// SetNillableLastSyncedAt sets the "last_synced_at" field if the given value is not nil.
+func (pdc *ProposedDateCreate) SetNillableLastSyncedAt(t *time.Time) *ProposedDateCreate {
+	if t != nil {
+		pdc.SetLastSyncedAt(*t)
+	}
+	return pdc
+}
+
+// SetLastSyncError sets the "last_sync_error" field.
+func (pdc *ProposedDateCreate) SetLastSyncError(s string) *ProposedDateCreate {
+	pdc.mutation.SetLastSyncError(s)
+	return pdc
+}
+
+// SetNillableLastSyncError sets the "last_sync_error" field if the given value is not nil.
+func (pdc *ProposedDateCreate) SetNillableLastSyncError(s *string) *ProposedDateCreate {
+	if s != nil {
+		pdc.SetLastSyncError(*s)
+	}
+	return pdc
+}
+
 // SetID sets the "id" field.
 func (pdc *ProposedDateCreate) SetID(u uuid.UUID) *ProposedDateCreate {
 	pdc.mutation.SetID(u)
@@ -100,20 +184,6 @@ func (pdc *ProposedDateCreate) SetID(u uuid.UUID) *ProposedDateCreate {
 func (pdc *ProposedDateCreate) SetNillableID(u *uuid.UUID) *ProposedDateCreate {
 	if u != nil {
 		pdc.SetID(*u)
-	}
-	return pdc
-}
-
-// SetEventID sets the "event" edge to the Event entity by ID.
-func (pdc *ProposedDateCreate) SetEventID(id uuid.UUID) *ProposedDateCreate {
-	pdc.mutation.SetEventID(id)
-	return pdc
-}
-
-// SetNillableEventID sets the "event" edge to the Event entity by ID if the given value is not nil.
-func (pdc *ProposedDateCreate) SetNillableEventID(id *uuid.UUID) *ProposedDateCreate {
-	if id != nil {
-		pdc = pdc.SetEventID(*id)
 	}
 	return pdc
 }
@@ -178,6 +248,14 @@ func (pdc *ProposedDateCreate) defaults() error {
 		v := proposeddate.DefaultPriority
 		pdc.mutation.SetPriority(v)
 	}
+	if _, ok := pdc.mutation.Status(); !ok {
+		v := proposeddate.DefaultStatus
+		pdc.mutation.SetStatus(v)
+	}
+	if _, ok := pdc.mutation.SyncStatus(); !ok {
+		v := proposeddate.DefaultSyncStatus
+		pdc.mutation.SetSyncStatus(v)
+	}
 	if _, ok := pdc.mutation.ID(); !ok {
 		if proposeddate.DefaultID == nil {
 			return fmt.Errorf("ent: uninitialized proposeddate.DefaultID (forgotten import ent/runtime?)")
@@ -204,6 +282,22 @@ func (pdc *ProposedDateCreate) check() error {
 	}
 	if _, ok := pdc.mutation.Priority(); !ok {
 		return &ValidationError{Name: "priority", err: errors.New(`ent: missing required field "ProposedDate.priority"`)}
+	}
+	if _, ok := pdc.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "ProposedDate.status"`)}
+	}
+	if v, ok := pdc.mutation.Status(); ok {
+		if err := proposeddate.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.status": %w`, err)}
+		}
+	}
+	if _, ok := pdc.mutation.SyncStatus(); !ok {
+		return &ValidationError{Name: "sync_status", err: errors.New(`ent: missing required field "ProposedDate.sync_status"`)}
+	}
+	if v, ok := pdc.mutation.SyncStatus(); ok {
+		if err := proposeddate.SyncStatusValidator(v); err != nil {
+			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.sync_status": %w`, err)}
+		}
 	}
 	return nil
 }
@@ -252,6 +346,10 @@ func (pdc *ProposedDateCreate) createSpec() (*ProposedDate, *sqlgraph.CreateSpec
 		_spec.SetField(proposeddate.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := pdc.mutation.GoogleEventID(); ok {
+		_spec.SetField(proposeddate.FieldGoogleEventID, field.TypeString, value)
+		_node.GoogleEventID = &value
+	}
 	if value, ok := pdc.mutation.StartTime(); ok {
 		_spec.SetField(proposeddate.FieldStartTime, field.TypeTime, value)
 		_node.StartTime = value
@@ -263,6 +361,22 @@ func (pdc *ProposedDateCreate) createSpec() (*ProposedDate, *sqlgraph.CreateSpec
 	if value, ok := pdc.mutation.Priority(); ok {
 		_spec.SetField(proposeddate.FieldPriority, field.TypeInt, value)
 		_node.Priority = value
+	}
+	if value, ok := pdc.mutation.Status(); ok {
+		_spec.SetField(proposeddate.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
+	if value, ok := pdc.mutation.SyncStatus(); ok {
+		_spec.SetField(proposeddate.FieldSyncStatus, field.TypeEnum, value)
+		_node.SyncStatus = value
+	}
+	if value, ok := pdc.mutation.LastSyncedAt(); ok {
+		_spec.SetField(proposeddate.FieldLastSyncedAt, field.TypeTime, value)
+		_node.LastSyncedAt = &value
+	}
+	if value, ok := pdc.mutation.LastSyncError(); ok {
+		_spec.SetField(proposeddate.FieldLastSyncError, field.TypeString, value)
+		_node.LastSyncError = &value
 	}
 	if nodes := pdc.mutation.EventIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -278,7 +392,7 @@ func (pdc *ProposedDateCreate) createSpec() (*ProposedDate, *sqlgraph.CreateSpec
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.event_proposed_dates = &nodes[0]
+		_node.EventID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

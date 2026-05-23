@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
+	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 // Event is the model entity for the Event schema.
@@ -25,8 +27,14 @@ type Event struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID *uuid.UUID `json:"user_id,omitempty"`
+	// PrimaryCalendarID holds the value of the "primary_calendar_id" field.
+	PrimaryCalendarID *uuid.UUID `json:"primary_calendar_id,omitempty"`
 	// Summary holds the value of the "summary" field.
 	Summary string `json:"summary,omitempty"`
+	// Title holds the value of the "title" field.
+	Title *string `json:"title,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// Location holds the value of the "location" field.
@@ -37,6 +45,14 @@ type Event struct {
 	ConfirmedDateID uuid.UUID `json:"confirmed_date_id,omitempty"`
 	// GoogleEventID holds the value of the "google_event_id" field.
 	GoogleEventID string `json:"google_event_id,omitempty"`
+	// ConfirmedGoogleEventID holds the value of the "confirmed_google_event_id" field.
+	ConfirmedGoogleEventID *string `json:"confirmed_google_event_id,omitempty"`
+	// SyncStatus holds the value of the "sync_status" field.
+	SyncStatus event.SyncStatus `json:"sync_status,omitempty"`
+	// LastSyncedAt holds the value of the "last_synced_at" field.
+	LastSyncedAt *time.Time `json:"last_synced_at,omitempty"`
+	// LastSyncError holds the value of the "last_sync_error" field.
+	LastSyncError *string `json:"last_sync_error,omitempty"`
 	// Slug holds the value of the "slug" field.
 	Slug string `json:"slug,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -50,11 +66,17 @@ type Event struct {
 type EventEdges struct {
 	// Calendar holds the value of the calendar edge.
 	Calendar *Calendar `json:"calendar,omitempty"`
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
+	// PrimaryCalendar holds the value of the primary_calendar edge.
+	PrimaryCalendar *Calendar `json:"primary_calendar,omitempty"`
+	// ConfirmedDate holds the value of the confirmed_date edge.
+	ConfirmedDate *ProposedDate `json:"confirmed_date,omitempty"`
 	// ProposedDates holds the value of the proposed_dates edge.
 	ProposedDates []*ProposedDate `json:"proposed_dates,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [5]bool
 }
 
 // CalendarOrErr returns the Calendar value or an error if the edge
@@ -68,10 +90,43 @@ func (e EventEdges) CalendarOrErr() (*Calendar, error) {
 	return nil, &NotLoadedError{edge: "calendar"}
 }
 
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EventEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
+		return e.User, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "user"}
+}
+
+// PrimaryCalendarOrErr returns the PrimaryCalendar value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EventEdges) PrimaryCalendarOrErr() (*Calendar, error) {
+	if e.PrimaryCalendar != nil {
+		return e.PrimaryCalendar, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: calendar.Label}
+	}
+	return nil, &NotLoadedError{edge: "primary_calendar"}
+}
+
+// ConfirmedDateOrErr returns the ConfirmedDate value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EventEdges) ConfirmedDateOrErr() (*ProposedDate, error) {
+	if e.ConfirmedDate != nil {
+		return e.ConfirmedDate, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: proposeddate.Label}
+	}
+	return nil, &NotLoadedError{edge: "confirmed_date"}
+}
+
 // ProposedDatesOrErr returns the ProposedDates value or an error if the edge
 // was not loaded in eager-loading.
 func (e EventEdges) ProposedDatesOrErr() ([]*ProposedDate, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[4] {
 		return e.ProposedDates, nil
 	}
 	return nil, &NotLoadedError{edge: "proposed_dates"}
@@ -82,9 +137,11 @@ func (*Event) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case event.FieldSummary, event.FieldDescription, event.FieldLocation, event.FieldStatus, event.FieldGoogleEventID, event.FieldSlug:
+		case event.FieldUserID, event.FieldPrimaryCalendarID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case event.FieldSummary, event.FieldTitle, event.FieldDescription, event.FieldLocation, event.FieldStatus, event.FieldGoogleEventID, event.FieldConfirmedGoogleEventID, event.FieldSyncStatus, event.FieldLastSyncError, event.FieldSlug:
 			values[i] = new(sql.NullString)
-		case event.FieldCreatedAt, event.FieldUpdatedAt, event.FieldDeletedAt:
+		case event.FieldCreatedAt, event.FieldUpdatedAt, event.FieldDeletedAt, event.FieldLastSyncedAt:
 			values[i] = new(sql.NullTime)
 		case event.FieldID, event.FieldConfirmedDateID:
 			values[i] = new(uuid.UUID)
@@ -130,11 +187,32 @@ func (e *Event) assignValues(columns []string, values []any) error {
 				e.DeletedAt = new(time.Time)
 				*e.DeletedAt = value.Time
 			}
+		case event.FieldUserID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
+			} else if value.Valid {
+				e.UserID = new(uuid.UUID)
+				*e.UserID = *value.S.(*uuid.UUID)
+			}
+		case event.FieldPrimaryCalendarID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field primary_calendar_id", values[i])
+			} else if value.Valid {
+				e.PrimaryCalendarID = new(uuid.UUID)
+				*e.PrimaryCalendarID = *value.S.(*uuid.UUID)
+			}
 		case event.FieldSummary:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field summary", values[i])
 			} else if value.Valid {
 				e.Summary = value.String
+			}
+		case event.FieldTitle:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field title", values[i])
+			} else if value.Valid {
+				e.Title = new(string)
+				*e.Title = value.String
 			}
 		case event.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -166,6 +244,33 @@ func (e *Event) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				e.GoogleEventID = value.String
 			}
+		case event.FieldConfirmedGoogleEventID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field confirmed_google_event_id", values[i])
+			} else if value.Valid {
+				e.ConfirmedGoogleEventID = new(string)
+				*e.ConfirmedGoogleEventID = value.String
+			}
+		case event.FieldSyncStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field sync_status", values[i])
+			} else if value.Valid {
+				e.SyncStatus = event.SyncStatus(value.String)
+			}
+		case event.FieldLastSyncedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_synced_at", values[i])
+			} else if value.Valid {
+				e.LastSyncedAt = new(time.Time)
+				*e.LastSyncedAt = value.Time
+			}
+		case event.FieldLastSyncError:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field last_sync_error", values[i])
+			} else if value.Valid {
+				e.LastSyncError = new(string)
+				*e.LastSyncError = value.String
+			}
 		case event.FieldSlug:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field slug", values[i])
@@ -195,6 +300,21 @@ func (e *Event) Value(name string) (ent.Value, error) {
 // QueryCalendar queries the "calendar" edge of the Event entity.
 func (e *Event) QueryCalendar() *CalendarQuery {
 	return NewEventClient(e.config).QueryCalendar(e)
+}
+
+// QueryUser queries the "user" edge of the Event entity.
+func (e *Event) QueryUser() *UserQuery {
+	return NewEventClient(e.config).QueryUser(e)
+}
+
+// QueryPrimaryCalendar queries the "primary_calendar" edge of the Event entity.
+func (e *Event) QueryPrimaryCalendar() *CalendarQuery {
+	return NewEventClient(e.config).QueryPrimaryCalendar(e)
+}
+
+// QueryConfirmedDate queries the "confirmed_date" edge of the Event entity.
+func (e *Event) QueryConfirmedDate() *ProposedDateQuery {
+	return NewEventClient(e.config).QueryConfirmedDate(e)
 }
 
 // QueryProposedDates queries the "proposed_dates" edge of the Event entity.
@@ -236,8 +356,23 @@ func (e *Event) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
+	if v := e.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.PrimaryCalendarID; v != nil {
+		builder.WriteString("primary_calendar_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("summary=")
 	builder.WriteString(e.Summary)
+	builder.WriteString(", ")
+	if v := e.Title; v != nil {
+		builder.WriteString("title=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(e.Description)
@@ -253,6 +388,24 @@ func (e *Event) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("google_event_id=")
 	builder.WriteString(e.GoogleEventID)
+	builder.WriteString(", ")
+	if v := e.ConfirmedGoogleEventID; v != nil {
+		builder.WriteString("confirmed_google_event_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("sync_status=")
+	builder.WriteString(fmt.Sprintf("%v", e.SyncStatus))
+	builder.WriteString(", ")
+	if v := e.LastSyncedAt; v != nil {
+		builder.WriteString("last_synced_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := e.LastSyncError; v != nil {
+		builder.WriteString("last_sync_error=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("slug=")
 	builder.WriteString(e.Slug)

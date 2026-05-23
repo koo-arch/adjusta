@@ -15,6 +15,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // CalendarCreate is the builder for creating a Calendar entity.
@@ -62,6 +63,62 @@ func (cc *CalendarCreate) SetDeletedAt(t time.Time) *CalendarCreate {
 func (cc *CalendarCreate) SetNillableDeletedAt(t *time.Time) *CalendarCreate {
 	if t != nil {
 		cc.SetDeletedAt(*t)
+	}
+	return cc
+}
+
+// SetGoogleCalendarID sets the "google_calendar_id" field.
+func (cc *CalendarCreate) SetGoogleCalendarID(s string) *CalendarCreate {
+	cc.mutation.SetGoogleCalendarID(s)
+	return cc
+}
+
+// SetNillableGoogleCalendarID sets the "google_calendar_id" field if the given value is not nil.
+func (cc *CalendarCreate) SetNillableGoogleCalendarID(s *string) *CalendarCreate {
+	if s != nil {
+		cc.SetGoogleCalendarID(*s)
+	}
+	return cc
+}
+
+// SetSummary sets the "summary" field.
+func (cc *CalendarCreate) SetSummary(s string) *CalendarCreate {
+	cc.mutation.SetSummary(s)
+	return cc
+}
+
+// SetNillableSummary sets the "summary" field if the given value is not nil.
+func (cc *CalendarCreate) SetNillableSummary(s *string) *CalendarCreate {
+	if s != nil {
+		cc.SetSummary(*s)
+	}
+	return cc
+}
+
+// SetDescription sets the "description" field.
+func (cc *CalendarCreate) SetDescription(s string) *CalendarCreate {
+	cc.mutation.SetDescription(s)
+	return cc
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (cc *CalendarCreate) SetNillableDescription(s *string) *CalendarCreate {
+	if s != nil {
+		cc.SetDescription(*s)
+	}
+	return cc
+}
+
+// SetTimezone sets the "timezone" field.
+func (cc *CalendarCreate) SetTimezone(s string) *CalendarCreate {
+	cc.mutation.SetTimezone(s)
+	return cc
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (cc *CalendarCreate) SetNillableTimezone(s *string) *CalendarCreate {
+	if s != nil {
+		cc.SetTimezone(*s)
 	}
 	return cc
 }
@@ -127,6 +184,36 @@ func (cc *CalendarCreate) AddEvents(e ...*Event) *CalendarCreate {
 		ids[i] = e[i].ID
 	}
 	return cc.AddEventIDs(ids...)
+}
+
+// AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
+func (cc *CalendarCreate) AddUserCalendarIDs(ids ...uuid.UUID) *CalendarCreate {
+	cc.mutation.AddUserCalendarIDs(ids...)
+	return cc
+}
+
+// AddUserCalendars adds the "user_calendars" edges to the UserCalendar entity.
+func (cc *CalendarCreate) AddUserCalendars(u ...*UserCalendar) *CalendarCreate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return cc.AddUserCalendarIDs(ids...)
+}
+
+// AddPrimaryEventIDs adds the "primary_events" edge to the Event entity by IDs.
+func (cc *CalendarCreate) AddPrimaryEventIDs(ids ...uuid.UUID) *CalendarCreate {
+	cc.mutation.AddPrimaryEventIDs(ids...)
+	return cc
+}
+
+// AddPrimaryEvents adds the "primary_events" edges to the Event entity.
+func (cc *CalendarCreate) AddPrimaryEvents(e ...*Event) *CalendarCreate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return cc.AddPrimaryEventIDs(ids...)
 }
 
 // Mutation returns the CalendarMutation object of the builder.
@@ -233,6 +320,22 @@ func (cc *CalendarCreate) createSpec() (*Calendar, *sqlgraph.CreateSpec) {
 		_spec.SetField(calendar.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := cc.mutation.GoogleCalendarID(); ok {
+		_spec.SetField(calendar.FieldGoogleCalendarID, field.TypeString, value)
+		_node.GoogleCalendarID = &value
+	}
+	if value, ok := cc.mutation.Summary(); ok {
+		_spec.SetField(calendar.FieldSummary, field.TypeString, value)
+		_node.Summary = &value
+	}
+	if value, ok := cc.mutation.Description(); ok {
+		_spec.SetField(calendar.FieldDescription, field.TypeString, value)
+		_node.Description = &value
+	}
+	if value, ok := cc.mutation.Timezone(); ok {
+		_spec.SetField(calendar.FieldTimezone, field.TypeString, value)
+		_node.Timezone = &value
+	}
 	if nodes := cc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -272,6 +375,38 @@ func (cc *CalendarCreate) createSpec() (*Calendar, *sqlgraph.CreateSpec) {
 			Inverse: false,
 			Table:   calendar.EventsTable,
 			Columns: []string{calendar.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.UserCalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cc.mutation.PrimaryEventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),

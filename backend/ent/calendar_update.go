@@ -17,6 +17,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // CalendarUpdate is the builder for updating Calendar entities.
@@ -55,6 +56,86 @@ func (cu *CalendarUpdate) SetNillableDeletedAt(t *time.Time) *CalendarUpdate {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (cu *CalendarUpdate) ClearDeletedAt() *CalendarUpdate {
 	cu.mutation.ClearDeletedAt()
+	return cu
+}
+
+// SetGoogleCalendarID sets the "google_calendar_id" field.
+func (cu *CalendarUpdate) SetGoogleCalendarID(s string) *CalendarUpdate {
+	cu.mutation.SetGoogleCalendarID(s)
+	return cu
+}
+
+// SetNillableGoogleCalendarID sets the "google_calendar_id" field if the given value is not nil.
+func (cu *CalendarUpdate) SetNillableGoogleCalendarID(s *string) *CalendarUpdate {
+	if s != nil {
+		cu.SetGoogleCalendarID(*s)
+	}
+	return cu
+}
+
+// ClearGoogleCalendarID clears the value of the "google_calendar_id" field.
+func (cu *CalendarUpdate) ClearGoogleCalendarID() *CalendarUpdate {
+	cu.mutation.ClearGoogleCalendarID()
+	return cu
+}
+
+// SetSummary sets the "summary" field.
+func (cu *CalendarUpdate) SetSummary(s string) *CalendarUpdate {
+	cu.mutation.SetSummary(s)
+	return cu
+}
+
+// SetNillableSummary sets the "summary" field if the given value is not nil.
+func (cu *CalendarUpdate) SetNillableSummary(s *string) *CalendarUpdate {
+	if s != nil {
+		cu.SetSummary(*s)
+	}
+	return cu
+}
+
+// ClearSummary clears the value of the "summary" field.
+func (cu *CalendarUpdate) ClearSummary() *CalendarUpdate {
+	cu.mutation.ClearSummary()
+	return cu
+}
+
+// SetDescription sets the "description" field.
+func (cu *CalendarUpdate) SetDescription(s string) *CalendarUpdate {
+	cu.mutation.SetDescription(s)
+	return cu
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (cu *CalendarUpdate) SetNillableDescription(s *string) *CalendarUpdate {
+	if s != nil {
+		cu.SetDescription(*s)
+	}
+	return cu
+}
+
+// ClearDescription clears the value of the "description" field.
+func (cu *CalendarUpdate) ClearDescription() *CalendarUpdate {
+	cu.mutation.ClearDescription()
+	return cu
+}
+
+// SetTimezone sets the "timezone" field.
+func (cu *CalendarUpdate) SetTimezone(s string) *CalendarUpdate {
+	cu.mutation.SetTimezone(s)
+	return cu
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (cu *CalendarUpdate) SetNillableTimezone(s *string) *CalendarUpdate {
+	if s != nil {
+		cu.SetTimezone(*s)
+	}
+	return cu
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (cu *CalendarUpdate) ClearTimezone() *CalendarUpdate {
+	cu.mutation.ClearTimezone()
 	return cu
 }
 
@@ -105,6 +186,36 @@ func (cu *CalendarUpdate) AddEvents(e ...*Event) *CalendarUpdate {
 		ids[i] = e[i].ID
 	}
 	return cu.AddEventIDs(ids...)
+}
+
+// AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
+func (cu *CalendarUpdate) AddUserCalendarIDs(ids ...uuid.UUID) *CalendarUpdate {
+	cu.mutation.AddUserCalendarIDs(ids...)
+	return cu
+}
+
+// AddUserCalendars adds the "user_calendars" edges to the UserCalendar entity.
+func (cu *CalendarUpdate) AddUserCalendars(u ...*UserCalendar) *CalendarUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return cu.AddUserCalendarIDs(ids...)
+}
+
+// AddPrimaryEventIDs adds the "primary_events" edge to the Event entity by IDs.
+func (cu *CalendarUpdate) AddPrimaryEventIDs(ids ...uuid.UUID) *CalendarUpdate {
+	cu.mutation.AddPrimaryEventIDs(ids...)
+	return cu
+}
+
+// AddPrimaryEvents adds the "primary_events" edges to the Event entity.
+func (cu *CalendarUpdate) AddPrimaryEvents(e ...*Event) *CalendarUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return cu.AddPrimaryEventIDs(ids...)
 }
 
 // Mutation returns the CalendarMutation object of the builder.
@@ -160,6 +271,48 @@ func (cu *CalendarUpdate) RemoveEvents(e ...*Event) *CalendarUpdate {
 	return cu.RemoveEventIDs(ids...)
 }
 
+// ClearUserCalendars clears all "user_calendars" edges to the UserCalendar entity.
+func (cu *CalendarUpdate) ClearUserCalendars() *CalendarUpdate {
+	cu.mutation.ClearUserCalendars()
+	return cu
+}
+
+// RemoveUserCalendarIDs removes the "user_calendars" edge to UserCalendar entities by IDs.
+func (cu *CalendarUpdate) RemoveUserCalendarIDs(ids ...uuid.UUID) *CalendarUpdate {
+	cu.mutation.RemoveUserCalendarIDs(ids...)
+	return cu
+}
+
+// RemoveUserCalendars removes "user_calendars" edges to UserCalendar entities.
+func (cu *CalendarUpdate) RemoveUserCalendars(u ...*UserCalendar) *CalendarUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return cu.RemoveUserCalendarIDs(ids...)
+}
+
+// ClearPrimaryEvents clears all "primary_events" edges to the Event entity.
+func (cu *CalendarUpdate) ClearPrimaryEvents() *CalendarUpdate {
+	cu.mutation.ClearPrimaryEvents()
+	return cu
+}
+
+// RemovePrimaryEventIDs removes the "primary_events" edge to Event entities by IDs.
+func (cu *CalendarUpdate) RemovePrimaryEventIDs(ids ...uuid.UUID) *CalendarUpdate {
+	cu.mutation.RemovePrimaryEventIDs(ids...)
+	return cu
+}
+
+// RemovePrimaryEvents removes "primary_events" edges to Event entities.
+func (cu *CalendarUpdate) RemovePrimaryEvents(e ...*Event) *CalendarUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return cu.RemovePrimaryEventIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (cu *CalendarUpdate) Save(ctx context.Context) (int, error) {
 	cu.defaults()
@@ -213,6 +366,30 @@ func (cu *CalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.DeletedAtCleared() {
 		_spec.ClearField(calendar.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := cu.mutation.GoogleCalendarID(); ok {
+		_spec.SetField(calendar.FieldGoogleCalendarID, field.TypeString, value)
+	}
+	if cu.mutation.GoogleCalendarIDCleared() {
+		_spec.ClearField(calendar.FieldGoogleCalendarID, field.TypeString)
+	}
+	if value, ok := cu.mutation.Summary(); ok {
+		_spec.SetField(calendar.FieldSummary, field.TypeString, value)
+	}
+	if cu.mutation.SummaryCleared() {
+		_spec.ClearField(calendar.FieldSummary, field.TypeString)
+	}
+	if value, ok := cu.mutation.Description(); ok {
+		_spec.SetField(calendar.FieldDescription, field.TypeString, value)
+	}
+	if cu.mutation.DescriptionCleared() {
+		_spec.ClearField(calendar.FieldDescription, field.TypeString)
+	}
+	if value, ok := cu.mutation.Timezone(); ok {
+		_spec.SetField(calendar.FieldTimezone, field.TypeString, value)
+	}
+	if cu.mutation.TimezoneCleared() {
+		_spec.ClearField(calendar.FieldTimezone, field.TypeString)
 	}
 	if cu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -333,6 +510,96 @@ func (cu *CalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if cu.mutation.UserCalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedUserCalendarsIDs(); len(nodes) > 0 && !cu.mutation.UserCalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.UserCalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cu.mutation.PrimaryEventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedPrimaryEventsIDs(); len(nodes) > 0 && !cu.mutation.PrimaryEventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.PrimaryEventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{calendar.Label}
@@ -376,6 +643,86 @@ func (cuo *CalendarUpdateOne) SetNillableDeletedAt(t *time.Time) *CalendarUpdate
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (cuo *CalendarUpdateOne) ClearDeletedAt() *CalendarUpdateOne {
 	cuo.mutation.ClearDeletedAt()
+	return cuo
+}
+
+// SetGoogleCalendarID sets the "google_calendar_id" field.
+func (cuo *CalendarUpdateOne) SetGoogleCalendarID(s string) *CalendarUpdateOne {
+	cuo.mutation.SetGoogleCalendarID(s)
+	return cuo
+}
+
+// SetNillableGoogleCalendarID sets the "google_calendar_id" field if the given value is not nil.
+func (cuo *CalendarUpdateOne) SetNillableGoogleCalendarID(s *string) *CalendarUpdateOne {
+	if s != nil {
+		cuo.SetGoogleCalendarID(*s)
+	}
+	return cuo
+}
+
+// ClearGoogleCalendarID clears the value of the "google_calendar_id" field.
+func (cuo *CalendarUpdateOne) ClearGoogleCalendarID() *CalendarUpdateOne {
+	cuo.mutation.ClearGoogleCalendarID()
+	return cuo
+}
+
+// SetSummary sets the "summary" field.
+func (cuo *CalendarUpdateOne) SetSummary(s string) *CalendarUpdateOne {
+	cuo.mutation.SetSummary(s)
+	return cuo
+}
+
+// SetNillableSummary sets the "summary" field if the given value is not nil.
+func (cuo *CalendarUpdateOne) SetNillableSummary(s *string) *CalendarUpdateOne {
+	if s != nil {
+		cuo.SetSummary(*s)
+	}
+	return cuo
+}
+
+// ClearSummary clears the value of the "summary" field.
+func (cuo *CalendarUpdateOne) ClearSummary() *CalendarUpdateOne {
+	cuo.mutation.ClearSummary()
+	return cuo
+}
+
+// SetDescription sets the "description" field.
+func (cuo *CalendarUpdateOne) SetDescription(s string) *CalendarUpdateOne {
+	cuo.mutation.SetDescription(s)
+	return cuo
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (cuo *CalendarUpdateOne) SetNillableDescription(s *string) *CalendarUpdateOne {
+	if s != nil {
+		cuo.SetDescription(*s)
+	}
+	return cuo
+}
+
+// ClearDescription clears the value of the "description" field.
+func (cuo *CalendarUpdateOne) ClearDescription() *CalendarUpdateOne {
+	cuo.mutation.ClearDescription()
+	return cuo
+}
+
+// SetTimezone sets the "timezone" field.
+func (cuo *CalendarUpdateOne) SetTimezone(s string) *CalendarUpdateOne {
+	cuo.mutation.SetTimezone(s)
+	return cuo
+}
+
+// SetNillableTimezone sets the "timezone" field if the given value is not nil.
+func (cuo *CalendarUpdateOne) SetNillableTimezone(s *string) *CalendarUpdateOne {
+	if s != nil {
+		cuo.SetTimezone(*s)
+	}
+	return cuo
+}
+
+// ClearTimezone clears the value of the "timezone" field.
+func (cuo *CalendarUpdateOne) ClearTimezone() *CalendarUpdateOne {
+	cuo.mutation.ClearTimezone()
 	return cuo
 }
 
@@ -426,6 +773,36 @@ func (cuo *CalendarUpdateOne) AddEvents(e ...*Event) *CalendarUpdateOne {
 		ids[i] = e[i].ID
 	}
 	return cuo.AddEventIDs(ids...)
+}
+
+// AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
+func (cuo *CalendarUpdateOne) AddUserCalendarIDs(ids ...uuid.UUID) *CalendarUpdateOne {
+	cuo.mutation.AddUserCalendarIDs(ids...)
+	return cuo
+}
+
+// AddUserCalendars adds the "user_calendars" edges to the UserCalendar entity.
+func (cuo *CalendarUpdateOne) AddUserCalendars(u ...*UserCalendar) *CalendarUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return cuo.AddUserCalendarIDs(ids...)
+}
+
+// AddPrimaryEventIDs adds the "primary_events" edge to the Event entity by IDs.
+func (cuo *CalendarUpdateOne) AddPrimaryEventIDs(ids ...uuid.UUID) *CalendarUpdateOne {
+	cuo.mutation.AddPrimaryEventIDs(ids...)
+	return cuo
+}
+
+// AddPrimaryEvents adds the "primary_events" edges to the Event entity.
+func (cuo *CalendarUpdateOne) AddPrimaryEvents(e ...*Event) *CalendarUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return cuo.AddPrimaryEventIDs(ids...)
 }
 
 // Mutation returns the CalendarMutation object of the builder.
@@ -479,6 +856,48 @@ func (cuo *CalendarUpdateOne) RemoveEvents(e ...*Event) *CalendarUpdateOne {
 		ids[i] = e[i].ID
 	}
 	return cuo.RemoveEventIDs(ids...)
+}
+
+// ClearUserCalendars clears all "user_calendars" edges to the UserCalendar entity.
+func (cuo *CalendarUpdateOne) ClearUserCalendars() *CalendarUpdateOne {
+	cuo.mutation.ClearUserCalendars()
+	return cuo
+}
+
+// RemoveUserCalendarIDs removes the "user_calendars" edge to UserCalendar entities by IDs.
+func (cuo *CalendarUpdateOne) RemoveUserCalendarIDs(ids ...uuid.UUID) *CalendarUpdateOne {
+	cuo.mutation.RemoveUserCalendarIDs(ids...)
+	return cuo
+}
+
+// RemoveUserCalendars removes "user_calendars" edges to UserCalendar entities.
+func (cuo *CalendarUpdateOne) RemoveUserCalendars(u ...*UserCalendar) *CalendarUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return cuo.RemoveUserCalendarIDs(ids...)
+}
+
+// ClearPrimaryEvents clears all "primary_events" edges to the Event entity.
+func (cuo *CalendarUpdateOne) ClearPrimaryEvents() *CalendarUpdateOne {
+	cuo.mutation.ClearPrimaryEvents()
+	return cuo
+}
+
+// RemovePrimaryEventIDs removes the "primary_events" edge to Event entities by IDs.
+func (cuo *CalendarUpdateOne) RemovePrimaryEventIDs(ids ...uuid.UUID) *CalendarUpdateOne {
+	cuo.mutation.RemovePrimaryEventIDs(ids...)
+	return cuo
+}
+
+// RemovePrimaryEvents removes "primary_events" edges to Event entities.
+func (cuo *CalendarUpdateOne) RemovePrimaryEvents(e ...*Event) *CalendarUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return cuo.RemovePrimaryEventIDs(ids...)
 }
 
 // Where appends a list predicates to the CalendarUpdate builder.
@@ -564,6 +983,30 @@ func (cuo *CalendarUpdateOne) sqlSave(ctx context.Context) (_node *Calendar, err
 	}
 	if cuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(calendar.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := cuo.mutation.GoogleCalendarID(); ok {
+		_spec.SetField(calendar.FieldGoogleCalendarID, field.TypeString, value)
+	}
+	if cuo.mutation.GoogleCalendarIDCleared() {
+		_spec.ClearField(calendar.FieldGoogleCalendarID, field.TypeString)
+	}
+	if value, ok := cuo.mutation.Summary(); ok {
+		_spec.SetField(calendar.FieldSummary, field.TypeString, value)
+	}
+	if cuo.mutation.SummaryCleared() {
+		_spec.ClearField(calendar.FieldSummary, field.TypeString)
+	}
+	if value, ok := cuo.mutation.Description(); ok {
+		_spec.SetField(calendar.FieldDescription, field.TypeString, value)
+	}
+	if cuo.mutation.DescriptionCleared() {
+		_spec.ClearField(calendar.FieldDescription, field.TypeString)
+	}
+	if value, ok := cuo.mutation.Timezone(); ok {
+		_spec.SetField(calendar.FieldTimezone, field.TypeString, value)
+	}
+	if cuo.mutation.TimezoneCleared() {
+		_spec.ClearField(calendar.FieldTimezone, field.TypeString)
 	}
 	if cuo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -674,6 +1117,96 @@ func (cuo *CalendarUpdateOne) sqlSave(ctx context.Context) (_node *Calendar, err
 			Inverse: false,
 			Table:   calendar.EventsTable,
 			Columns: []string{calendar.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.UserCalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedUserCalendarsIDs(); len(nodes) > 0 && !cuo.mutation.UserCalendarsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.UserCalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.UserCalendarsTable,
+			Columns: []string{calendar.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if cuo.mutation.PrimaryEventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedPrimaryEventsIDs(); len(nodes) > 0 && !cuo.mutation.PrimaryEventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.PrimaryEventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   calendar.PrimaryEventsTable,
+			Columns: []string{calendar.PrimaryEventsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),

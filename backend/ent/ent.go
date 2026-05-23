@@ -12,13 +12,16 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/jwtkey"
 	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -79,13 +82,16 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			account.Table:            account.ValidColumn,
 			calendar.Table:           calendar.ValidColumn,
 			event.Table:              event.ValidColumn,
 			googlecalendarinfo.Table: googlecalendarinfo.ValidColumn,
 			jwtkey.Table:             jwtkey.ValidColumn,
 			oauthtoken.Table:         oauthtoken.ValidColumn,
 			proposeddate.Table:       proposeddate.ValidColumn,
+			session.Table:            session.ValidColumn,
 			user.Table:               user.ValidColumn,
+			usercalendar.Table:       usercalendar.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)
