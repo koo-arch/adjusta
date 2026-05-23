@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 const publicRoutes: string[] = [
     '/',
@@ -7,12 +6,12 @@ const publicRoutes: string[] = [
 ];
 
 export function middleware(request: NextRequest) {
-    const token = cookies().get('access_token');
+    const session = request.cookies.get('session');
     const { pathname } = new URL(request.url);
 
 
     // 認証トークンがない場合、ログインページにリダイレクト
-    if (!token) {
+    if (!session) {
         if (!publicRoutes.includes(pathname)) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
