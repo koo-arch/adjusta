@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"net/http"
 	"log"
-	
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/internal/google/userinfo"
 	"github.com/koo-arch/adjusta-backend/utils"
@@ -27,9 +27,8 @@ func (ah *AccountHandler) FetchAccountsHandler() gin.HandlerFunc {
 			return
 		}
 
-		authManager := ah.handler.Server.AuthManager
-
-		token, err := authManager.VerifyOAuthToken(ctx, userid)
+		tokenManager := ah.handler.Server.GoogleTokenManager
+		token, err := tokenManager.GetToken(ctx, userid)
 		if err != nil {
 			log.Printf("failed to verify token for account: %s, %v", email, err)
 			utils.HandleAPIError(c, err, "OAuthトークン認証に失敗しました")

@@ -9,13 +9,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/ent"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/internal/repo/user"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 	"github.com/koo-arch/adjusta-backend/utils"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
 type CalendarMiddleware struct {
@@ -63,7 +63,7 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 
 		calendarList, err := cm.fetchAndCacheCalendars(ctx, entUser)
 		if err != nil {
-			log.Printf("failed to register calendar list for account: %s, error: %v",email,  err)
+			log.Printf("failed to register calendar list for account: %s, error: %v", email, err)
 			utils.HandleAPIError(c, err, "Googleカレンダーの同期に失敗しました")
 			return
 		}
@@ -73,10 +73,10 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 	}
 }
 
-func(cm *CalendarMiddleware) fetchAndCacheCalendars(ctx context.Context, entUser *ent.User) ([]*customCalendar.CalendarList, error) {
+func (cm *CalendarMiddleware) fetchAndCacheCalendars(ctx context.Context, entUser *ent.User) ([]*customCalendar.CalendarList, error) {
 
-	authManager := cm.middleware.Server.AuthManager
-	token, err := authManager.VerifyOAuthToken(ctx, entUser.ID)
+	tokenManager := cm.middleware.Server.GoogleTokenManager
+	token, err := tokenManager.GetToken(ctx, entUser.ID)
 	if err != nil {
 		log.Printf("failed to verify token for account: %s, error: %v", entUser.Email, err)
 		apiErr := utils.GetAPIError(err, "OAuthトークンの認証に失敗しました")
@@ -109,7 +109,7 @@ func(cm *CalendarMiddleware) fetchAndCacheCalendars(ctx context.Context, entUser
 	return calendars, nil
 }
 
-func(cm *CalendarMiddleware) syncCalendar(ctx context.Context, calendars []*customCalendar.CalendarList, entUser *ent.User) error {
+func (cm *CalendarMiddleware) syncCalendar(ctx context.Context, calendars []*customCalendar.CalendarList, entUser *ent.User) error {
 	// トランザクションを開始
 	tx, err := cm.middleware.Server.Client.Tx(ctx)
 	if err != nil {
@@ -131,14 +131,14 @@ func(cm *CalendarMiddleware) syncCalendar(ctx context.Context, calendars []*cust
 		// カレンダーがDBに存在するか確認
 		repoCalOptions := repoCalendar.CalendarQueryOptions{
 			WithGoogleCalendarInfo: true,
-			GoogleCalendarID: &cal.CalendarID,
+			GoogleCalendarID:       &cal.CalendarID,
 		}
 		entCalendar, err := calendarRepo.FindByFields(ctx, tx, entUser.ID, repoCalOptions)
 		if err != nil {
 			if !ent.IsNotFound(err) {
 				return fmt.Errorf("failed to find calendar: %w", err)
 			}
-			
+
 			// カレンダーが存在しない場合は新規作成
 			entCalendar, err = calendarRepo.Create(ctx, tx, entUser, nil)
 			if err != nil {
@@ -148,7 +148,7 @@ func(cm *CalendarMiddleware) syncCalendar(ctx context.Context, calendars []*cust
 
 		// GoogleCalendarInfoにカレンダーが存在するか確認
 		gCalOptions := googlecalendarinfo.GoogleCalendarInfoQueryOptions{
-			GoogleCalendarID : &cal.CalendarID,
+			GoogleCalendarID: &cal.CalendarID,
 		}
 		entGoogleCalendar, err := googleCalendarRepo.FindByFields(ctx, tx, gCalOptions)
 		if err != nil {
@@ -159,8 +159,8 @@ func(cm *CalendarMiddleware) syncCalendar(ctx context.Context, calendars []*cust
 			// 存在しない場合は新規作成
 			gCalOptions := googlecalendarinfo.GoogleCalendarInfoQueryOptions{
 				GoogleCalendarID: &cal.CalendarID,
-				Summary: &cal.Summary,
-				IsPrimary: &cal.Primary,
+				Summary:          &cal.Summary,
+				IsPrimary:        &cal.Primary,
 			}
 			_, err := googleCalendarRepo.Create(ctx, tx, gCalOptions, entCalendar)
 			if err != nil {

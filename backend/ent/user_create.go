@@ -14,7 +14,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
 	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
@@ -103,34 +102,6 @@ func (uc *UserCreate) SetNillableAvatarURL(s *string) *UserCreate {
 	return uc
 }
 
-// SetRefreshToken sets the "refresh_token" field.
-func (uc *UserCreate) SetRefreshToken(s string) *UserCreate {
-	uc.mutation.SetRefreshToken(s)
-	return uc
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (uc *UserCreate) SetNillableRefreshToken(s *string) *UserCreate {
-	if s != nil {
-		uc.SetRefreshToken(*s)
-	}
-	return uc
-}
-
-// SetRefreshTokenExpiry sets the "refresh_token_expiry" field.
-func (uc *UserCreate) SetRefreshTokenExpiry(t time.Time) *UserCreate {
-	uc.mutation.SetRefreshTokenExpiry(t)
-	return uc
-}
-
-// SetNillableRefreshTokenExpiry sets the "refresh_token_expiry" field if the given value is not nil.
-func (uc *UserCreate) SetNillableRefreshTokenExpiry(t *time.Time) *UserCreate {
-	if t != nil {
-		uc.SetRefreshTokenExpiry(*t)
-	}
-	return uc
-}
-
 // SetID sets the "id" field.
 func (uc *UserCreate) SetID(u uuid.UUID) *UserCreate {
 	uc.mutation.SetID(u)
@@ -143,25 +114,6 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 		uc.SetID(*u)
 	}
 	return uc
-}
-
-// SetOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID.
-func (uc *UserCreate) SetOauthTokenID(id uuid.UUID) *UserCreate {
-	uc.mutation.SetOauthTokenID(id)
-	return uc
-}
-
-// SetNillableOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID if the given value is not nil.
-func (uc *UserCreate) SetNillableOauthTokenID(id *uuid.UUID) *UserCreate {
-	if id != nil {
-		uc = uc.SetOauthTokenID(*id)
-	}
-	return uc
-}
-
-// SetOauthToken sets the "oauth_token" edge to the OAuthToken entity.
-func (uc *UserCreate) SetOauthToken(o *OAuthToken) *UserCreate {
-	return uc.SetOauthTokenID(o.ID)
 }
 
 // AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
@@ -378,30 +330,6 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.AvatarURL(); ok {
 		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
 		_node.AvatarURL = &value
-	}
-	if value, ok := uc.mutation.RefreshToken(); ok {
-		_spec.SetField(user.FieldRefreshToken, field.TypeString, value)
-		_node.RefreshToken = value
-	}
-	if value, ok := uc.mutation.RefreshTokenExpiry(); ok {
-		_spec.SetField(user.FieldRefreshTokenExpiry, field.TypeTime, value)
-		_node.RefreshTokenExpiry = value
-	}
-	if nodes := uc.mutation.OauthTokenIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.OauthTokenTable,
-			Columns: []string{user.OauthTokenColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := uc.mutation.CalendarsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -10,8 +10,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/ent/jwtkey"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/schema"
 	"github.com/koo-arch/adjusta-backend/ent/session"
@@ -119,54 +117,6 @@ func init() {
 	googlecalendarinfoDescID := googlecalendarinfoFields[0].Descriptor()
 	// googlecalendarinfo.DefaultID holds the default value on creation for the id field.
 	googlecalendarinfo.DefaultID = googlecalendarinfoDescID.Default.(func() uuid.UUID)
-	jwtkeyMixin := schema.JWTKey{}.Mixin()
-	jwtkeyMixinInters1 := jwtkeyMixin[1].Interceptors()
-	jwtkey.Interceptors[0] = jwtkeyMixinInters1[0]
-	jwtkeyMixinFields0 := jwtkeyMixin[0].Fields()
-	_ = jwtkeyMixinFields0
-	jwtkeyFields := schema.JWTKey{}.Fields()
-	_ = jwtkeyFields
-	// jwtkeyDescCreatedAt is the schema descriptor for created_at field.
-	jwtkeyDescCreatedAt := jwtkeyMixinFields0[0].Descriptor()
-	// jwtkey.DefaultCreatedAt holds the default value on creation for the created_at field.
-	jwtkey.DefaultCreatedAt = jwtkeyDescCreatedAt.Default.(func() time.Time)
-	// jwtkeyDescUpdatedAt is the schema descriptor for updated_at field.
-	jwtkeyDescUpdatedAt := jwtkeyMixinFields0[1].Descriptor()
-	// jwtkey.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	jwtkey.DefaultUpdatedAt = jwtkeyDescUpdatedAt.Default.(func() time.Time)
-	// jwtkey.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	jwtkey.UpdateDefaultUpdatedAt = jwtkeyDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// jwtkeyDescKey is the schema descriptor for key field.
-	jwtkeyDescKey := jwtkeyFields[0].Descriptor()
-	// jwtkey.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	jwtkey.KeyValidator = jwtkeyDescKey.Validators[0].(func(string) error)
-	// jwtkeyDescType is the schema descriptor for type field.
-	jwtkeyDescType := jwtkeyFields[1].Descriptor()
-	// jwtkey.DefaultType holds the default value on creation for the type field.
-	jwtkey.DefaultType = jwtkeyDescType.Default.(string)
-	// jwtkey.TypeValidator is a validator for the "type" field. It is called by the builders before save.
-	jwtkey.TypeValidator = jwtkeyDescType.Validators[0].(func(string) error)
-	oauthtokenMixin := schema.OAuthToken{}.Mixin()
-	oauthtokenMixinInters1 := oauthtokenMixin[1].Interceptors()
-	oauthtoken.Interceptors[0] = oauthtokenMixinInters1[0]
-	oauthtokenMixinFields0 := oauthtokenMixin[0].Fields()
-	_ = oauthtokenMixinFields0
-	oauthtokenFields := schema.OAuthToken{}.Fields()
-	_ = oauthtokenFields
-	// oauthtokenDescCreatedAt is the schema descriptor for created_at field.
-	oauthtokenDescCreatedAt := oauthtokenMixinFields0[0].Descriptor()
-	// oauthtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
-	oauthtoken.DefaultCreatedAt = oauthtokenDescCreatedAt.Default.(func() time.Time)
-	// oauthtokenDescUpdatedAt is the schema descriptor for updated_at field.
-	oauthtokenDescUpdatedAt := oauthtokenMixinFields0[1].Descriptor()
-	// oauthtoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	oauthtoken.DefaultUpdatedAt = oauthtokenDescUpdatedAt.Default.(func() time.Time)
-	// oauthtoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	oauthtoken.UpdateDefaultUpdatedAt = oauthtokenDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// oauthtokenDescID is the schema descriptor for id field.
-	oauthtokenDescID := oauthtokenFields[0].Descriptor()
-	// oauthtoken.DefaultID holds the default value on creation for the id field.
-	oauthtoken.DefaultID = oauthtokenDescID.Default.(func() uuid.UUID)
 	proposeddateMixin := schema.ProposedDate{}.Mixin()
 	proposeddateHooks := schema.ProposedDate{}.Hooks()
 	proposeddate.Hooks[0] = proposeddateHooks[0]

@@ -1,9 +1,9 @@
 package event_operations
 
 import (
-	"net/http"
 	"context"
 	"log"
+	"net/http"
 	"sort"
 	"sync"
 	"time"
@@ -12,12 +12,12 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 
 	"github.com/koo-arch/adjusta-backend/internal/apps/events"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/utils"
 )
 
@@ -33,7 +33,7 @@ func NewEventFetchingManager(event *events.EventManager) *EventFetchingManager {
 
 func (efm *EventFetchingManager) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*models.GoogleEvent, error) {
 
-	token, err := efm.event.AuthManager.VerifyOAuthToken(ctx, userID)
+	token, err := efm.event.GoogleTokenManager.GetToken(ctx, userID)
 	if err != nil {
 		log.Printf("failed to verify token for account: %s, error: %v", email, err)
 		apiErr := utils.GetAPIError(err, "認証エラーが発生しました")
@@ -152,7 +152,7 @@ func (efm *EventFetchingManager) FetchAllDraftedEvents(ctx context.Context, user
 				Description:     entEvent.Description,
 				Status:          models.EventStatus(entEvent.Status),
 				ConfirmedDateID: &entEvent.ConfirmedDateID,
-				Slug: 		  	 entEvent.Slug,
+				Slug:            entEvent.Slug,
 				GoogleEventID:   entEvent.GoogleEventID,
 				ProposedDates:   proposedDates,
 			})
@@ -232,7 +232,7 @@ func (efm *EventFetchingManager) SearchDraftedEvents(ctx context.Context, userID
 			Status:          models.EventStatus(event.Status),
 			ConfirmedDateID: &event.ConfirmedDateID,
 			GoogleEventID:   event.GoogleEventID,
-			Slug :           event.Slug,
+			Slug:            event.Slug,
 			ProposedDates:   proposedDates,
 		})
 	}
@@ -394,7 +394,7 @@ func (efm *EventFetchingManager) FetchNeedsActionDrafts(ctx context.Context, use
 		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
 	}
 
-	NeedsActionDrafts:= make([]models.NeedsActionDraft, 0)
+	NeedsActionDrafts := make([]models.NeedsActionDraft, 0)
 	for _, entEvent := range entEvents {
 		if entEvent.Edges.ProposedDates == nil {
 			log.Printf("No association found between calendar and event")

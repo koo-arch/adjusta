@@ -12,8 +12,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/ent/jwtkey"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/session"
@@ -185,60 +183,6 @@ func (f TraverseGoogleCalendarInfo) Traverse(ctx context.Context, q ent.Query) e
 	return fmt.Errorf("unexpected query type %T. expect *ent.GoogleCalendarInfoQuery", q)
 }
 
-// The JWTKeyFunc type is an adapter to allow the use of ordinary function as a Querier.
-type JWTKeyFunc func(context.Context, *ent.JWTKeyQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f JWTKeyFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.JWTKeyQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.JWTKeyQuery", q)
-}
-
-// The TraverseJWTKey type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseJWTKey func(context.Context, *ent.JWTKeyQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseJWTKey) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseJWTKey) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.JWTKeyQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.JWTKeyQuery", q)
-}
-
-// The OAuthTokenFunc type is an adapter to allow the use of ordinary function as a Querier.
-type OAuthTokenFunc func(context.Context, *ent.OAuthTokenQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f OAuthTokenFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.OAuthTokenQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.OAuthTokenQuery", q)
-}
-
-// The TraverseOAuthToken type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseOAuthToken func(context.Context, *ent.OAuthTokenQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseOAuthToken) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseOAuthToken) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.OAuthTokenQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.OAuthTokenQuery", q)
-}
-
 // The ProposedDateFunc type is an adapter to allow the use of ordinary function as a Querier.
 type ProposedDateFunc func(context.Context, *ent.ProposedDateQuery) (ent.Value, error)
 
@@ -358,10 +302,6 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.EventQuery, predicate.Event, event.OrderOption]{typ: ent.TypeEvent, tq: q}, nil
 	case *ent.GoogleCalendarInfoQuery:
 		return &query[*ent.GoogleCalendarInfoQuery, predicate.GoogleCalendarInfo, googlecalendarinfo.OrderOption]{typ: ent.TypeGoogleCalendarInfo, tq: q}, nil
-	case *ent.JWTKeyQuery:
-		return &query[*ent.JWTKeyQuery, predicate.JWTKey, jwtkey.OrderOption]{typ: ent.TypeJWTKey, tq: q}, nil
-	case *ent.OAuthTokenQuery:
-		return &query[*ent.OAuthTokenQuery, predicate.OAuthToken, oauthtoken.OrderOption]{typ: ent.TypeOAuthToken, tq: q}, nil
 	case *ent.ProposedDateQuery:
 		return &query[*ent.ProposedDateQuery, predicate.ProposedDate, proposeddate.OrderOption]{typ: ent.TypeProposedDate, tq: q}, nil
 	case *ent.SessionQuery:

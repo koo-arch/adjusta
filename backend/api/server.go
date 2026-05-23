@@ -7,11 +7,11 @@ import (
 	appEvents "github.com/koo-arch/adjusta-backend/internal/apps/events"
 	"github.com/koo-arch/adjusta-backend/internal/apps/events/event_operations"
 	"github.com/koo-arch/adjusta-backend/internal/auth"
+	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	dbCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/internal/repo/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
 	"github.com/koo-arch/adjusta-backend/internal/repo/user"
@@ -23,14 +23,12 @@ type Server struct {
 	UserRepo             user.UserRepository
 	AccountRepo          repoAccount.AccountRepository
 	SessionRepo          repoSession.SessionRepository
-	OAuthRepo            oauthtoken.OAuthTokenRepository
 	CalendarRepo         dbCalendar.CalendarRepository
 	GoogleCalendarRepo   googlecalendarinfo.GoogleCalendarInfoRepository
 	EventRepo            event.EventRepository
 	DateRepo             proposeddate.ProposedDateRepository
 	AuthManager          *auth.AuthManager
-	JWTManager           *auth.JWTManager
-	KeyManager           *auth.KeyManager
+	GoogleTokenManager   *googleOAuth.TokenManager
 	EventManager         *appEvents.EventManager
 	EventCreationManager *event_operations.EventCreationManager
 	EventFetchingManager *event_operations.EventFetchingManager
@@ -44,17 +42,15 @@ func NewServer(client *ent.Client) *Server {
 	userRepo := user.NewUserRepository(client)
 	accountRepo := repoAccount.NewAccountRepository(client)
 	sessionRepo := repoSession.NewSessionRepository(client)
-	oauthRepo := oauthtoken.NewOAuthTokenRepository(client)
 	calendarRepo := dbCalendar.NewCalendarRepository(client)
 	googleCalendarRepo := googlecalendarinfo.NewGoogleCalendarInfoRepository(client)
 	eventRepo := event.NewEventRepository(client)
 	dateRepo := proposeddate.NewProposedDateRepository(client)
 	calendarApp := appCalendar.NewGoogleCalendarManager(client) // Google Calendar API manager
-	keyManager := auth.NewKeyManager(client, cache)
-	jwtManager := auth.NewJWTManager(client, keyManager)
 	authManager := auth.NewAuthManager(client, userRepo, accountRepo, sessionRepo)
+	googleTokenManager := googleOAuth.NewTokenManager(accountRepo)
 
-	eventManager := appEvents.NewEventManager(client, authManager, calendarRepo, googleCalendarRepo, eventRepo, dateRepo, calendarApp)
+	eventManager := appEvents.NewEventManager(client, googleTokenManager, calendarRepo, googleCalendarRepo, eventRepo, dateRepo, calendarApp)
 
 	return &Server{
 		Client:               client,
@@ -62,14 +58,12 @@ func NewServer(client *ent.Client) *Server {
 		UserRepo:             userRepo,
 		AccountRepo:          accountRepo,
 		SessionRepo:          sessionRepo,
-		OAuthRepo:            oauthRepo,
 		CalendarRepo:         calendarRepo,
 		GoogleCalendarRepo:   googleCalendarRepo,
 		EventRepo:            eventRepo,
 		DateRepo:             dateRepo,
 		AuthManager:          authManager,
-		JWTManager:           jwtManager,
-		KeyManager:           keyManager,
+		GoogleTokenManager:   googleTokenManager,
 		EventManager:         eventManager,
 		EventCreationManager: event_operations.NewEventCreationManager(eventManager),
 		EventFetchingManager: event_operations.NewEventFetchingManager(eventManager),

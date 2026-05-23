@@ -2,16 +2,16 @@ package events
 
 import (
 	"context"
-	"net/http"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/auth"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
+	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repo/event"
@@ -22,18 +22,18 @@ import (
 )
 
 type EventManager struct {
-	Client       		*ent.Client
-	AuthManager  		*auth.AuthManager
-	CalendarRepo 		repoCalendar.CalendarRepository
-	GoogleCalendarRepo  googlecalendarinfo.GoogleCalendarInfoRepository
-	EventRepo    		event.EventRepository
-	DateRepo     		proposeddate.ProposedDateRepository
-	CalendarApp 		*appCalendar.GoogleCalendarManager
+	Client             *ent.Client
+	GoogleTokenManager *googleOAuth.TokenManager
+	CalendarRepo       repoCalendar.CalendarRepository
+	GoogleCalendarRepo googlecalendarinfo.GoogleCalendarInfoRepository
+	EventRepo          event.EventRepository
+	DateRepo           proposeddate.ProposedDateRepository
+	CalendarApp        *appCalendar.GoogleCalendarManager
 }
 
 func NewEventManager(
 	client *ent.Client,
-	authManager *auth.AuthManager,
+	googleTokenManager *googleOAuth.TokenManager,
 	calendarRepo repoCalendar.CalendarRepository,
 	googleCalendarRepo googlecalendarinfo.GoogleCalendarInfoRepository,
 	eventRepo event.EventRepository,
@@ -41,13 +41,13 @@ func NewEventManager(
 	calendarApp *appCalendar.GoogleCalendarManager,
 ) *EventManager {
 	return &EventManager{
-		Client:       		client,
-		AuthManager:  		authManager,
-		CalendarRepo: 		calendarRepo,
+		Client:             client,
+		GoogleTokenManager: googleTokenManager,
+		CalendarRepo:       calendarRepo,
 		GoogleCalendarRepo: googleCalendarRepo,
-		EventRepo:    		eventRepo,
-		DateRepo:     		dateRepo,
-		CalendarApp:  		calendarApp,
+		EventRepo:          eventRepo,
+		DateRepo:           dateRepo,
+		CalendarApp:        calendarApp,
 	}
 }
 
@@ -58,7 +58,7 @@ func (em *EventManager) FinalizeProposedDate(ctx context.Context, userID uuid.UU
 	}
 
 	// OAuthトークンを検証
-	token, err := em.AuthManager.VerifyOAuthToken(ctx, userID)
+	token, err := em.GoogleTokenManager.GetToken(ctx, userID)
 	if err != nil {
 		log.Printf("failed to verify oauth token for account: %s, error: %v", email, err)
 		apiErr := utils.GetAPIError(err, "サーバーでエラーが発生しました")
@@ -80,7 +80,7 @@ func (em *EventManager) FinalizeProposedDate(ctx context.Context, userID uuid.UU
 		log.Printf("failed to get event for account: %s, error: %v", email, err)
 		if ent.IsNotFound(err) {
 			return internalErrors.NewAPIError(http.StatusNotFound, "イベントが見つかりませんでした")
-		}	
+		}
 		return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
 	}
 
@@ -135,7 +135,7 @@ func (em *EventManager) HandleGoogleEvent(calendarService *customCalendar.Calend
 		if err != nil {
 			return nil, fmt.Errorf("failed to update events, error: %w", err)
 		}
-		
+
 		googleEventID = &googleEvent.Id
 	}
 
@@ -145,7 +145,7 @@ func (em *EventManager) HandleGoogleEvent(calendarService *customCalendar.Calend
 func (em *EventManager) ConfirmEventDate(ctx context.Context, tx *ent.Tx, calendarService *customCalendar.Calendar, googleEventID *string, eventReq *models.ConfirmEvent, entEvent *ent.Event) error {
 	priority := 1
 	dateOptions := proposeddate.ProposedDateQueryOptions{
-		Priority:      &priority,
+		Priority: &priority,
 	}
 
 	// 確定日程がDBに存在しない場合は新規作成
@@ -189,9 +189,9 @@ func (em *EventManager) ConfirmEventDate(ctx context.Context, tx *ent.Tx, calend
 	// イベントステータスと確定日程IDを更新
 	status := models.StatusConfirmed
 	eventOptions := event.EventQueryOptions{
-		Status: &status,
+		Status:          &status,
 		ConfirmedDateID: confirmDateID,
-		GoogleEventID: googleEventID,
+		GoogleEventID:   googleEventID,
 	}
 	_, err := em.EventRepo.Update(ctx, tx, entEvent.ID, eventOptions)
 	if err != nil {

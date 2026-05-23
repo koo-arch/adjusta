@@ -2,20 +2,20 @@ package event_operations
 
 import (
 	"context"
-	"net/http"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/apps/events"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/utils"
 )
 
@@ -64,10 +64,10 @@ func (eum *EventUpdateManager) UpdateDraftedEvents(ctx context.Context, userID u
 
 	// イベントの詳細を更新
 	eventOptions := event.EventQueryOptions{
-		Summary:      &eventReq.Title,
-		Location:     &eventReq.Location,
-		Description:  &eventReq.Description,
-		Status:       &eventReq.Status,
+		Summary:     &eventReq.Title,
+		Location:    &eventReq.Location,
+		Description: &eventReq.Description,
+		Status:      &eventReq.Status,
 	}
 	entEvent, err = eum.event.EventRepo.Update(ctx, tx, entEvent.ID, eventOptions)
 	if err != nil {
@@ -89,17 +89,17 @@ func (eum *EventUpdateManager) UpdateDraftedEvents(ctx context.Context, userID u
 	if eventReq.Status == models.StatusConfirmed {
 		// 確定済みの場合
 		confirmDate := models.ConfirmDate{
-			ID: 			eventReq.ProposedDates[0].ID,
-			Start:  		eventReq.ProposedDates[0].Start,
-			End:    		eventReq.ProposedDates[0].End,
-			Priority: 		eventReq.ProposedDates[0].Priority,
+			ID:       eventReq.ProposedDates[0].ID,
+			Start:    eventReq.ProposedDates[0].Start,
+			End:      eventReq.ProposedDates[0].End,
+			Priority: eventReq.ProposedDates[0].Priority,
 		}
 		confirmEvent := models.ConfirmEvent{
 			ConfirmDate: confirmDate,
 		}
 
 		// OAuthトークンを検証
-		token, err := eum.event.AuthManager.VerifyOAuthToken(ctx, userID)
+		token, err := eum.event.GoogleTokenManager.GetToken(ctx, userID)
 		if err != nil {
 			log.Printf("failed to verify token for account: %s, error: %v", email, err)
 			apiErr := utils.GetAPIError(err, "OAuthトークンの認証に失敗しました")
@@ -127,8 +127,8 @@ func (eum *EventUpdateManager) UpdateDraftedEvents(ctx context.Context, userID u
 			log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 			return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
 		}
-	} 
-	
+	}
+
 	// DB上の日程候補を更新
 	err = eum.updateProposedDates(ctx, tx, eventReq, entEvent, existingDates)
 	if err != nil {
@@ -138,7 +138,6 @@ func (eum *EventUpdateManager) UpdateDraftedEvents(ctx context.Context, userID u
 	// トランザクションをコミット
 	return nil
 }
-
 
 func (eum *EventUpdateManager) updateProposedDates(ctx context.Context, tx *ent.Tx, eventReq *models.EventDraftUpdate, entEvent *ent.Event, existingDates []*ent.ProposedDate) error {
 	// 提案された日程候補のハッシュテーブルを作成
@@ -157,9 +156,9 @@ func (eum *EventUpdateManager) updateProposedDates(ctx context.Context, tx *ent.
 		if updateDate, ok := updateDateMap[date.ID]; ok {
 			// 既存のイベントを更新
 			dateOptions := proposeddate.ProposedDateQueryOptions{
-				StartTime:     updateDate.Start,
-				EndTime:       updateDate.End,
-				Priority:      &updateDate.Priority,
+				StartTime: updateDate.Start,
+				EndTime:   updateDate.End,
+				Priority:  &updateDate.Priority,
 			}
 			_, err := eum.event.DateRepo.Update(ctx, tx, date.ID, dateOptions)
 			if err != nil {
@@ -181,9 +180,9 @@ func (eum *EventUpdateManager) updateProposedDates(ctx context.Context, tx *ent.
 
 		// 新しい日程候補をDBに追加
 		dateOptions := proposeddate.ProposedDateQueryOptions{
-			StartTime:     date.Start,
-			EndTime:       date.End,
-			Priority:      &date.Priority,
+			StartTime: date.Start,
+			EndTime:   date.End,
+			Priority:  &date.Priority,
 		}
 		_, err := eum.event.DateRepo.Create(ctx, tx, dateOptions, entEvent)
 		if err != nil {

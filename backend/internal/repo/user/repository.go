@@ -2,21 +2,16 @@ package user
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 )
 
-type UserQueryOptions struct {
-	WithOAuthToken bool
-}
+type UserQueryOptions struct{}
 
 type UserMutationOptions struct {
-	Name               *string
-	AvatarURL          *string
-	RefreshToken       *string
-	RefreshTokenExpiry *time.Time
+	Name      *string
+	AvatarURL *string
 }
 
 type UserRepository interface {

@@ -30,15 +30,12 @@ func (User) Fields() []ent.Field {
 		field.String("email").NotEmpty().Unique(),
 		field.String("name").Optional().Nillable(),
 		field.Text("avatar_url").Optional().Nillable(),
-		field.String("refresh_token").Sensitive().Optional(),
-		field.Time("refresh_token_expiry").Optional(),
 	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("oauth_token", OAuthToken.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("calendars", Calendar.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("account", Account.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("sessions", Session.Type).Annotations(entsql.OnDelete(entsql.Cascade)),

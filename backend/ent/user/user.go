@@ -28,12 +28,6 @@ const (
 	FieldName = "name"
 	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
 	FieldAvatarURL = "avatar_url"
-	// FieldRefreshToken holds the string denoting the refresh_token field in the database.
-	FieldRefreshToken = "refresh_token"
-	// FieldRefreshTokenExpiry holds the string denoting the refresh_token_expiry field in the database.
-	FieldRefreshTokenExpiry = "refresh_token_expiry"
-	// EdgeOauthToken holds the string denoting the oauth_token edge name in mutations.
-	EdgeOauthToken = "oauth_token"
 	// EdgeCalendars holds the string denoting the calendars edge name in mutations.
 	EdgeCalendars = "calendars"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
@@ -46,13 +40,6 @@ const (
 	EdgeEvents = "events"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// OauthTokenTable is the table that holds the oauth_token relation/edge.
-	OauthTokenTable = "oauth_tokens"
-	// OauthTokenInverseTable is the table name for the OAuthToken entity.
-	// It exists in this package in order to avoid circular dependency with the "oauthtoken" package.
-	OauthTokenInverseTable = "oauth_tokens"
-	// OauthTokenColumn is the table column denoting the oauth_token relation/edge.
-	OauthTokenColumn = "user_oauth_token"
 	// CalendarsTable is the table that holds the calendars relation/edge.
 	CalendarsTable = "calendars"
 	// CalendarsInverseTable is the table name for the Calendar entity.
@@ -99,8 +86,6 @@ var Columns = []string{
 	FieldEmail,
 	FieldName,
 	FieldAvatarURL,
-	FieldRefreshToken,
-	FieldRefreshTokenExpiry,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -171,23 +156,6 @@ func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
 }
 
-// ByRefreshToken orders the results by the refresh_token field.
-func ByRefreshToken(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRefreshToken, opts...).ToFunc()
-}
-
-// ByRefreshTokenExpiry orders the results by the refresh_token_expiry field.
-func ByRefreshTokenExpiry(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRefreshTokenExpiry, opts...).ToFunc()
-}
-
-// ByOauthTokenField orders the results by oauth_token field.
-func ByOauthTokenField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOauthTokenStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByCalendarsCount orders the results by calendars count.
 func ByCalendarsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -249,13 +217,6 @@ func ByEvents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newEventsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
-}
-func newOauthTokenStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OauthTokenInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, OauthTokenTable, OauthTokenColumn),
-	)
 }
 func newCalendarsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

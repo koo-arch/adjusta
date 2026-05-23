@@ -28,9 +28,8 @@ func (uh *UserHandler) GetCurrentUserHandler() gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 
-		authManager := uh.handler.Server.AuthManager
-
-		token, err := authManager.VerifyOAuthToken(ctx, userid)
+		tokenManager := uh.handler.Server.GoogleTokenManager
+		token, err := tokenManager.GetToken(ctx, userid)
 		if err != nil {
 			log.Printf("failed to verify token for account: %s, %v", email, err)
 			utils.HandleAPIError(c, err, "OAuthトークン認証に失敗しました")

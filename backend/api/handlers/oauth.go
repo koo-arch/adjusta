@@ -54,8 +54,6 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 		return
 	}
 
-	cookie.DeleteCookie(c, "access_token")
-	cookie.DeleteCookie(c, "refresh_token")
 	cookie.DeleteCookie(c, "session")
 
 	c.JSON(http.StatusOK, gin.H{"message": "logged out"})

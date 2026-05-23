@@ -18,12 +18,6 @@ type Event func(*sql.Selector)
 // GoogleCalendarInfo is the predicate function for googlecalendarinfo builders.
 type GoogleCalendarInfo func(*sql.Selector)
 
-// JWTKey is the predicate function for jwtkey builders.
-type JWTKey func(*sql.Selector)
-
-// OAuthToken is the predicate function for oauthtoken builders.
-type OAuthToken func(*sql.Selector)
-
 // ProposedDate is the predicate function for proposeddate builders.
 type ProposedDate func(*sql.Selector)
 

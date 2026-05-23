@@ -158,54 +158,6 @@ var (
 		Columns:    GoogleCalendarInfosColumns,
 		PrimaryKey: []*schema.Column{GoogleCalendarInfosColumns[0]},
 	}
-	// JwtKeysColumns holds the columns for the "jwt_keys" table.
-	JwtKeysColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "key", Type: field.TypeString},
-		{Name: "type", Type: field.TypeString, Default: "access"},
-		{Name: "expires_at", Type: field.TypeTime},
-	}
-	// JwtKeysTable holds the schema information for the "jwt_keys" table.
-	JwtKeysTable = &schema.Table{
-		Name:       "jwt_keys",
-		Columns:    JwtKeysColumns,
-		PrimaryKey: []*schema.Column{JwtKeysColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "idx_type_expires",
-				Unique:  false,
-				Columns: []*schema.Column{JwtKeysColumns[4], JwtKeysColumns[6]},
-			},
-		},
-	}
-	// OauthTokensColumns holds the columns for the "oauth_tokens" table.
-	OauthTokensColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "access_token", Type: field.TypeString, Nullable: true},
-		{Name: "refresh_token", Type: field.TypeString, Nullable: true},
-		{Name: "expiry", Type: field.TypeTime, Nullable: true},
-		{Name: "user_oauth_token", Type: field.TypeUUID, Unique: true, Nullable: true},
-	}
-	// OauthTokensTable holds the schema information for the "oauth_tokens" table.
-	OauthTokensTable = &schema.Table{
-		Name:       "oauth_tokens",
-		Columns:    OauthTokensColumns,
-		PrimaryKey: []*schema.Column{OauthTokensColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "oauth_tokens_users_oauth_token",
-				Columns:    []*schema.Column{OauthTokensColumns[7]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
 	// ProposedDatesColumns holds the columns for the "proposed_dates" table.
 	ProposedDatesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
@@ -305,8 +257,6 @@ var (
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "avatar_url", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "refresh_token", Type: field.TypeString, Nullable: true},
-		{Name: "refresh_token_expiry", Type: field.TypeTime, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -412,8 +362,6 @@ var (
 		CalendarsTable,
 		EventsTable,
 		GoogleCalendarInfosTable,
-		JwtKeysTable,
-		OauthTokensTable,
 		ProposedDatesTable,
 		SessionsTable,
 		UsersTable,
@@ -429,7 +377,6 @@ func init() {
 	EventsTable.ForeignKeys[1].RefTable = CalendarsTable
 	EventsTable.ForeignKeys[2].RefTable = ProposedDatesTable
 	EventsTable.ForeignKeys[3].RefTable = UsersTable
-	OauthTokensTable.ForeignKeys[0].RefTable = UsersTable
 	ProposedDatesTable.ForeignKeys[0].RefTable = EventsTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	UserCalendarsTable.ForeignKeys[0].RefTable = CalendarsTable

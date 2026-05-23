@@ -9,7 +9,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/user"
 )
@@ -30,10 +29,6 @@ func (r *UserRepositoryImpl) Read(ctx context.Context, tx *ent.Tx, id uuid.UUID,
 		findQuery = tx.User.Query()
 	}
 
-	if opt.WithOAuthToken {
-		findQuery = findQuery.WithOauthToken()
-	}
-
 	return findQuery.
 		Where(user.IDEQ(id)).
 		Only(ctx)
@@ -43,10 +38,6 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, tx *ent.Tx, email 
 	findUser := r.client.User.Query()
 	if tx != nil {
 		findUser = tx.User.Query()
-	}
-
-	if opt.WithOAuthToken {
-		findUser = findUser.WithOauthToken()
 	}
 
 	return findUser.
@@ -111,14 +102,6 @@ func (r *UserRepositoryImpl) SoftDeleteWithRelations(ctx context.Context, tx *en
 		return err
 	}
 
-	// OAuthTokenを論理削除
-	if err := tx.OAuthToken.Update().
-		Where(oauthtoken.HasUserWith(user.IDEQ(id))).
-		SetDeletedAt(time.Now()).
-		Exec(ctx); err != nil {
-		return err
-	}
-
 	// カレンダーの論理削除
 	calendarIDs, err := tx.Calendar.
 		Query().
@@ -177,22 +160,6 @@ func (r *UserRepositoryImpl) RestoreWithRelations(ctx context.Context, tx *ent.T
 		return fmt.Errorf("failed to restore user: %w", err)
 	}
 
-	// OAuthToken を復元
-	oauthTokenIDs, err := tx.OAuthToken.Query().
-		Where(oauthtoken.HasUserWith(user.IDEQ(id))).
-		IDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to query oauth tokens: %w", err)
-	}
-	if len(oauthTokenIDs) > 0 {
-		if err := tx.OAuthToken.Update().
-			Where(oauthtoken.IDIn(oauthTokenIDs...)).
-			SetNillableDeletedAt(nil).
-			Exec(ctx); err != nil {
-			return fmt.Errorf("failed to restore OAuthToken: %w", err)
-		}
-	}
-
 	// カレンダーを復元
 	calendarIDs, err := tx.Calendar.Query().
 		Where(calendar.HasUserWith(user.IDEQ(id))).
@@ -247,13 +214,9 @@ func (r *UserRepositoryImpl) RestoreWithRelations(ctx context.Context, tx *ent.T
 func applyUserCreateOptions(create *ent.UserCreate, opt UserMutationOptions) {
 	create.SetNillableName(opt.Name)
 	create.SetNillableAvatarURL(opt.AvatarURL)
-	create.SetNillableRefreshToken(opt.RefreshToken)
-	create.SetNillableRefreshTokenExpiry(opt.RefreshTokenExpiry)
 }
 
 func applyUserUpdateOptions(update *ent.UserUpdateOne, opt UserMutationOptions) {
 	update.SetNillableName(opt.Name)
 	update.SetNillableAvatarURL(opt.AvatarURL)
-	update.SetNillableRefreshToken(opt.RefreshToken)
-	update.SetNillableRefreshTokenExpiry(opt.RefreshTokenExpiry)
 }

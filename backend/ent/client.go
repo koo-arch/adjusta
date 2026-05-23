@@ -20,8 +20,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/ent/jwtkey"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
@@ -41,10 +39,6 @@ type Client struct {
 	Event *EventClient
 	// GoogleCalendarInfo is the client for interacting with the GoogleCalendarInfo builders.
 	GoogleCalendarInfo *GoogleCalendarInfoClient
-	// JWTKey is the client for interacting with the JWTKey builders.
-	JWTKey *JWTKeyClient
-	// OAuthToken is the client for interacting with the OAuthToken builders.
-	OAuthToken *OAuthTokenClient
 	// ProposedDate is the client for interacting with the ProposedDate builders.
 	ProposedDate *ProposedDateClient
 	// Session is the client for interacting with the Session builders.
@@ -68,8 +62,6 @@ func (c *Client) init() {
 	c.Calendar = NewCalendarClient(c.config)
 	c.Event = NewEventClient(c.config)
 	c.GoogleCalendarInfo = NewGoogleCalendarInfoClient(c.config)
-	c.JWTKey = NewJWTKeyClient(c.config)
-	c.OAuthToken = NewOAuthTokenClient(c.config)
 	c.ProposedDate = NewProposedDateClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -170,8 +162,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Calendar:           NewCalendarClient(cfg),
 		Event:              NewEventClient(cfg),
 		GoogleCalendarInfo: NewGoogleCalendarInfoClient(cfg),
-		JWTKey:             NewJWTKeyClient(cfg),
-		OAuthToken:         NewOAuthTokenClient(cfg),
 		ProposedDate:       NewProposedDateClient(cfg),
 		Session:            NewSessionClient(cfg),
 		User:               NewUserClient(cfg),
@@ -199,8 +189,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Calendar:           NewCalendarClient(cfg),
 		Event:              NewEventClient(cfg),
 		GoogleCalendarInfo: NewGoogleCalendarInfoClient(cfg),
-		JWTKey:             NewJWTKeyClient(cfg),
-		OAuthToken:         NewOAuthTokenClient(cfg),
 		ProposedDate:       NewProposedDateClient(cfg),
 		Session:            NewSessionClient(cfg),
 		User:               NewUserClient(cfg),
@@ -234,8 +222,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Account, c.Calendar, c.Event, c.GoogleCalendarInfo, c.JWTKey, c.OAuthToken,
-		c.ProposedDate, c.Session, c.User, c.UserCalendar,
+		c.Account, c.Calendar, c.Event, c.GoogleCalendarInfo, c.ProposedDate, c.Session,
+		c.User, c.UserCalendar,
 	} {
 		n.Use(hooks...)
 	}
@@ -245,8 +233,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Account, c.Calendar, c.Event, c.GoogleCalendarInfo, c.JWTKey, c.OAuthToken,
-		c.ProposedDate, c.Session, c.User, c.UserCalendar,
+		c.Account, c.Calendar, c.Event, c.GoogleCalendarInfo, c.ProposedDate, c.Session,
+		c.User, c.UserCalendar,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -263,10 +251,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Event.mutate(ctx, m)
 	case *GoogleCalendarInfoMutation:
 		return c.GoogleCalendarInfo.mutate(ctx, m)
-	case *JWTKeyMutation:
-		return c.JWTKey.mutate(ctx, m)
-	case *OAuthTokenMutation:
-		return c.OAuthToken.mutate(ctx, m)
 	case *ProposedDateMutation:
 		return c.ProposedDate.mutate(ctx, m)
 	case *SessionMutation:
@@ -1008,290 +992,6 @@ func (c *GoogleCalendarInfoClient) mutate(ctx context.Context, m *GoogleCalendar
 	}
 }
 
-// JWTKeyClient is a client for the JWTKey schema.
-type JWTKeyClient struct {
-	config
-}
-
-// NewJWTKeyClient returns a client for the JWTKey from the given config.
-func NewJWTKeyClient(c config) *JWTKeyClient {
-	return &JWTKeyClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `jwtkey.Hooks(f(g(h())))`.
-func (c *JWTKeyClient) Use(hooks ...Hook) {
-	c.hooks.JWTKey = append(c.hooks.JWTKey, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `jwtkey.Intercept(f(g(h())))`.
-func (c *JWTKeyClient) Intercept(interceptors ...Interceptor) {
-	c.inters.JWTKey = append(c.inters.JWTKey, interceptors...)
-}
-
-// Create returns a builder for creating a JWTKey entity.
-func (c *JWTKeyClient) Create() *JWTKeyCreate {
-	mutation := newJWTKeyMutation(c.config, OpCreate)
-	return &JWTKeyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of JWTKey entities.
-func (c *JWTKeyClient) CreateBulk(builders ...*JWTKeyCreate) *JWTKeyCreateBulk {
-	return &JWTKeyCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *JWTKeyClient) MapCreateBulk(slice any, setFunc func(*JWTKeyCreate, int)) *JWTKeyCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &JWTKeyCreateBulk{err: fmt.Errorf("calling to JWTKeyClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*JWTKeyCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &JWTKeyCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for JWTKey.
-func (c *JWTKeyClient) Update() *JWTKeyUpdate {
-	mutation := newJWTKeyMutation(c.config, OpUpdate)
-	return &JWTKeyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *JWTKeyClient) UpdateOne(jk *JWTKey) *JWTKeyUpdateOne {
-	mutation := newJWTKeyMutation(c.config, OpUpdateOne, withJWTKey(jk))
-	return &JWTKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *JWTKeyClient) UpdateOneID(id int) *JWTKeyUpdateOne {
-	mutation := newJWTKeyMutation(c.config, OpUpdateOne, withJWTKeyID(id))
-	return &JWTKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for JWTKey.
-func (c *JWTKeyClient) Delete() *JWTKeyDelete {
-	mutation := newJWTKeyMutation(c.config, OpDelete)
-	return &JWTKeyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *JWTKeyClient) DeleteOne(jk *JWTKey) *JWTKeyDeleteOne {
-	return c.DeleteOneID(jk.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *JWTKeyClient) DeleteOneID(id int) *JWTKeyDeleteOne {
-	builder := c.Delete().Where(jwtkey.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &JWTKeyDeleteOne{builder}
-}
-
-// Query returns a query builder for JWTKey.
-func (c *JWTKeyClient) Query() *JWTKeyQuery {
-	return &JWTKeyQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeJWTKey},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a JWTKey entity by its id.
-func (c *JWTKeyClient) Get(ctx context.Context, id int) (*JWTKey, error) {
-	return c.Query().Where(jwtkey.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *JWTKeyClient) GetX(ctx context.Context, id int) *JWTKey {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *JWTKeyClient) Hooks() []Hook {
-	return c.hooks.JWTKey
-}
-
-// Interceptors returns the client interceptors.
-func (c *JWTKeyClient) Interceptors() []Interceptor {
-	inters := c.inters.JWTKey
-	return append(inters[:len(inters):len(inters)], jwtkey.Interceptors[:]...)
-}
-
-func (c *JWTKeyClient) mutate(ctx context.Context, m *JWTKeyMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&JWTKeyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&JWTKeyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&JWTKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&JWTKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown JWTKey mutation op: %q", m.Op())
-	}
-}
-
-// OAuthTokenClient is a client for the OAuthToken schema.
-type OAuthTokenClient struct {
-	config
-}
-
-// NewOAuthTokenClient returns a client for the OAuthToken from the given config.
-func NewOAuthTokenClient(c config) *OAuthTokenClient {
-	return &OAuthTokenClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `oauthtoken.Hooks(f(g(h())))`.
-func (c *OAuthTokenClient) Use(hooks ...Hook) {
-	c.hooks.OAuthToken = append(c.hooks.OAuthToken, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `oauthtoken.Intercept(f(g(h())))`.
-func (c *OAuthTokenClient) Intercept(interceptors ...Interceptor) {
-	c.inters.OAuthToken = append(c.inters.OAuthToken, interceptors...)
-}
-
-// Create returns a builder for creating a OAuthToken entity.
-func (c *OAuthTokenClient) Create() *OAuthTokenCreate {
-	mutation := newOAuthTokenMutation(c.config, OpCreate)
-	return &OAuthTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of OAuthToken entities.
-func (c *OAuthTokenClient) CreateBulk(builders ...*OAuthTokenCreate) *OAuthTokenCreateBulk {
-	return &OAuthTokenCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *OAuthTokenClient) MapCreateBulk(slice any, setFunc func(*OAuthTokenCreate, int)) *OAuthTokenCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &OAuthTokenCreateBulk{err: fmt.Errorf("calling to OAuthTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*OAuthTokenCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &OAuthTokenCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for OAuthToken.
-func (c *OAuthTokenClient) Update() *OAuthTokenUpdate {
-	mutation := newOAuthTokenMutation(c.config, OpUpdate)
-	return &OAuthTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *OAuthTokenClient) UpdateOne(ot *OAuthToken) *OAuthTokenUpdateOne {
-	mutation := newOAuthTokenMutation(c.config, OpUpdateOne, withOAuthToken(ot))
-	return &OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *OAuthTokenClient) UpdateOneID(id uuid.UUID) *OAuthTokenUpdateOne {
-	mutation := newOAuthTokenMutation(c.config, OpUpdateOne, withOAuthTokenID(id))
-	return &OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for OAuthToken.
-func (c *OAuthTokenClient) Delete() *OAuthTokenDelete {
-	mutation := newOAuthTokenMutation(c.config, OpDelete)
-	return &OAuthTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *OAuthTokenClient) DeleteOne(ot *OAuthToken) *OAuthTokenDeleteOne {
-	return c.DeleteOneID(ot.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *OAuthTokenClient) DeleteOneID(id uuid.UUID) *OAuthTokenDeleteOne {
-	builder := c.Delete().Where(oauthtoken.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &OAuthTokenDeleteOne{builder}
-}
-
-// Query returns a query builder for OAuthToken.
-func (c *OAuthTokenClient) Query() *OAuthTokenQuery {
-	return &OAuthTokenQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeOAuthToken},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a OAuthToken entity by its id.
-func (c *OAuthTokenClient) Get(ctx context.Context, id uuid.UUID) (*OAuthToken, error) {
-	return c.Query().Where(oauthtoken.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *OAuthTokenClient) GetX(ctx context.Context, id uuid.UUID) *OAuthToken {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryUser queries the user edge of a OAuthToken.
-func (c *OAuthTokenClient) QueryUser(ot *OAuthToken) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ot.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(oauthtoken.Table, oauthtoken.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, oauthtoken.UserTable, oauthtoken.UserColumn),
-		)
-		fromV = sqlgraph.Neighbors(ot.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *OAuthTokenClient) Hooks() []Hook {
-	return c.hooks.OAuthToken
-}
-
-// Interceptors returns the client interceptors.
-func (c *OAuthTokenClient) Interceptors() []Interceptor {
-	inters := c.inters.OAuthToken
-	return append(inters[:len(inters):len(inters)], oauthtoken.Interceptors[:]...)
-}
-
-func (c *OAuthTokenClient) mutate(ctx context.Context, m *OAuthTokenMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&OAuthTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&OAuthTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&OAuthTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown OAuthToken mutation op: %q", m.Op())
-	}
-}
-
 // ProposedDateClient is a client for the ProposedDate schema.
 type ProposedDateClient struct {
 	config
@@ -1700,22 +1400,6 @@ func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	return obj
 }
 
-// QueryOauthToken queries the oauth_token edge of a User.
-func (c *UserClient) QueryOauthToken(u *User) *OAuthTokenQuery {
-	query := (&OAuthTokenClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := u.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, user.OauthTokenTable, user.OauthTokenColumn),
-		)
-		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryCalendars queries the calendars edge of a User.
 func (c *UserClient) QueryCalendars(u *User) *CalendarQuery {
 	query := (&CalendarClient{config: c.config}).Query()
@@ -1992,11 +1676,11 @@ func (c *UserCalendarClient) mutate(ctx context.Context, m *UserCalendarMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Account, Calendar, Event, GoogleCalendarInfo, JWTKey, OAuthToken, ProposedDate,
-		Session, User, UserCalendar []ent.Hook
+		Account, Calendar, Event, GoogleCalendarInfo, ProposedDate, Session, User,
+		UserCalendar []ent.Hook
 	}
 	inters struct {
-		Account, Calendar, Event, GoogleCalendarInfo, JWTKey, OAuthToken, ProposedDate,
-		Session, User, UserCalendar []ent.Interceptor
+		Account, Calendar, Event, GoogleCalendarInfo, ProposedDate, Session, User,
+		UserCalendar []ent.Interceptor
 	}
 )

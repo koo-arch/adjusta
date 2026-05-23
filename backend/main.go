@@ -14,28 +14,27 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/handlers"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
 	"github.com/koo-arch/adjusta-backend/configs"
-	"github.com/koo-arch/adjusta-backend/ent"
 	opCookie "github.com/koo-arch/adjusta-backend/cookie"
+	"github.com/koo-arch/adjusta-backend/ent"
 
 	_ "github.com/koo-arch/adjusta-backend/ent/runtime"
-	"github.com/koo-arch/adjusta-backend/scheduler"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	// 環境変数の読み込み
 	configs.LoadEnv()
-	
-	// DB接続
-    databaseURL := configs.GetEnv("DATABASE_URL")
-    if databaseURL == "" {
-        log.Fatal("DATABASE_URL is not set")
-    }
 
-    client, err := ent.Open("postgres", databaseURL)
-    if err != nil {
-        log.Fatalf("failed opening connection to postgres: %v", err)
-    }
+	// DB接続
+	databaseURL := configs.GetEnv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
+
+	client, err := ent.Open("postgres", databaseURL)
+	if err != nil {
+		log.Fatalf("failed opening connection to postgres: %v", err)
+	}
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Fatalf("failed closing connection to postgres: %v", err)
@@ -49,21 +48,6 @@ func main() {
 	}
 
 	server := api.NewServer(client)
-
-	// cache
-	cache := server.Cache
-
-	// JWTキーの起動時生成
-	keyManager := server.KeyManager
-	if err := keyManager.InitializeJWTKeys(ctx); err != nil {
-		log.Fatalf("failed to initialize JWT")
-	}
-
-	// スケジューラーのセットアップ
-	s := scheduler.NewScheduler(client, cache)
-	s.SetupJobs(ctx)
-	s.Start()
-	defer s.Stop()
 
 	//Ginフレームワークのデフォルトの設定を使用してルータを作成
 	router := gin.Default()

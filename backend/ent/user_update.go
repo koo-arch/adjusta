@@ -15,7 +15,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
@@ -115,65 +114,6 @@ func (uu *UserUpdate) ClearAvatarURL() *UserUpdate {
 	return uu
 }
 
-// SetRefreshToken sets the "refresh_token" field.
-func (uu *UserUpdate) SetRefreshToken(s string) *UserUpdate {
-	uu.mutation.SetRefreshToken(s)
-	return uu
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (uu *UserUpdate) SetNillableRefreshToken(s *string) *UserUpdate {
-	if s != nil {
-		uu.SetRefreshToken(*s)
-	}
-	return uu
-}
-
-// ClearRefreshToken clears the value of the "refresh_token" field.
-func (uu *UserUpdate) ClearRefreshToken() *UserUpdate {
-	uu.mutation.ClearRefreshToken()
-	return uu
-}
-
-// SetRefreshTokenExpiry sets the "refresh_token_expiry" field.
-func (uu *UserUpdate) SetRefreshTokenExpiry(t time.Time) *UserUpdate {
-	uu.mutation.SetRefreshTokenExpiry(t)
-	return uu
-}
-
-// SetNillableRefreshTokenExpiry sets the "refresh_token_expiry" field if the given value is not nil.
-func (uu *UserUpdate) SetNillableRefreshTokenExpiry(t *time.Time) *UserUpdate {
-	if t != nil {
-		uu.SetRefreshTokenExpiry(*t)
-	}
-	return uu
-}
-
-// ClearRefreshTokenExpiry clears the value of the "refresh_token_expiry" field.
-func (uu *UserUpdate) ClearRefreshTokenExpiry() *UserUpdate {
-	uu.mutation.ClearRefreshTokenExpiry()
-	return uu
-}
-
-// SetOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID.
-func (uu *UserUpdate) SetOauthTokenID(id uuid.UUID) *UserUpdate {
-	uu.mutation.SetOauthTokenID(id)
-	return uu
-}
-
-// SetNillableOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID if the given value is not nil.
-func (uu *UserUpdate) SetNillableOauthTokenID(id *uuid.UUID) *UserUpdate {
-	if id != nil {
-		uu = uu.SetOauthTokenID(*id)
-	}
-	return uu
-}
-
-// SetOauthToken sets the "oauth_token" edge to the OAuthToken entity.
-func (uu *UserUpdate) SetOauthToken(o *OAuthToken) *UserUpdate {
-	return uu.SetOauthTokenID(o.ID)
-}
-
 // AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
 func (uu *UserUpdate) AddCalendarIDs(ids ...uuid.UUID) *UserUpdate {
 	uu.mutation.AddCalendarIDs(ids...)
@@ -256,12 +196,6 @@ func (uu *UserUpdate) AddEvents(e ...*Event) *UserUpdate {
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
-}
-
-// ClearOauthToken clears the "oauth_token" edge to the OAuthToken entity.
-func (uu *UserUpdate) ClearOauthToken() *UserUpdate {
-	uu.mutation.ClearOauthToken()
-	return uu
 }
 
 // ClearCalendars clears all "calendars" edges to the Calendar entity.
@@ -441,47 +375,6 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if uu.mutation.AvatarURLCleared() {
 		_spec.ClearField(user.FieldAvatarURL, field.TypeString)
-	}
-	if value, ok := uu.mutation.RefreshToken(); ok {
-		_spec.SetField(user.FieldRefreshToken, field.TypeString, value)
-	}
-	if uu.mutation.RefreshTokenCleared() {
-		_spec.ClearField(user.FieldRefreshToken, field.TypeString)
-	}
-	if value, ok := uu.mutation.RefreshTokenExpiry(); ok {
-		_spec.SetField(user.FieldRefreshTokenExpiry, field.TypeTime, value)
-	}
-	if uu.mutation.RefreshTokenExpiryCleared() {
-		_spec.ClearField(user.FieldRefreshTokenExpiry, field.TypeTime)
-	}
-	if uu.mutation.OauthTokenCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.OauthTokenTable,
-			Columns: []string{user.OauthTokenColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uu.mutation.OauthTokenIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.OauthTokenTable,
-			Columns: []string{user.OauthTokenColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if uu.mutation.CalendarsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -792,65 +685,6 @@ func (uuo *UserUpdateOne) ClearAvatarURL() *UserUpdateOne {
 	return uuo
 }
 
-// SetRefreshToken sets the "refresh_token" field.
-func (uuo *UserUpdateOne) SetRefreshToken(s string) *UserUpdateOne {
-	uuo.mutation.SetRefreshToken(s)
-	return uuo
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableRefreshToken(s *string) *UserUpdateOne {
-	if s != nil {
-		uuo.SetRefreshToken(*s)
-	}
-	return uuo
-}
-
-// ClearRefreshToken clears the value of the "refresh_token" field.
-func (uuo *UserUpdateOne) ClearRefreshToken() *UserUpdateOne {
-	uuo.mutation.ClearRefreshToken()
-	return uuo
-}
-
-// SetRefreshTokenExpiry sets the "refresh_token_expiry" field.
-func (uuo *UserUpdateOne) SetRefreshTokenExpiry(t time.Time) *UserUpdateOne {
-	uuo.mutation.SetRefreshTokenExpiry(t)
-	return uuo
-}
-
-// SetNillableRefreshTokenExpiry sets the "refresh_token_expiry" field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableRefreshTokenExpiry(t *time.Time) *UserUpdateOne {
-	if t != nil {
-		uuo.SetRefreshTokenExpiry(*t)
-	}
-	return uuo
-}
-
-// ClearRefreshTokenExpiry clears the value of the "refresh_token_expiry" field.
-func (uuo *UserUpdateOne) ClearRefreshTokenExpiry() *UserUpdateOne {
-	uuo.mutation.ClearRefreshTokenExpiry()
-	return uuo
-}
-
-// SetOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID.
-func (uuo *UserUpdateOne) SetOauthTokenID(id uuid.UUID) *UserUpdateOne {
-	uuo.mutation.SetOauthTokenID(id)
-	return uuo
-}
-
-// SetNillableOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableOauthTokenID(id *uuid.UUID) *UserUpdateOne {
-	if id != nil {
-		uuo = uuo.SetOauthTokenID(*id)
-	}
-	return uuo
-}
-
-// SetOauthToken sets the "oauth_token" edge to the OAuthToken entity.
-func (uuo *UserUpdateOne) SetOauthToken(o *OAuthToken) *UserUpdateOne {
-	return uuo.SetOauthTokenID(o.ID)
-}
-
 // AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
 func (uuo *UserUpdateOne) AddCalendarIDs(ids ...uuid.UUID) *UserUpdateOne {
 	uuo.mutation.AddCalendarIDs(ids...)
@@ -933,12 +767,6 @@ func (uuo *UserUpdateOne) AddEvents(e ...*Event) *UserUpdateOne {
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
-}
-
-// ClearOauthToken clears the "oauth_token" edge to the OAuthToken entity.
-func (uuo *UserUpdateOne) ClearOauthToken() *UserUpdateOne {
-	uuo.mutation.ClearOauthToken()
-	return uuo
 }
 
 // ClearCalendars clears all "calendars" edges to the Calendar entity.
@@ -1148,47 +976,6 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if uuo.mutation.AvatarURLCleared() {
 		_spec.ClearField(user.FieldAvatarURL, field.TypeString)
-	}
-	if value, ok := uuo.mutation.RefreshToken(); ok {
-		_spec.SetField(user.FieldRefreshToken, field.TypeString, value)
-	}
-	if uuo.mutation.RefreshTokenCleared() {
-		_spec.ClearField(user.FieldRefreshToken, field.TypeString)
-	}
-	if value, ok := uuo.mutation.RefreshTokenExpiry(); ok {
-		_spec.SetField(user.FieldRefreshTokenExpiry, field.TypeTime, value)
-	}
-	if uuo.mutation.RefreshTokenExpiryCleared() {
-		_spec.ClearField(user.FieldRefreshTokenExpiry, field.TypeTime)
-	}
-	if uuo.mutation.OauthTokenCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.OauthTokenTable,
-			Columns: []string{user.OauthTokenColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uuo.mutation.OauthTokenIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   user.OauthTokenTable,
-			Columns: []string{user.OauthTokenColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if uuo.mutation.CalendarsCleared() {
 		edge := &sqlgraph.EdgeSpec{

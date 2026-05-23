@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/account"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
@@ -32,10 +31,6 @@ type User struct {
 	Name *string `json:"name,omitempty"`
 	// AvatarURL holds the value of the "avatar_url" field.
 	AvatarURL *string `json:"avatar_url,omitempty"`
-	// RefreshToken holds the value of the "refresh_token" field.
-	RefreshToken string `json:"-"`
-	// RefreshTokenExpiry holds the value of the "refresh_token_expiry" field.
-	RefreshTokenExpiry time.Time `json:"refresh_token_expiry,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -44,8 +39,6 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
-	// OauthToken holds the value of the oauth_token edge.
-	OauthToken *OAuthToken `json:"oauth_token,omitempty"`
 	// Calendars holds the value of the calendars edge.
 	Calendars []*Calendar `json:"calendars,omitempty"`
 	// Account holds the value of the account edge.
@@ -58,24 +51,13 @@ type UserEdges struct {
 	Events []*Event `json:"events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
-}
-
-// OauthTokenOrErr returns the OauthToken value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e UserEdges) OauthTokenOrErr() (*OAuthToken, error) {
-	if e.OauthToken != nil {
-		return e.OauthToken, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: oauthtoken.Label}
-	}
-	return nil, &NotLoadedError{edge: "oauth_token"}
+	loadedTypes [5]bool
 }
 
 // CalendarsOrErr returns the Calendars value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) CalendarsOrErr() ([]*Calendar, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		return e.Calendars, nil
 	}
 	return nil, &NotLoadedError{edge: "calendars"}
@@ -86,7 +68,7 @@ func (e UserEdges) CalendarsOrErr() ([]*Calendar, error) {
 func (e UserEdges) AccountOrErr() (*Account, error) {
 	if e.Account != nil {
 		return e.Account, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: account.Label}
 	}
 	return nil, &NotLoadedError{edge: "account"}
@@ -95,7 +77,7 @@ func (e UserEdges) AccountOrErr() (*Account, error) {
 // SessionsOrErr returns the Sessions value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) SessionsOrErr() ([]*Session, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		return e.Sessions, nil
 	}
 	return nil, &NotLoadedError{edge: "sessions"}
@@ -104,7 +86,7 @@ func (e UserEdges) SessionsOrErr() ([]*Session, error) {
 // UserCalendarsOrErr returns the UserCalendars value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[3] {
 		return e.UserCalendars, nil
 	}
 	return nil, &NotLoadedError{edge: "user_calendars"}
@@ -113,7 +95,7 @@ func (e UserEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
 // EventsOrErr returns the Events value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) EventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[4] {
 		return e.Events, nil
 	}
 	return nil, &NotLoadedError{edge: "events"}
@@ -124,9 +106,9 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldEmail, user.FieldName, user.FieldAvatarURL, user.FieldRefreshToken:
+		case user.FieldEmail, user.FieldName, user.FieldAvatarURL:
 			values[i] = new(sql.NullString)
-		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt, user.FieldRefreshTokenExpiry:
+		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		case user.FieldID:
 			values[i] = new(uuid.UUID)
@@ -190,18 +172,6 @@ func (u *User) assignValues(columns []string, values []any) error {
 				u.AvatarURL = new(string)
 				*u.AvatarURL = value.String
 			}
-		case user.FieldRefreshToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field refresh_token", values[i])
-			} else if value.Valid {
-				u.RefreshToken = value.String
-			}
-		case user.FieldRefreshTokenExpiry:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field refresh_token_expiry", values[i])
-			} else if value.Valid {
-				u.RefreshTokenExpiry = value.Time
-			}
 		default:
 			u.selectValues.Set(columns[i], values[i])
 		}
@@ -213,11 +183,6 @@ func (u *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
-}
-
-// QueryOauthToken queries the "oauth_token" edge of the User entity.
-func (u *User) QueryOauthToken() *OAuthTokenQuery {
-	return NewUserClient(u.config).QueryOauthToken(u)
 }
 
 // QueryCalendars queries the "calendars" edge of the User entity.
@@ -291,11 +256,6 @@ func (u *User) String() string {
 		builder.WriteString("avatar_url=")
 		builder.WriteString(*v)
 	}
-	builder.WriteString(", ")
-	builder.WriteString("refresh_token=<sensitive>")
-	builder.WriteString(", ")
-	builder.WriteString("refresh_token_expiry=")
-	builder.WriteString(u.RefreshTokenExpiry.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }
