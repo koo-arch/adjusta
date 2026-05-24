@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/validation"
 	"github.com/koo-arch/adjusta-backend/queryparser"
 	"github.com/koo-arch/adjusta-backend/utils"
-	"github.com/koo-arch/adjusta-backend/internal/validation"
-	"github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
 type CalendarHandler struct {
@@ -32,12 +32,12 @@ func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventFetchingManager := ch.handler.Server.EventFetchingManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		accountsEvents, err := eventFetchingManager.FetchAllGoogleEvents(ctx, userid, email)
+		accountsEvents, err := eventUsecase.FetchAllGoogleEvents(ctx, userid, email)
 		if err, ok := err.(*errors.APIError); ok && err.StatusCode == http.StatusPartialContent {
 			c.JSON(http.StatusPartialContent, gin.H{
-				"events": accountsEvents,
+				"events":  accountsEvents,
 				"warning": err.Details,
 			})
 			return
@@ -64,9 +64,9 @@ func (ch *CalendarHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventFetchingManager := ch.handler.Server.EventFetchingManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		draftedEvents, err := eventFetchingManager.FetchAllDraftedEvents(ctx, userid, email)
+		draftedEvents, err := eventUsecase.FetchAllDraftedEvents(ctx, userid, email)
 		if err != nil {
 			log.Printf("failed to fetch events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの取得に失敗しました")
@@ -98,9 +98,9 @@ func (ch *CalendarHandler) SearchEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventFetchingManager := ch.handler.Server.EventFetchingManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		draftedEvents, err := eventFetchingManager.SearchDraftedEvents(ctx, userid, email, *query)
+		draftedEvents, err := eventUsecase.SearchDraftedEvents(ctx, userid, email, *query)
 		if err != nil {
 			log.Printf("failed to fetch events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの取得に失敗しました")
@@ -121,10 +121,10 @@ func (ch *CalendarHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventFetchingManager := ch.handler.Server.EventFetchingManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
 		daysBefore := 3
-		upcomingEvents, err := eventFetchingManager.FetchUpcomingEvents(ctx, userid, email, daysBefore)
+		upcomingEvents, err := eventUsecase.FetchUpcomingEvents(ctx, userid, email, daysBefore)
 		if err != nil {
 			log.Printf("failed to fetch upcoming events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの取得に失敗しました")
@@ -145,10 +145,10 @@ func (ch *CalendarHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventFetchingManager := ch.handler.Server.EventFetchingManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
 		daysBefore := 3
-		upcomingEvents, err := eventFetchingManager.FetchNeedsActionDrafts(ctx, userid, email, daysBefore)
+		upcomingEvents, err := eventUsecase.FetchNeedsActionDrafts(ctx, userid, email, daysBefore)
 		if err != nil {
 			log.Printf("failed to fetch needs action events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの取得に失敗しました")
@@ -176,9 +176,9 @@ func (ch *CalendarHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventFetchingManager := ch.handler.Server.EventFetchingManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		draftedEvent, err := eventFetchingManager.FetchDraftedEventDetail(ctx, userid, email, slug)
+		draftedEvent, err := eventUsecase.FetchDraftedEventDetail(ctx, userid, email, slug)
 		if err != nil {
 			log.Printf("failed to fetch events: %v", err)
 			utils.HandleAPIError(c, err, "イベント詳細の取得に失敗しました")
@@ -211,9 +211,9 @@ func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventCreationManager := ch.handler.Server.EventCreationManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		response, err := eventCreationManager.CreateDraftedEvents(ctx, userid, email, eventDraft)
+		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, eventDraft)
 		if err != nil {
 			log.Printf("failed to create events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの作成に失敗しました")
@@ -254,9 +254,9 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventManager := ch.handler.Server.EventManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventManager.FinalizeProposedDate(ctx, userid, slug, email, confirmEvent)
+		err = eventUsecase.FinalizeProposedDate(ctx, userid, slug, email, confirmEvent)
 		if err != nil {
 			log.Printf("failed to finalize event: %v", err)
 			utils.HandleAPIError(c, err, "イベントの確定に失敗しました")
@@ -296,9 +296,9 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUpdateManager := ch.handler.Server.EventUpdateManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventUpdateManager.UpdateDraftedEvents(ctx, userid, slug, email, eventDraft)
+		err = eventUsecase.UpdateDraftedEvents(ctx, userid, slug, email, eventDraft)
 		if err != nil {
 			log.Printf("failed to update events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの更新に失敗しました")
@@ -326,9 +326,9 @@ func (ch *CalendarHandler) DeleteEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventDeleteManager := ch.handler.Server.EventDeleteManager
+		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventDeleteManager.DeleteDraftedEvents(ctx, userid, email, eventDraft)
+		err = eventUsecase.DeleteDraftedEvents(ctx, userid, email, eventDraft)
 		if err != nil {
 			log.Printf("failed to delete events: %v", err)
 			utils.HandleAPIError(c, err, "イベントの削除に失敗しました")

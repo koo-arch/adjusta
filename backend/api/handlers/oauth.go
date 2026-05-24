@@ -10,7 +10,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/configs"
 	"github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	"github.com/koo-arch/adjusta-backend/internal/google/userinfo"
 	"github.com/koo-arch/adjusta-backend/utils"
 	"golang.org/x/oauth2"
 )
@@ -41,8 +40,8 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 	session := sessions.Default(c)
 	sessionToken, _ := session.Get("session_token").(string)
 
-	authManager := oh.handler.Server.AuthManager
-	if err := authManager.DeleteSession(c.Request.Context(), sessionToken); err != nil {
+	authSessionUsecase := oh.handler.Server.AuthSessionUsecase
+	if err := authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
 		utils.HandleAPIError(c, err, "セッションの削除に失敗しました")
 		return
 	}
@@ -78,40 +77,18 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-
-		oauthToken, err := oauth.GetGoogleAuthConfig().Exchange(ctx, code)
+		authSessionUsecase := oh.handler.Server.AuthSessionUsecase
+		signInResult, err := authSessionUsecase.CompleteGoogleSignIn(ctx, code)
 		if err != nil {
-			log.Printf("failed to exchange oauth token: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "OAuthトークンの取得に失敗しました"})
-			return
-		}
-
-		userInfo, err := userinfo.FetchGoogleUserInfo(ctx, oauthToken)
-		if err != nil {
-			log.Printf("failed to fetch user info: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザー情報の取得に失敗しました"})
-			return
-		}
-
-		authManager := oh.handler.Server.AuthManager
-		u, err := authManager.ProcessUserSignIn(ctx, userInfo, oauthToken)
-		if err != nil {
-			log.Printf("failed to create or update user: %v", err)
-			utils.HandleAPIError(c, err, "ユーザーの作成または更新に失敗しました")
-			return
-		}
-
-		entSession, err := authManager.CreateSession(ctx, u.ID)
-		if err != nil {
-			log.Printf("failed to create app session: %v", err)
-			utils.HandleAPIError(c, err, "ログインセッションの作成に失敗しました")
+			log.Printf("failed to complete google sign in: %v", err)
+			utils.HandleAPIError(c, err, "ログインに失敗しました")
 			return
 		}
 
 		session.Delete("oauth_state")
-		session.Set("session_token", entSession.SessionToken)
+		session.Set("session_token", signInResult.SessionToken)
 		if err := session.Save(); err != nil {
-			log.Printf("failed to save session token for account: %s, error: %v", u.Email, err)
+			log.Printf("failed to save session token for account: %s, error: %v", signInResult.UserEmail, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "セッションの保存に失敗しました"})
 			return
 		}

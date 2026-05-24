@@ -4,8 +4,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/cache"
 	"github.com/koo-arch/adjusta-backend/ent"
 	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
-	appEvents "github.com/koo-arch/adjusta-backend/internal/apps/events"
-	"github.com/koo-arch/adjusta-backend/internal/apps/events/event_operations"
 	"github.com/koo-arch/adjusta-backend/internal/auth"
 	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
@@ -15,25 +13,28 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
 	"github.com/koo-arch/adjusta-backend/internal/repo/user"
+	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
+	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
+	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
+	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
 type Server struct {
-	Client               *ent.Client
-	Cache                *cache.Cache
-	UserRepo             user.UserRepository
-	AccountRepo          repoAccount.AccountRepository
-	SessionRepo          repoSession.SessionRepository
-	CalendarRepo         dbCalendar.CalendarRepository
-	GoogleCalendarRepo   googlecalendarinfo.GoogleCalendarInfoRepository
-	EventRepo            event.EventRepository
-	DateRepo             proposeddate.ProposedDateRepository
-	AuthManager          *auth.AuthManager
-	GoogleTokenManager   *googleOAuth.TokenManager
-	EventManager         *appEvents.EventManager
-	EventCreationManager *event_operations.EventCreationManager
-	EventFetchingManager *event_operations.EventFetchingManager
-	EventUpdateManager   *event_operations.EventUpdateManager
-	EventDeleteManager   *event_operations.EventDeleteManager
+	Client                *ent.Client
+	Cache                 *cache.Cache
+	UserRepo              user.UserRepository
+	AccountRepo           repoAccount.AccountRepository
+	SessionRepo           repoSession.SessionRepository
+	CalendarRepo          dbCalendar.CalendarRepository
+	GoogleCalendarRepo    googlecalendarinfo.GoogleCalendarInfoRepository
+	EventRepo             event.EventRepository
+	DateRepo              proposeddate.ProposedDateRepository
+	AuthManager           *auth.AuthManager
+	GoogleTokenManager    *googleOAuth.TokenManager
+	AccountProfileUsecase *usecaseAccount.ProfileUsecase
+	AuthSessionUsecase    *usecaseAuth.SessionUsecase
+	CalendarSyncUsecase   *usecaseCalendar.SyncUsecase
+	EventUsecase          *usecaseEvents.Usecase
 }
 
 func NewServer(client *ent.Client) *Server {
@@ -49,25 +50,26 @@ func NewServer(client *ent.Client) *Server {
 	calendarApp := appCalendar.NewGoogleCalendarManager(client) // Google Calendar API manager
 	authManager := auth.NewAuthManager(client, userRepo, accountRepo, sessionRepo)
 	googleTokenManager := googleOAuth.NewTokenManager(accountRepo)
-
-	eventManager := appEvents.NewEventManager(client, googleTokenManager, calendarRepo, googleCalendarRepo, eventRepo, dateRepo, calendarApp)
+	accountProfileUsecase := usecaseAccount.NewProfileUsecase(googleTokenManager)
+	authSessionUsecase := usecaseAuth.NewSessionUsecase(authManager)
+	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(client, userRepo, calendarRepo, googleCalendarRepo, googleTokenManager)
+	eventUsecase := usecaseEvents.NewUsecase(client, googleTokenManager, calendarRepo, googleCalendarRepo, eventRepo, dateRepo, calendarApp)
 
 	return &Server{
-		Client:               client,
-		Cache:                cache,
-		UserRepo:             userRepo,
-		AccountRepo:          accountRepo,
-		SessionRepo:          sessionRepo,
-		CalendarRepo:         calendarRepo,
-		GoogleCalendarRepo:   googleCalendarRepo,
-		EventRepo:            eventRepo,
-		DateRepo:             dateRepo,
-		AuthManager:          authManager,
-		GoogleTokenManager:   googleTokenManager,
-		EventManager:         eventManager,
-		EventCreationManager: event_operations.NewEventCreationManager(eventManager),
-		EventFetchingManager: event_operations.NewEventFetchingManager(eventManager),
-		EventUpdateManager:   event_operations.NewEventUpdateManager(eventManager),
-		EventDeleteManager:   event_operations.NewEventDeleteManager(eventManager),
+		Client:                client,
+		Cache:                 cache,
+		UserRepo:              userRepo,
+		AccountRepo:           accountRepo,
+		SessionRepo:           sessionRepo,
+		CalendarRepo:          calendarRepo,
+		GoogleCalendarRepo:    googleCalendarRepo,
+		EventRepo:             eventRepo,
+		DateRepo:              dateRepo,
+		AuthManager:           authManager,
+		GoogleTokenManager:    googleTokenManager,
+		AccountProfileUsecase: accountProfileUsecase,
+		AuthSessionUsecase:    authSessionUsecase,
+		CalendarSyncUsecase:   calendarSyncUsecase,
+		EventUsecase:          eventUsecase,
 	}
 }
