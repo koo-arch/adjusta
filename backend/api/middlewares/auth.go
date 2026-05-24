@@ -29,9 +29,9 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		authManager := am.middleware.Server.AuthManager
+		authenticator := am.middleware.Server.SessionAuthenticator
 
-		authenticatedUser, err := authManager.AuthenticateSession(ctx, sessionToken)
+		authenticatedUser, err := authenticator.AuthenticateSession(ctx, sessionToken)
 		if err != nil {
 			log.Printf("failed to authenticate session: %v", err)
 			am.clearSession(c)

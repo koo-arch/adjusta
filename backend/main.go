@@ -63,7 +63,11 @@ func main() {
 	repos := internalRepo.NewRepositories(client)
 	uow := internalRepo.NewUnitOfWork(client, repos)
 	calendarApp := appCalendar.NewGoogleCalendarManager()
-	authManager := auth.NewAuthManager(repos, uow)
+	authManager := auth.NewAuthManager(
+		internalRepo.NewAuthReader(repos.User, repos.Account),
+		internalRepo.NewAuthTransaction(uow),
+		internalRepo.NewAuthSessionStore(repos.Session),
+	)
 	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
 		googleTokenManager,
@@ -90,7 +94,7 @@ func main() {
 
 	server := api.NewServer(api.Dependencies{
 		Cache:                 cacheStore,
-		AuthManager:           authManager,
+		SessionAuthenticator:  authManager,
 		AccountProfileUsecase: accountProfileUsecase,
 		AuthSessionUsecase:    authSessionUsecase,
 		CalendarSyncUsecase:   calendarSyncUsecase,
