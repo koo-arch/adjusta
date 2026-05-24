@@ -3,51 +3,25 @@ package events
 import (
 	"context"
 	"log"
-	"net/http"
 	"sort"
 
 	"github.com/google/uuid"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	"github.com/koo-arch/adjusta-backend/utils"
 )
 
-func (uc *Usecase) findPrimaryCalendar(ctx context.Context, repos internalRepo.Repositories, userID uuid.UUID, email string) (*models.StoredCalendar, error) {
-	isPrimary := true
-	findOptions := repoCalendar.CalendarQueryOptions{
-		IsPrimary: &isPrimary,
-	}
-
-	entCalendar, err := repos.Calendar.FindByFields(ctx, userID, findOptions)
+func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*models.StoredCalendar, error) {
+	storedCalendar, err := finder.FindPrimaryCalendar(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
-			return nil, internalErrors.NewAPIError(http.StatusNotFound, "カレンダーが見つかりませんでした")
+			return nil, internalErrors.NewNotFoundError("カレンダーが見つかりませんでした")
 		}
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return entCalendar, nil
-}
-
-func (uc *Usecase) getGoogleCalendarService(ctx context.Context, userID uuid.UUID, email string) (*customCalendar.Calendar, error) {
-	token, err := uc.googleTokenManager.GetToken(ctx, userID)
-	if err != nil {
-		log.Printf("failed to verify token for account: %s, error: %v", email, err)
-		return nil, utils.GetAPIError(err, "OAuthトークンの認証に失敗しました")
-	}
-
-	calendarService, err := customCalendar.NewCalendar(ctx, token)
-	if err != nil {
-		log.Printf("failed to create calendar service for account: %s, error: %v", email, err)
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, "Googleカレンダー接続に失敗しました")
-	}
-
-	return calendarService, nil
+	return storedCalendar, nil
 }
 
 func buildProposedDates(storedDates []*models.StoredProposedDate) []models.ProposedDate {
@@ -70,7 +44,7 @@ func buildProposedDates(storedDates []*models.StoredProposedDate) []models.Propo
 
 func buildEventDraftDetail(storedEvent *models.StoredEvent) (*models.EventDraftDetail, error) {
 	if storedEvent.ProposedDates == nil {
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
 	return &models.EventDraftDetail{
@@ -87,13 +61,5 @@ func buildEventDraftDetail(storedEvent *models.StoredEvent) (*models.EventDraftD
 }
 
 func normalizeUsecaseError(err error, fallbackMessage string) error {
-	if err == nil {
-		return nil
-	}
-
-	if apiErr, ok := err.(*internalErrors.APIError); ok {
-		return apiErr
-	}
-
-	return internalErrors.NewAPIError(http.StatusInternalServerError, fallbackMessage)
+	return internalErrors.NormalizeAPIError(err, fallbackMessage)
 }

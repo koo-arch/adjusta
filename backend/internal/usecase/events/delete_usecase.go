@@ -3,23 +3,21 @@ package events
 import (
 	"context"
 	"log"
-	"net/http"
 
 	"github.com/google/uuid"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 )
 
 func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftDetail) error {
-	err := uc.uow.Do(ctx, func(repos internalRepo.Repositories) error {
-		if _, err := uc.findPrimaryCalendar(ctx, repos, userID, email); err != nil {
+	err := uc.tx.Do(ctx, func(store EventTxStore) error {
+		if _, err := uc.findPrimaryCalendar(ctx, store, userID, email); err != nil {
 			return err
 		}
 
-		if err := repos.Event.SoftDelete(ctx, eventReq.ID); err != nil {
+		if err := store.SoftDeleteEvent(ctx, eventReq.ID); err != nil {
 			log.Printf("failed to delete event for account: %s, error: %v", email, err)
-			return internalErrors.NewAPIError(http.StatusInternalServerError, "イベント削除時にエラーが発生しました")
+			return internalErrors.NewInternalError("イベント削除時にエラーが発生しました")
 		}
 
 		return nil

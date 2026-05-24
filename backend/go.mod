@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/translate v1.12.4
 	entgo.io/ent v0.14.4
 	github.com/abadojack/whatlanggo v1.0.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0

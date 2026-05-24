@@ -4,135 +4,116 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/google/uuid"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/internal/repo/user"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	"github.com/koo-arch/adjusta-backend/utils"
 )
 
 type SyncUsecase struct {
-	repos              internalRepo.Repositories
-	googleTokenManager *googleOAuth.TokenManager
-	uow                internalRepo.UnitOfWork
+	userReader             UserReader
+	googleTokenProvider    GoogleTokenProvider
+	calendarServiceFactory CalendarServiceFactory
+	tx                     SyncTransaction
 }
 
 func NewSyncUsecase(
-	repos internalRepo.Repositories,
-	googleTokenManager *googleOAuth.TokenManager,
-	uow internalRepo.UnitOfWork,
+	userReader UserReader,
+	googleTokenProvider GoogleTokenProvider,
+	calendarServiceFactory CalendarServiceFactory,
+	tx SyncTransaction,
 ) *SyncUsecase {
 	return &SyncUsecase{
-		repos:              repos,
-		googleTokenManager: googleTokenManager,
-		uow:                uow,
+		userReader:             userReader,
+		googleTokenProvider:    googleTokenProvider,
+		calendarServiceFactory: calendarServiceFactory,
+		tx:                     tx,
 	}
 }
 
 func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*customCalendar.CalendarList, error) {
-	entUser, err := uc.repos.User.Read(ctx, userID, user.UserQueryOptions{})
+	entUser, err := uc.userReader.GetByID(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get user info for account: %s, %v", email, err)
 		if repoerr.IsNotFound(err) {
-			return nil, internalErrors.NewAPIError(http.StatusNotFound, "ユーザー情報が見つかりませんでした")
+			return nil, internalErrors.NewNotFoundError("ユーザー情報が見つかりませんでした")
 		}
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, "ユーザー情報取得時にエラーが発生しました")
+		return nil, internalErrors.NewInternalError("ユーザー情報取得時にエラーが発生しました")
 	}
 
-	token, err := uc.googleTokenManager.GetToken(ctx, entUser.ID)
+	token, err := uc.googleTokenProvider.GetToken(ctx, entUser.ID)
 	if err != nil {
 		log.Printf("failed to verify token for account: %s, error: %v", entUser.Email, err)
-		apiErr := utils.GetAPIError(err, "OAuthトークンの認証に失敗しました")
-		return nil, apiErr
+		return nil, internalErrors.NormalizeAPIError(err, "OAuthトークンの認証に失敗しました")
 	}
 
-	calendarService, err := customCalendar.NewCalendar(ctx, token)
+	calendarService, err := uc.calendarServiceFactory.New(ctx, token)
 	if err != nil {
 		log.Printf("failed to create calendar service for account: %s, error: %v", entUser.Email, err)
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, "Googleカレンダー接続に失敗しました")
+		return nil, internalErrors.NewInternalError("Googleカレンダー接続に失敗しました")
 	}
 
 	calendars, err := calendarService.FetchCalendarList()
 	if err != nil {
 		log.Printf("failed to fetch calendars for account: %s, error: %v", entUser.Email, err)
-		apiErr := utils.HandleGoogleAPIError(err)
-		return nil, apiErr
+		return nil, internalErrors.FromGoogleAPIError(err)
 	}
 
 	if err := uc.syncCalendar(ctx, calendars, entUser); err != nil {
 		log.Printf("failed to sync calendars for account: %s, error: %v", entUser.Email, err)
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
 	return calendars, nil
 }
 
 func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCalendar.CalendarList, entUser *models.User) error {
-	return uc.uow.Do(ctx, func(repos internalRepo.Repositories) error {
+	return uc.tx.Do(ctx, func(store SyncStore) error {
 		incoming := make(map[string]struct{}, len(calendars))
 		for _, cal := range calendars {
 			incoming[cal.CalendarID] = struct{}{}
 
-			repoCalOptions := repoCalendar.CalendarQueryOptions{
-				WithGoogleCalendarInfo: true,
-				GoogleCalendarID:       &cal.CalendarID,
-			}
-			storedCalendar, err := repos.Calendar.FindByFields(ctx, entUser.ID, repoCalOptions)
+			storedCalendar, err := store.FindCalendarByGoogleCalendarID(ctx, entUser.ID, cal.CalendarID)
 			if err != nil {
 				if !repoerr.IsNotFound(err) {
 					return fmt.Errorf("failed to find calendar: %w", err)
 				}
 
-				storedCalendar, err = repos.Calendar.Create(ctx, entUser.ID)
+				storedCalendar, err = store.CreateCalendar(ctx, entUser.ID)
 				if err != nil {
 					return fmt.Errorf("failed to create calendar: %w", err)
 				}
 			}
 
-			gCalOptions := googlecalendarinfo.GoogleCalendarInfoQueryOptions{
-				GoogleCalendarID: &cal.CalendarID,
-			}
-			entGoogleCalendar, err := repos.GoogleCalendarInfo.FindByFields(ctx, gCalOptions)
+			entGoogleCalendar, err := store.FindGoogleCalendarInfoByGoogleCalendarID(ctx, cal.CalendarID)
 			if err != nil {
 				if !repoerr.IsNotFound(err) {
 					return fmt.Errorf("failed to find google calendar info: %w", err)
 				}
 
-				createOptions := googlecalendarinfo.GoogleCalendarInfoQueryOptions{
-					GoogleCalendarID: &cal.CalendarID,
-					Summary:          &cal.Summary,
-					IsPrimary:        &cal.Primary,
-				}
-				_, err := repos.GoogleCalendarInfo.Create(ctx, createOptions, storedCalendar.ID)
+				_, err := store.CreateGoogleCalendarInfo(ctx, cal.CalendarID, cal.Summary, cal.Primary, storedCalendar.ID)
 				if err != nil {
 					return fmt.Errorf("failed to create google calendar info: %w", err)
 				}
 			}
 
 			if entGoogleCalendar != nil {
-				_, err := repos.GoogleCalendarInfo.Update(ctx, entGoogleCalendar.ID, googlecalendarinfo.GoogleCalendarInfoQueryOptions{}, &storedCalendar.ID)
-				if err != nil {
+				if err := store.LinkGoogleCalendarInfoToCalendar(ctx, entGoogleCalendar.ID, storedCalendar.ID); err != nil {
 					return fmt.Errorf("failed to update google calendar info: %w", err)
 				}
 			}
 		}
 
-		dbInfos, err := repos.GoogleCalendarInfo.ListByUser(ctx, entUser.ID)
+		dbInfos, err := store.ListGoogleCalendarInfosByUser(ctx, entUser.ID)
 		if err != nil {
 			return fmt.Errorf("failed to list google calendar info: %w", err)
 		}
 
 		for _, dbInfo := range dbInfos {
 			if _, ok := incoming[dbInfo.GoogleCalendarID]; !ok {
-				if err := repos.GoogleCalendarInfo.SoftDelete(ctx, dbInfo.ID); err != nil {
+				if err := store.SoftDeleteGoogleCalendarInfo(ctx, dbInfo.ID); err != nil {
 					return fmt.Errorf("failed to soft delete google calendar info: %w", err)
 				}
 			}

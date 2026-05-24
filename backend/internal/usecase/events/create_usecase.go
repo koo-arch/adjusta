@@ -3,35 +3,31 @@ package events
 import (
 	"context"
 	"log"
-	"net/http"
 
 	"github.com/google/uuid"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 )
 
 func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftCreation) (*models.EventDraftDetail, error) {
 	var response *models.EventDraftDetail
 
-	err := uc.uow.Do(ctx, func(repos internalRepo.Repositories) error {
-		entCalendar, err := uc.findPrimaryCalendar(ctx, repos, userID, email)
+	err := uc.tx.Do(ctx, func(store EventTxStore) error {
+		storedCalendar, err := uc.findPrimaryCalendar(ctx, store, userID, email)
 		if err != nil {
 			return err
 		}
 
-		convEvent := uc.calendarApp.ConvertToCalendarEvent(nil, eventReq.Title, eventReq.Location, eventReq.Description, eventReq.SelectedDates[0].Start, eventReq.SelectedDates[0].End)
-
-		storedEvent, err := repos.Event.Create(ctx, convEvent, entCalendar.ID)
+		storedEvent, err := store.CreateEvent(ctx, storedCalendar.ID, eventReq.Title, eventReq.Location, eventReq.Description, eventReq.SelectedDates[0].Start, eventReq.SelectedDates[0].End)
 		if err != nil {
 			log.Printf("failed to create event for account: %s, error: %v", email, err)
-			return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		storedDates, err := repos.ProposedDate.CreateBulk(ctx, eventReq.SelectedDates, storedEvent.ID)
+		storedDates, err := store.CreateProposedDates(ctx, eventReq.SelectedDates, storedEvent.ID)
 		if err != nil {
 			log.Printf("failed to create proposed dates for account: %s, error: %v", email, err)
-			return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
 		response = &models.EventDraftDetail{

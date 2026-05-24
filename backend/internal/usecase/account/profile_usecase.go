@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
+	"golang.org/x/oauth2"
 )
 
 type GoogleProfile struct {
@@ -15,23 +15,39 @@ type GoogleProfile struct {
 	Picture  string `json:"picture"`
 }
 
-type ProfileUsecase struct {
-	googleTokenManager *googleOAuth.TokenManager
+type GoogleTokenProvider interface {
+	GetToken(ctx context.Context, userID uuid.UUID) (*oauth2.Token, error)
 }
 
-func NewProfileUsecase(googleTokenManager *googleOAuth.TokenManager) *ProfileUsecase {
+type UserInfoFetcher interface {
+	FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error)
+}
+
+type UserInfoFetcherFunc func(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error)
+
+func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error) {
+	return f(ctx, token)
+}
+
+type ProfileUsecase struct {
+	googleTokenProvider GoogleTokenProvider
+	userInfoFetcher     UserInfoFetcher
+}
+
+func NewProfileUsecase(googleTokenProvider GoogleTokenProvider, userInfoFetcher UserInfoFetcher) *ProfileUsecase {
 	return &ProfileUsecase{
-		googleTokenManager: googleTokenManager,
+		googleTokenProvider: googleTokenProvider,
+		userInfoFetcher:     userInfoFetcher,
 	}
 }
 
 func (uc *ProfileUsecase) FetchGoogleProfile(ctx context.Context, userID uuid.UUID) (*GoogleProfile, error) {
-	token, err := uc.googleTokenManager.GetToken(ctx, userID)
+	token, err := uc.googleTokenProvider.GetToken(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	userInfo, err := googleUserInfo.FetchGoogleUserInfo(ctx, token)
+	userInfo, err := uc.userInfoFetcher.FetchGoogleUserInfo(ctx, token)
 	if err != nil {
 		return nil, err
 	}
