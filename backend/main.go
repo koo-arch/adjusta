@@ -13,9 +13,18 @@ import (
 	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/handlers"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
+	"github.com/koo-arch/adjusta-backend/cache"
 	"github.com/koo-arch/adjusta-backend/configs"
 	opCookie "github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/ent"
+	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/auth"
+	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
+	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
+	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
+	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
+	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 
 	_ "github.com/koo-arch/adjusta-backend/ent/runtime"
 	_ "github.com/lib/pq"
@@ -47,7 +56,25 @@ func main() {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
-	server := api.NewServer(client)
+	cacheStore := cache.NewCache()
+	repos := internalRepo.NewRepositories(client)
+	uow := internalRepo.NewUnitOfWork(client, repos)
+	calendarApp := appCalendar.NewGoogleCalendarManager()
+	authManager := auth.NewAuthManager(repos, uow)
+	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
+	accountProfileUsecase := usecaseAccount.NewProfileUsecase(googleTokenManager)
+	authSessionUsecase := usecaseAuth.NewSessionUsecase(authManager)
+	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(repos, googleTokenManager, uow)
+	eventUsecase := usecaseEvents.NewUsecase(googleTokenManager, repos, calendarApp, uow)
+
+	server := api.NewServer(api.Dependencies{
+		Cache:                 cacheStore,
+		AuthManager:           authManager,
+		AccountProfileUsecase: accountProfileUsecase,
+		AuthSessionUsecase:    authSessionUsecase,
+		CalendarSyncUsecase:   calendarSyncUsecase,
+		EventUsecase:          eventUsecase,
+	})
 
 	//Ginフレームワークのデフォルトの設定を使用してルータを作成
 	router := gin.Default()

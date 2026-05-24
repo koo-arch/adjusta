@@ -5,26 +5,27 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type ProposedDateQueryOptions struct {
-	StartTime     *time.Time
-	EndTime       *time.Time
-	Priority      *int
+	StartTime *time.Time
+	EndTime   *time.Time
+	Priority  *int
 }
 
 type ProposedDateRepository interface {
-	Read(ctx context.Context, tx *ent.Tx, id uuid.UUID) (*ent.ProposedDate, error)
-	FilterByEventID(ctx context.Context, tx *ent.Tx, eventID uuid.UUID) ([]*ent.ProposedDate, error)
-	ExclusionEventID(ctx context.Context, tx *ent.Tx, eventID uuid.UUID) ([]*ent.ProposedDate, error)
-	Create(ctx context.Context, tx *ent.Tx, opt ProposedDateQueryOptions, entEvent *ent.Event) (*ent.ProposedDate, error)
-	Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt ProposedDateQueryOptions) (*ent.ProposedDate, error)
-	Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	SoftDelete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	Restore(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	CreateBulk(ctx context.Context, tx *ent.Tx, selectedDates []models.SelectedDate, entEvent *ent.Event) ([]*ent.ProposedDate, error)
-	DecrementPriorityExceptID(ctx context.Context, tx *ent.Tx, eventID, excludeID uuid.UUID) error
-	ReorderPriority(ctx context.Context, tx *ent.Tx, eventID uuid.UUID) error
+	WithTx(tx transaction.Tx) ProposedDateRepository
+	Read(ctx context.Context, id uuid.UUID) (*models.StoredProposedDate, error)
+	FilterByEventID(ctx context.Context, eventID uuid.UUID) ([]*models.StoredProposedDate, error)
+	ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*models.StoredProposedDate, error)
+	Create(ctx context.Context, opt ProposedDateQueryOptions, eventID uuid.UUID) (*models.StoredProposedDate, error)
+	Update(ctx context.Context, id uuid.UUID, opt ProposedDateQueryOptions) (*models.StoredProposedDate, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	SoftDelete(ctx context.Context, id uuid.UUID) error
+	Restore(ctx context.Context, id uuid.UUID) error
+	CreateBulk(ctx context.Context, selectedDates []models.SelectedDate, eventID uuid.UUID) ([]*models.StoredProposedDate, error)
+	DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error
+	ReorderPriority(ctx context.Context, eventID uuid.UUID) error
 }

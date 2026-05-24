@@ -4,32 +4,32 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type CalendarQueryOptions struct {
-	GoogleCalendarID *string
-    Summary    *string
-    IsPrimary  *bool
+	GoogleCalendarID       *string
+	Summary                *string
+	IsPrimary              *bool
 	WithGoogleCalendarInfo bool `json:"with_google_calendar_info"`
-	WithEvents bool `json:"with_events"`
-	WithProposedDates bool `json:"with_proposed_dates"`
-	EventOffset int
-	EventLimit int
-	ProposedDateOffset int
-	ProposedDateLimit int
+	WithEvents             bool `json:"with_events"`
+	WithProposedDates      bool `json:"with_proposed_dates"`
+	EventOffset            int
+	EventLimit             int
+	ProposedDateOffset     int
+	ProposedDateLimit      int
 }
 
 type CalendarRepository interface {
-	Read(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt CalendarQueryOptions) (*ent.Calendar, error)
-	FilterByUserID(ctx context.Context, tx *ent.Tx, userID uuid.UUID) ([]*ent.Calendar, error)
-	FindByFields(ctx context.Context, tx *ent.Tx, userID uuid.UUID, opt CalendarQueryOptions) (*ent.Calendar, error)
-	FilterByFields(ctx context.Context, tx *ent.Tx, userID uuid.UUID, opt CalendarQueryOptions) ([]*ent.Calendar, error)
-	Create(ctx context.Context, tx *ent.Tx, entUser *ent.User, entGoogleCalendar *ent.GoogleCalendarInfo) (*ent.Calendar, error)
-	Update(ctx context.Context, tx *ent.Tx, id uuid.UUID) (*ent.Calendar, error)
-	Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	SoftDelete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	Restore(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	SoftDeleteWithRelations(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
-	RestoreWithRelations(ctx context.Context, tx *ent.Tx, id uuid.UUID) error
+	WithTx(tx transaction.Tx) CalendarRepository
+	Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*models.StoredCalendar, error)
+	FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*models.StoredCalendar, error)
+	FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*models.StoredCalendar, error)
+	FilterByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) ([]*models.StoredCalendar, error)
+	Create(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error)
+	Update(ctx context.Context, id uuid.UUID) (*models.StoredCalendar, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	SoftDelete(ctx context.Context, id uuid.UUID) error
+	Restore(ctx context.Context, id uuid.UUID) error
 }

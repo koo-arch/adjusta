@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
+	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	"golang.org/x/oauth2"
 )
 
@@ -24,10 +25,10 @@ func NewTokenManager(accountRepo repoAccount.AccountRepository) *TokenManager {
 }
 
 func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*oauth2.Token, error) {
-	entAccount, err := tm.accountRepo.FindByUserID(ctx, nil, userID)
+	entAccount, err := tm.accountRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get account by user id: %v", err)
-		if ent.IsNotFound(err) {
+		if repoerr.IsNotFound(err) {
 			return nil, internalErrors.NewAPIError(http.StatusNotFound, "アカウント情報が見つかりませんでした")
 		}
 		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
@@ -60,10 +61,10 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*oauth2
 	}
 
 	if shouldPersistRefreshedToken(entAccount, refreshedToken) {
-		_, err = tm.accountRepo.Update(ctx, nil, entAccount.ID, buildAccountTokenRefreshOptions(entAccount, refreshedToken))
+		_, err = tm.accountRepo.Update(ctx, entAccount.ID, buildAccountTokenRefreshOptions(entAccount, refreshedToken))
 		if err != nil {
 			log.Printf("failed to update token: %v", err)
-			if ent.IsNotFound(err) {
+			if repoerr.IsNotFound(err) {
 				return nil, internalErrors.NewAPIError(http.StatusNotFound, "アカウント情報が見つかりませんでした")
 			}
 			return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
@@ -73,7 +74,7 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*oauth2
 	return refreshedToken, nil
 }
 
-func buildAccountTokenRefreshOptions(account *ent.Account, oauthToken *oauth2.Token) repoAccount.AccountMutationOptions {
+func buildAccountTokenRefreshOptions(account *models.Account, oauthToken *oauth2.Token) repoAccount.AccountMutationOptions {
 	refreshToken := account.RefreshToken
 	if oauthToken.RefreshToken != "" {
 		refreshToken = &oauthToken.RefreshToken
@@ -94,7 +95,7 @@ func buildAccountTokenRefreshOptions(account *ent.Account, oauthToken *oauth2.To
 	return opt
 }
 
-func shouldPersistRefreshedToken(account *ent.Account, oauthToken *oauth2.Token) bool {
+func shouldPersistRefreshedToken(account *models.Account, oauthToken *oauth2.Token) bool {
 	if account.AccessToken == nil || *account.AccessToken != oauthToken.AccessToken {
 		return true
 	}

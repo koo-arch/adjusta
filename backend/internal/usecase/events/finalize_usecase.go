@@ -7,59 +7,60 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	"github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
+	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	"github.com/koo-arch/adjusta-backend/utils"
 )
 
 func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *models.ConfirmEvent) error {
-	tx, err := uc.client.Tx(ctx)
-	if err != nil {
-		return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
-	}
-
-	defer transaction.HandleTransaction(tx, &err)
-
-	entEvent, err := uc.eventRepo.FindBySlugAndUser(ctx, tx, userID, slug, event.EventQueryOptions{})
-	if err != nil {
-		log.Printf("failed to get event for account: %s, error: %v", email, err)
-		if ent.IsNotFound(err) {
-			return internalErrors.NewAPIError(http.StatusNotFound, "イベントが見つかりませんでした")
+	err := uc.uow.Do(ctx, func(repos internalRepo.Repositories) error {
+		entEvent, err := repos.Event.FindBySlugAndUser(ctx, userID, slug, event.EventQueryOptions{})
+		if err != nil {
+			log.Printf("failed to get event for account: %s, error: %v", email, err)
+			if repoerr.IsNotFound(err) {
+				return internalErrors.NewAPIError(http.StatusNotFound, "イベントが見つかりませんでした")
+			}
+			return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
 		}
-		return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
-	}
 
-	calendarService, err := uc.getGoogleCalendarService(ctx, userID, email)
+		calendarService, err := uc.getGoogleCalendarService(ctx, userID, email)
+		if err != nil {
+			return utils.GetAPIError(err, "サーバーでエラーが発生しました")
+		}
+
+		googleEventID, err := uc.handleGoogleEvent(calendarService, entEvent, eventReq)
+		if err != nil {
+			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
+			return utils.HandleGoogleAPIError(err)
+		}
+
+		if err := uc.confirmEventDate(ctx, repos, googleEventID, eventReq, entEvent); err != nil {
+			log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
+			return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return utils.GetAPIError(err, "サーバーでエラーが発生しました")
-	}
-
-	googleEventID, err := uc.handleGoogleEvent(calendarService, entEvent, eventReq)
-	if err != nil {
-		log.Printf("failed to handle google event for account: %s, error: %v", email, err)
-		return utils.HandleGoogleAPIError(err)
-	}
-
-	if err := uc.confirmEventDate(ctx, tx, googleEventID, eventReq, entEvent); err != nil {
-		log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
-		return internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		log.Printf("failed running finalize proposed date transaction: %v", err)
+		return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
 
 	return nil
 }
 
-func (uc *Usecase) handleGoogleEvent(calendarService *customCalendar.Calendar, entEvent *ent.Event, eventReq *models.ConfirmEvent) (*string, error) {
+func (uc *Usecase) handleGoogleEvent(calendarService *customCalendar.Calendar, storedEvent *models.StoredEvent, eventReq *models.ConfirmEvent) (*string, error) {
 	var googleEventID *string
-	if eventReq.ConfirmDate.ID == nil || entEvent.GoogleEventID == "" {
+	if eventReq.ConfirmDate.ID == nil || storedEvent.GoogleEventID == "" {
 		eventDraftCreate := models.EventDraftCreation{
-			Title:       entEvent.Summary,
-			Location:    entEvent.Location,
-			Description: entEvent.Description,
+			Title:       storedEvent.Summary,
+			Location:    storedEvent.Location,
+			Description: storedEvent.Description,
 			SelectedDates: []models.SelectedDate{
 				{
 					Start: *eventReq.ConfirmDate.Start,
@@ -74,7 +75,7 @@ func (uc *Usecase) handleGoogleEvent(calendarService *customCalendar.Calendar, e
 		}
 		googleEventID = &googleEvents[0].Id
 	} else {
-		convertGoogleEvent := uc.calendarApp.ConvertToCalendarEvent(&entEvent.GoogleEventID, entEvent.Summary, entEvent.Location, entEvent.Description, *eventReq.ConfirmDate.Start, *eventReq.ConfirmDate.End)
+		convertGoogleEvent := uc.calendarApp.ConvertToCalendarEvent(&storedEvent.GoogleEventID, storedEvent.Summary, storedEvent.Location, storedEvent.Description, *eventReq.ConfirmDate.Start, *eventReq.ConfirmDate.End)
 		googleEvent, err := uc.calendarApp.UpdateOrCreateGoogleEvent(calendarService, convertGoogleEvent)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update events, error: %w", err)
@@ -86,7 +87,7 @@ func (uc *Usecase) handleGoogleEvent(calendarService *customCalendar.Calendar, e
 	return googleEventID, nil
 }
 
-func (uc *Usecase) confirmEventDate(ctx context.Context, tx *ent.Tx, googleEventID *string, eventReq *models.ConfirmEvent, entEvent *ent.Event) error {
+func (uc *Usecase) confirmEventDate(ctx context.Context, repos internalRepo.Repositories, googleEventID *string, eventReq *models.ConfirmEvent, storedEvent *models.StoredEvent) error {
 	priority := 1
 	dateOptions := proposeddate.ProposedDateQueryOptions{
 		Priority: &priority,
@@ -97,13 +98,13 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, tx *ent.Tx, googleEvent
 		dateOptions.StartTime = eventReq.ConfirmDate.Start
 		dateOptions.EndTime = eventReq.ConfirmDate.End
 
-		entDate, err := uc.dateRepo.Create(ctx, tx, dateOptions, entEvent)
+		storedDate, err := repos.ProposedDate.Create(ctx, dateOptions, storedEvent.ID)
 		if err != nil {
 			return fmt.Errorf("failed to create proposed date error: %w", err)
 		}
-		confirmDateID = &entDate.ID
+		confirmDateID = &storedDate.ID
 
-		if err := uc.dateRepo.DecrementPriorityExceptID(ctx, tx, entEvent.ID, entDate.ID); err != nil {
+		if err := repos.ProposedDate.DecrementPriorityExceptID(ctx, storedEvent.ID, storedDate.ID); err != nil {
 			return fmt.Errorf("failed to decrement priority error: %w", err)
 		}
 	}
@@ -112,12 +113,11 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, tx *ent.Tx, googleEvent
 		zero := 0
 		dateOptions.Priority = &zero
 
-		entDate, err := uc.dateRepo.Update(ctx, tx, *eventReq.ConfirmDate.ID, dateOptions)
-		if err != nil {
+		if _, err := repos.ProposedDate.Update(ctx, *eventReq.ConfirmDate.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date error: %w", err)
 		}
 
-		if err := uc.dateRepo.ReorderPriority(ctx, tx, entDate.ID); err != nil {
+		if err := repos.ProposedDate.ReorderPriority(ctx, storedEvent.ID); err != nil {
 			return fmt.Errorf("failed to reorder priority error: %w", err)
 		}
 	}
@@ -128,7 +128,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, tx *ent.Tx, googleEvent
 		ConfirmedDateID: confirmDateID,
 		GoogleEventID:   googleEventID,
 	}
-	if _, err := uc.eventRepo.Update(ctx, tx, entEvent.ID, eventOptions); err != nil {
+	if _, err := repos.Event.Update(ctx, storedEvent.ID, eventOptions); err != nil {
 		return fmt.Errorf("failed to update event status error: %w", err)
 	}
 

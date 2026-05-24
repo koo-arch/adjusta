@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type SessionQueryOptions struct {
@@ -13,9 +14,10 @@ type SessionQueryOptions struct {
 }
 
 type SessionRepository interface {
-	Read(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt SessionQueryOptions) (*ent.Session, error)
-	FindByToken(ctx context.Context, tx *ent.Tx, sessionToken string, opt SessionQueryOptions) (*ent.Session, error)
-	Create(ctx context.Context, tx *ent.Tx, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*ent.Session, error)
-	UpdateExpiry(ctx context.Context, tx *ent.Tx, id uuid.UUID, expiresAt time.Time) (*ent.Session, error)
-	DeleteByToken(ctx context.Context, tx *ent.Tx, sessionToken string) error
+	WithTx(tx transaction.Tx) SessionRepository
+	Read(ctx context.Context, id uuid.UUID, opt SessionQueryOptions) (*models.Session, error)
+	FindByToken(ctx context.Context, sessionToken string, opt SessionQueryOptions) (*models.Session, error)
+	Create(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*models.Session, error)
+	UpdateExpiry(ctx context.Context, id uuid.UUID, expiresAt time.Time) (*models.Session, error)
+	DeleteByToken(ctx context.Context, sessionToken string) error
 }

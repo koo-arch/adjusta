@@ -3,12 +3,11 @@ package queryparser
 import (
 	"fmt"
 
-	"github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-
+	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
-func(qp *QueryParser) ParseSearchEventQuery() (*event.EventQueryOptions, error) {
+func (qp *QueryParser) ParseSearchEventQuery() (*usecaseEvents.SearchDraftQuery, error) {
 
 	title, err := qp.ParseString("title")
 	if err != nil {
@@ -54,21 +53,21 @@ func(qp *QueryParser) ParseSearchEventQuery() (*event.EventQueryOptions, error) 
 		return nil, fmt.Errorf("failed to parse end_time: %w", err)
 	}
 
-	options := event.EventQueryOptions{
-		Summary: title,
-		Location: location,
-		Description: description,
-		Status: eventStatus,
-		ProposedDateStartGTE: startTimeGTE,
-		ProposedDateStartLTE: startTimeLTE,
-		ProposedDateEndGTE: endTimeGTE,
-		ProposedDateEndLTE: endTimeLTE,
+	options := usecaseEvents.SearchDraftQuery{
+		Title:        title,
+		Location:     location,
+		Description:  description,
+		Status:       eventStatus,
+		StartTimeGTE: startTimeGTE,
+		StartTimeLTE: startTimeLTE,
+		EndTimeGTE:   endTimeGTE,
+		EndTimeLTE:   endTimeLTE,
 	}
 
 	return &options, nil
 }
 
-func(qp *QueryParser) vaildateStatus(status *string) (*models.EventStatus, error) {
+func (qp *QueryParser) vaildateStatus(status *string) (*models.EventStatus, error) {
 	if status == nil {
 		return nil, nil
 	}

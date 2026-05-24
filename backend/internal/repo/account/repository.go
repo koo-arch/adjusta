@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type AccountMutationOptions struct {
@@ -17,8 +18,9 @@ type AccountMutationOptions struct {
 }
 
 type AccountRepository interface {
-	Read(ctx context.Context, tx *ent.Tx, id uuid.UUID) (*ent.Account, error)
-	FindByUserID(ctx context.Context, tx *ent.Tx, userID uuid.UUID) (*ent.Account, error)
-	Create(ctx context.Context, tx *ent.Tx, userID uuid.UUID, opt AccountMutationOptions) (*ent.Account, error)
-	Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt AccountMutationOptions) (*ent.Account, error)
+	WithTx(tx transaction.Tx) AccountRepository
+	Read(ctx context.Context, id uuid.UUID) (*models.Account, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) (*models.Account, error)
+	Create(ctx context.Context, userID uuid.UUID, opt AccountMutationOptions) (*models.Account, error)
+	Update(ctx context.Context, id uuid.UUID, opt AccountMutationOptions) (*models.Account, error)
 }

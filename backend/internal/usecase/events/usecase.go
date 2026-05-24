@@ -1,41 +1,28 @@
 package events
 
 import (
-	"github.com/koo-arch/adjusta-backend/ent"
 	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
 	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/repo/event"
-	"github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 )
 
 type Usecase struct {
-	client             *ent.Client
 	googleTokenManager *googleOAuth.TokenManager
-	calendarRepo       repoCalendar.CalendarRepository
-	googleCalendarRepo googlecalendarinfo.GoogleCalendarInfoRepository
-	eventRepo          event.EventRepository
-	dateRepo           proposeddate.ProposedDateRepository
+	repos              internalRepo.Repositories
 	calendarApp        *appCalendar.GoogleCalendarManager
+	uow                internalRepo.UnitOfWork
 }
 
 func NewUsecase(
-	client *ent.Client,
 	googleTokenManager *googleOAuth.TokenManager,
-	calendarRepo repoCalendar.CalendarRepository,
-	googleCalendarRepo googlecalendarinfo.GoogleCalendarInfoRepository,
-	eventRepo event.EventRepository,
-	dateRepo proposeddate.ProposedDateRepository,
+	repos internalRepo.Repositories,
 	calendarApp *appCalendar.GoogleCalendarManager,
+	uow internalRepo.UnitOfWork,
 ) *Usecase {
 	return &Usecase{
-		client:             client,
 		googleTokenManager: googleTokenManager,
-		calendarRepo:       calendarRepo,
-		googleCalendarRepo: googleCalendarRepo,
-		eventRepo:          eventRepo,
-		dateRepo:           dateRepo,
+		repos:              repos,
 		calendarApp:        calendarApp,
+		uow:                uow,
 	}
 }

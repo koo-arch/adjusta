@@ -6,9 +6,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
+	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type GoogleCalendarInfoImpl struct {
@@ -21,18 +24,20 @@ func NewGoogleCalendarInfoRepository(client *ent.Client) *GoogleCalendarInfoImpl
 	}
 }
 
-func (r *GoogleCalendarInfoImpl) Read(ctx context.Context, tx *ent.Tx, id uuid.UUID) (*ent.GoogleCalendarInfo, error) {
-	if tx != nil {
-		return tx.GoogleCalendarInfo.Get(ctx, id)
-	}
-	return r.client.GoogleCalendarInfo.Get(ctx, id)
+func (r *GoogleCalendarInfoImpl) WithTx(tx transaction.Tx) GoogleCalendarInfoRepository {
+	return &GoogleCalendarInfoImpl{client: tx.Client()}
 }
 
-func (r *GoogleCalendarInfoImpl) FindByFields(ctx context.Context, tx *ent.Tx, opt GoogleCalendarInfoQueryOptions) (*ent.GoogleCalendarInfo, error) {
-	findGoogleCalendarInfo := r.client.GoogleCalendarInfo.Query()
-	if tx != nil {
-		findGoogleCalendarInfo = tx.GoogleCalendarInfo.Query()
+func (r *GoogleCalendarInfoImpl) Read(ctx context.Context, id uuid.UUID) (*models.GoogleCalendarInfo, error) {
+	entity, err := r.client.GoogleCalendarInfo.Get(ctx, id)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
 	}
+	return toModelGoogleCalendarInfo(entity), nil
+}
+
+func (r *GoogleCalendarInfoImpl) FindByFields(ctx context.Context, opt GoogleCalendarInfoQueryOptions) (*models.GoogleCalendarInfo, error) {
+	findGoogleCalendarInfo := r.client.GoogleCalendarInfo.Query()
 
 	if opt.GoogleCalendarID != nil {
 		findGoogleCalendarInfo = findGoogleCalendarInfo.Where(googlecalendarinfo.GoogleCalendarIDEQ(*opt.GoogleCalendarID))
@@ -44,39 +49,45 @@ func (r *GoogleCalendarInfoImpl) FindByFields(ctx context.Context, tx *ent.Tx, o
 		findGoogleCalendarInfo = findGoogleCalendarInfo.Where(googlecalendarinfo.IsPrimaryEQ(*opt.IsPrimary))
 	}
 
-	return findGoogleCalendarInfo.Only(ctx)
+	entity, err := findGoogleCalendarInfo.Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelGoogleCalendarInfo(entity), nil
 }
 
-func (r *GoogleCalendarInfoImpl) ListByUser(ctx context.Context, tx *ent.Tx, userID uuid.UUID) ([]*ent.GoogleCalendarInfo, error) {
-	findGoogleCalendarInfo := r.client.GoogleCalendarInfo.Query()
-	if tx != nil {
-		findGoogleCalendarInfo = tx.GoogleCalendarInfo.Query()
-	}
-
-	return findGoogleCalendarInfo.
+func (r *GoogleCalendarInfoImpl) ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error) {
+	entities, err := r.client.GoogleCalendarInfo.Query().
 		Where(googlecalendarinfo.HasCalendarsWith(calendar.HasUserWith(user.IDEQ(userID)))).
 		All(ctx)
-}
-
-func (r *GoogleCalendarInfoImpl) Create(ctx context.Context, tx *ent.Tx, opt GoogleCalendarInfoQueryOptions, entCalendar *ent.Calendar) (*ent.GoogleCalendarInfo, error) {
-	googleCalendarInfoCreate := r.client.GoogleCalendarInfo.Create()
-	if tx != nil {
-		googleCalendarInfoCreate = tx.GoogleCalendarInfo.Create()
+	if err != nil {
+		return nil, err
 	}
 
-	return googleCalendarInfoCreate.
+	modelsInfo := make([]*models.GoogleCalendarInfo, 0, len(entities))
+	for _, entity := range entities {
+		modelsInfo = append(modelsInfo, toModelGoogleCalendarInfo(entity))
+	}
+	return modelsInfo, nil
+}
+
+func (r *GoogleCalendarInfoImpl) Create(ctx context.Context, opt GoogleCalendarInfoQueryOptions, calendarID uuid.UUID) (*models.GoogleCalendarInfo, error) {
+	googleCalendarInfoCreate := r.client.GoogleCalendarInfo.Create()
+
+	entity, err := googleCalendarInfoCreate.
 		SetGoogleCalendarID(*opt.GoogleCalendarID).
 		SetSummary(*opt.Summary).
 		SetIsPrimary(*opt.IsPrimary).
-		AddCalendars(entCalendar).
+		AddCalendarIDs(calendarID).
 		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toModelGoogleCalendarInfo(entity), nil
 }
 
-func (r *GoogleCalendarInfoImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt GoogleCalendarInfoQueryOptions, entCalendar *ent.Calendar) (*ent.GoogleCalendarInfo, error) {
+func (r *GoogleCalendarInfoImpl) Update(ctx context.Context, id uuid.UUID, opt GoogleCalendarInfoQueryOptions, calendarID *uuid.UUID) (*models.GoogleCalendarInfo, error) {
 	googleCalendarInfoUpdate := r.client.GoogleCalendarInfo.UpdateOneID(id)
-	if tx != nil {
-		googleCalendarInfoUpdate = tx.GoogleCalendarInfo.UpdateOneID(id)
-	}
 
 	if opt.GoogleCalendarID != nil {
 		googleCalendarInfoUpdate.SetGoogleCalendarID(*opt.GoogleCalendarID)
@@ -88,36 +99,45 @@ func (r *GoogleCalendarInfoImpl) Update(ctx context.Context, tx *ent.Tx, id uuid
 		googleCalendarInfoUpdate.SetIsPrimary(*opt.IsPrimary)
 	}
 
-	if entCalendar != nil {
-		googleCalendarInfoUpdate = googleCalendarInfoUpdate.AddCalendars(entCalendar)
+	if calendarID != nil {
+		googleCalendarInfoUpdate = googleCalendarInfoUpdate.AddCalendarIDs(*calendarID)
 	}
 
-	return googleCalendarInfoUpdate.Save(ctx)
+	entity, err := googleCalendarInfoUpdate.Save(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelGoogleCalendarInfo(entity), nil
 }
 
-func (r *GoogleCalendarInfoImpl) Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx != nil {
-		return tx.GoogleCalendarInfo.DeleteOneID(id).Exec(ctx)
-	}
-	return r.client.GoogleCalendarInfo.DeleteOneID(id).Exec(ctx)
+func (r *GoogleCalendarInfoImpl) Delete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.GoogleCalendarInfo.DeleteOneID(id).Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *GoogleCalendarInfoImpl) SoftDelete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	softDeleteGoogleCalendarInfo := r.client.GoogleCalendarInfo.UpdateOneID(id)
-	if tx != nil {
-		softDeleteGoogleCalendarInfo = tx.GoogleCalendarInfo.UpdateOneID(id)
-	}
-	return softDeleteGoogleCalendarInfo.
+func (r *GoogleCalendarInfoImpl) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.GoogleCalendarInfo.UpdateOneID(id).
 		SetDeletedAt(time.Now()).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *GoogleCalendarInfoImpl) Restore(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	restoreGoogleCalendarInfo := r.client.GoogleCalendarInfo.UpdateOneID(id)
-	if tx != nil {
-		restoreGoogleCalendarInfo = tx.GoogleCalendarInfo.UpdateOneID(id)
-	}
-	return restoreGoogleCalendarInfo.
+func (r *GoogleCalendarInfoImpl) Restore(ctx context.Context, id uuid.UUID) error {
+	err := r.client.GoogleCalendarInfo.UpdateOneID(id).
 		SetNillableDeletedAt(nil).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
+}
+
+func toModelGoogleCalendarInfo(entity *ent.GoogleCalendarInfo) *models.GoogleCalendarInfo {
+	if entity == nil {
+		return nil
+	}
+
+	return &models.GoogleCalendarInfo{
+		ID:               entity.ID,
+		GoogleCalendarID: entity.GoogleCalendarID,
+		Summary:          entity.Summary,
+		IsPrimary:        entity.IsPrimary,
+	}
 }

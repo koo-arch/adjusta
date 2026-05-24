@@ -6,6 +6,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	entAccount "github.com/koo-arch/adjusta-backend/ent/account"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type AccountRepositoryImpl struct {
@@ -18,45 +21,63 @@ func NewAccountRepository(client *ent.Client) *AccountRepositoryImpl {
 	}
 }
 
-func (r *AccountRepositoryImpl) Read(ctx context.Context, tx *ent.Tx, id uuid.UUID) (*ent.Account, error) {
-	if tx != nil {
-		return tx.Account.Get(ctx, id)
-	}
-	return r.client.Account.Get(ctx, id)
+func (r *AccountRepositoryImpl) WithTx(tx transaction.Tx) AccountRepository {
+	return &AccountRepositoryImpl{client: tx.Client()}
 }
 
-func (r *AccountRepositoryImpl) FindByUserID(ctx context.Context, tx *ent.Tx, userID uuid.UUID) (*ent.Account, error) {
-	query := r.client.Account.Query()
-	if tx != nil {
-		query = tx.Account.Query()
+func (r *AccountRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*models.Account, error) {
+	accountEntity, err := r.client.Account.Get(ctx, id)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
 	}
+	return toModel(accountEntity), nil
+}
 
-	return query.
+func (r *AccountRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID) (*models.Account, error) {
+	accountEntity, err := r.client.Account.Query().
 		Where(entAccount.UserIDEQ(userID)).
 		Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModel(accountEntity), nil
 }
 
-func (r *AccountRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, userID uuid.UUID, opt AccountMutationOptions) (*ent.Account, error) {
+func (r *AccountRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, opt AccountMutationOptions) (*models.Account, error) {
 	create := r.client.Account.Create()
-	if tx != nil {
-		create = tx.Account.Create()
-	}
-
 	create.SetUserID(userID)
 	applyAccountCreateOptions(create, opt)
-
-	return create.Save(ctx)
+	accountEntity, err := create.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toModel(accountEntity), nil
 }
 
-func (r *AccountRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt AccountMutationOptions) (*ent.Account, error) {
+func (r *AccountRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt AccountMutationOptions) (*models.Account, error) {
 	update := r.client.Account.UpdateOneID(id)
-	if tx != nil {
-		update = tx.Account.UpdateOneID(id)
+	applyAccountUpdateOptions(update, opt)
+	accountEntity, err := update.Save(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModel(accountEntity), nil
+}
+
+func toModel(accountEntity *ent.Account) *models.Account {
+	if accountEntity == nil {
+		return nil
 	}
 
-	applyAccountUpdateOptions(update, opt)
-
-	return update.Save(ctx)
+	return &models.Account{
+		ID:           accountEntity.ID,
+		UserID:       accountEntity.UserID,
+		GoogleUserID: accountEntity.GoogleUserID,
+		AccessToken:  accountEntity.AccessToken,
+		RefreshToken: accountEntity.RefreshToken,
+		ExpiresAt:    accountEntity.ExpiresAt,
+		Scope:        accountEntity.Scope,
+	}
 }
 
 func applyAccountCreateOptions(create *ent.AccountCreate, opt AccountMutationOptions) {

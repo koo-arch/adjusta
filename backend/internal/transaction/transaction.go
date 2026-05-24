@@ -1,12 +1,8 @@
 package transaction
 
-import (
-	"log"
+import "log"
 
-	"github.com/koo-arch/adjusta-backend/ent"
-)
-
-func HandleTransaction(tx *ent.Tx, txErr *error) {
+func HandleTransaction(tx Tx, txErr *error) {
 	if p := recover(); p != nil {
 		log.Printf("Rollback transaction: %v", p)
 		if err := tx.Rollback(); err != nil {

@@ -2,34 +2,29 @@ package calendar
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/koo-arch/adjusta-backend/ent"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/googleapi"
 )
 
-type GoogleCalendarManager struct {
-	client *ent.Client
-}
+type GoogleCalendarManager struct{}
 
 type FetchResult struct {
-	Events []*models.GoogleEvent
+	Events          []*models.GoogleEvent
 	FailedCalendars []string
 }
 
-func NewGoogleCalendarManager(client *ent.Client) *GoogleCalendarManager {
-	return &GoogleCalendarManager{
-		client: client,
-	}
+func NewGoogleCalendarManager() *GoogleCalendarManager {
+	return &GoogleCalendarManager{}
 }
 
-func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*ent.GoogleCalendarInfo, startTime, endTime time.Time) (*FetchResult, error) {
+func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*models.GoogleCalendarInfo, startTime, endTime time.Time) (*FetchResult, error) {
 	var events []*models.GoogleEvent
 	var failedCalendars []string
 	var wg sync.WaitGroup
@@ -38,7 +33,7 @@ func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *cust
 
 	for _, cal := range calendars {
 		wg.Add(1)
-		go func(cal *ent.GoogleCalendarInfo) {
+		go func(cal *models.GoogleCalendarInfo) {
 			defer wg.Done()
 
 			calEvents, err := calendarService.FetchEvents(cal.GoogleCalendarID, startTime, endTime)
@@ -74,7 +69,7 @@ func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *cust
 	}
 
 	return &FetchResult{
-		Events: events,
+		Events:          events,
 		FailedCalendars: failedCalendars,
 	}, joinedErr
 }
@@ -203,7 +198,7 @@ func (gcm *GoogleCalendarManager) UpdateOrCreateGoogleEvent(calendarService *cus
 	}
 
 	return updateEvent, nil
-	
+
 }
 
 func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *customCalendar.Calendar, eventReq *models.EventDraftDetail) ([]*calendar.Event, error) {

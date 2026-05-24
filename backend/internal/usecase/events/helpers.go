@@ -7,24 +7,25 @@ import (
 	"sort"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	"github.com/koo-arch/adjusta-backend/utils"
 )
 
-func (uc *Usecase) findPrimaryCalendar(ctx context.Context, tx *ent.Tx, userID uuid.UUID, email string) (*ent.Calendar, error) {
+func (uc *Usecase) findPrimaryCalendar(ctx context.Context, repos internalRepo.Repositories, userID uuid.UUID, email string) (*models.StoredCalendar, error) {
 	isPrimary := true
 	findOptions := repoCalendar.CalendarQueryOptions{
 		IsPrimary: &isPrimary,
 	}
 
-	entCalendar, err := uc.calendarRepo.FindByFields(ctx, tx, userID, findOptions)
+	entCalendar, err := repos.Calendar.FindByFields(ctx, userID, findOptions)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
-		if ent.IsNotFound(err) {
+		if repoerr.IsNotFound(err) {
 			return nil, internalErrors.NewAPIError(http.StatusNotFound, "カレンダーが見つかりませんでした")
 		}
 		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
@@ -49,14 +50,14 @@ func (uc *Usecase) getGoogleCalendarService(ctx context.Context, userID uuid.UUI
 	return calendarService, nil
 }
 
-func buildProposedDates(entDates []*ent.ProposedDate) []models.ProposedDate {
-	proposedDates := make([]models.ProposedDate, 0, len(entDates))
-	for _, entDate := range entDates {
+func buildProposedDates(storedDates []*models.StoredProposedDate) []models.ProposedDate {
+	proposedDates := make([]models.ProposedDate, 0, len(storedDates))
+	for _, storedDate := range storedDates {
 		proposedDates = append(proposedDates, models.ProposedDate{
-			ID:       &entDate.ID,
-			Start:    &entDate.StartTime,
-			End:      &entDate.EndTime,
-			Priority: entDate.Priority,
+			ID:       &storedDate.ID,
+			Start:    &storedDate.StartTime,
+			End:      &storedDate.EndTime,
+			Priority: storedDate.Priority,
 		})
 	}
 
@@ -67,20 +68,32 @@ func buildProposedDates(entDates []*ent.ProposedDate) []models.ProposedDate {
 	return proposedDates
 }
 
-func buildEventDraftDetail(entEvent *ent.Event) (*models.EventDraftDetail, error) {
-	if entEvent.Edges.ProposedDates == nil {
+func buildEventDraftDetail(storedEvent *models.StoredEvent) (*models.EventDraftDetail, error) {
+	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
 	}
 
 	return &models.EventDraftDetail{
-		ID:              entEvent.ID,
-		Title:           entEvent.Summary,
-		Location:        entEvent.Location,
-		Description:     entEvent.Description,
-		Status:          models.EventStatus(entEvent.Status),
-		ConfirmedDateID: &entEvent.ConfirmedDateID,
-		GoogleEventID:   entEvent.GoogleEventID,
-		Slug:            entEvent.Slug,
-		ProposedDates:   buildProposedDates(entEvent.Edges.ProposedDates),
+		ID:              storedEvent.ID,
+		Title:           storedEvent.Summary,
+		Location:        storedEvent.Location,
+		Description:     storedEvent.Description,
+		Status:          storedEvent.Status,
+		ConfirmedDateID: &storedEvent.ConfirmedDateID,
+		GoogleEventID:   storedEvent.GoogleEventID,
+		Slug:            storedEvent.Slug,
+		ProposedDates:   buildProposedDates(storedEvent.ProposedDates),
 	}, nil
+}
+
+func normalizeUsecaseError(err error, fallbackMessage string) error {
+	if err == nil {
+		return nil
+	}
+
+	if apiErr, ok := err.(*internalErrors.APIError); ok {
+		return apiErr
+	}
+
+	return internalErrors.NewAPIError(http.StatusInternalServerError, fallbackMessage)
 }

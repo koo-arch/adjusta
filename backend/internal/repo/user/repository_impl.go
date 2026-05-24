@@ -2,15 +2,14 @@ package user
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/calendar"
-	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type UserRepositoryImpl struct {
@@ -23,192 +22,68 @@ func NewUserRepository(client *ent.Client) *UserRepositoryImpl {
 	}
 }
 
-func (r *UserRepositoryImpl) Read(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt UserQueryOptions) (*ent.User, error) {
-	findQuery := r.client.User.Query()
-	if tx != nil {
-		findQuery = tx.User.Query()
-	}
+func (r *UserRepositoryImpl) WithTx(tx transaction.Tx) UserRepository {
+	return &UserRepositoryImpl{client: tx.Client()}
+}
 
-	return findQuery.
+func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*models.User, error) {
+	userEntity, err := r.client.User.Query().
 		Where(user.IDEQ(id)).
 		Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, tx *ent.Tx, email string, opt UserQueryOptions) (*ent.User, error) {
-	findUser := r.client.User.Query()
-	if tx != nil {
-		findUser = tx.User.Query()
-	}
-
-	return findUser.
+func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*models.User, error) {
+	userEntity, err := r.client.User.Query().
 		Where(user.EmailEQ(email)).
 		Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, email string, opt UserMutationOptions) (*ent.User, error) {
+func (r *UserRepositoryImpl) Create(ctx context.Context, email string, opt UserMutationOptions) (*models.User, error) {
 	userCreate := r.client.User.Create()
-	if tx != nil {
-		userCreate = tx.User.Create()
-	}
 	userCreate.SetEmail(email)
 	applyUserCreateOptions(userCreate, opt)
-
-	return userCreate.Save(ctx)
+	userEntity, err := userCreate.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt UserMutationOptions) (*ent.User, error) {
+func (r *UserRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt UserMutationOptions) (*models.User, error) {
 	userUpdate := r.client.User.UpdateOneID(id)
-	if tx != nil {
-		userUpdate = tx.User.UpdateOneID(id)
-	}
 	applyUserUpdateOptions(userUpdate, opt)
-
-	return userUpdate.Save(ctx)
+	userEntity, err := userUpdate.Save(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx != nil {
-		return tx.User.DeleteOneID(id).Exec(ctx)
-	}
-	return r.client.User.DeleteOneID(id).Exec(ctx)
+func (r *UserRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.User.DeleteOneID(id).Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *UserRepositoryImpl) SoftDelete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	softDeleteUser := r.client.User.UpdateOneID(id)
-	if tx != nil {
-		softDeleteUser = tx.User.UpdateOneID(id)
-	}
-	return softDeleteUser.
+func (r *UserRepositoryImpl) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.User.UpdateOneID(id).
 		SetDeletedAt(time.Now()).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *UserRepositoryImpl) Restore(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	restoreUser := r.client.User.UpdateOneID(id)
-	if tx != nil {
-		restoreUser = tx.User.UpdateOneID(id)
-	}
-	return restoreUser.
+func (r *UserRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
+	err := r.client.User.UpdateOneID(id).
 		SetNillableDeletedAt(nil).
 		Exec(ctx)
-}
-
-func (r *UserRepositoryImpl) SoftDeleteWithRelations(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx == nil {
-		return fmt.Errorf("transaction is nil")
-	}
-	// ユーザーを論理削除
-	if err := r.SoftDelete(ctx, tx, id); err != nil {
-		return err
-	}
-
-	// カレンダーの論理削除
-	calendarIDs, err := tx.Calendar.
-		Query().
-		Where(calendar.HasUserWith(user.IDEQ(id))).
-		IDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to query calendars: %w", err)
-	}
-	if len(calendarIDs) > 0 {
-		if err := tx.Calendar.Update().
-			Where(calendar.IDIn(calendarIDs...)).
-			SetDeletedAt(time.Now()).
-			Exec(ctx); err != nil {
-			return fmt.Errorf("failed to soft delete calendars: %w", err)
-		}
-
-		// 関連するイベントIDを取得
-		eventIDs, err := tx.Event.
-			Query().
-			Where(event.HasCalendarWith(calendar.IDIn(calendarIDs...))).
-			IDs(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to query events: %w", err)
-		}
-		if len(eventIDs) > 0 {
-			// 関連するイベントを論理削除
-			if err := tx.Event.Update().
-				Where(event.IDIn(eventIDs...)).
-				SetDeletedAt(time.Now()).
-				Exec(ctx); err != nil {
-				return fmt.Errorf("failed to soft delete events: %w", err)
-			}
-
-			// 関連する提案日を論理削除
-			if err := tx.ProposedDate.Update().
-				Where(proposeddate.HasEventWith(event.IDIn(eventIDs...))).
-				SetDeletedAt(time.Now()).
-				Exec(ctx); err != nil {
-				return fmt.Errorf("failed to soft delete proposed dates: %w", err)
-			}
-
-		}
-
-	}
-
-	return nil
-}
-
-func (r *UserRepositoryImpl) RestoreWithRelations(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx == nil {
-		return fmt.Errorf("transaction is nil")
-	}
-
-	// ユーザーを復元
-	if err := r.Restore(ctx, tx, id); err != nil {
-		return fmt.Errorf("failed to restore user: %w", err)
-	}
-
-	// カレンダーを復元
-	calendarIDs, err := tx.Calendar.Query().
-		Where(calendar.HasUserWith(user.IDEQ(id))).
-		IDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to query calendars: %w", err)
-	}
-	if len(calendarIDs) > 0 {
-		if err := tx.Calendar.Update().
-			Where(calendar.IDIn(calendarIDs...)).
-			SetNillableDeletedAt(nil).
-			Exec(ctx); err != nil {
-			return fmt.Errorf("failed to restore calendars: %w", err)
-		}
-
-		// 関連するイベントを復元
-		eventIDs, err := tx.Event.Query().
-			Where(event.HasCalendarWith(calendar.IDIn(calendarIDs...))).
-			IDs(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to query events: %w", err)
-		}
-		if len(eventIDs) > 0 {
-			if err := tx.Event.Update().
-				Where(event.IDIn(eventIDs...)).
-				SetNillableDeletedAt(nil).
-				Exec(ctx); err != nil {
-				return fmt.Errorf("failed to restore events: %w", err)
-			}
-
-			// 関連する提案日を復元
-			proposedDateIDs, err := tx.ProposedDate.Query().
-				Where(proposeddate.HasEventWith(event.IDIn(eventIDs...))).
-				IDs(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to query proposed dates: %w", err)
-			}
-			if len(proposedDateIDs) > 0 {
-				if err := tx.ProposedDate.Update().
-					Where(proposeddate.IDIn(proposedDateIDs...)).
-					SetNillableDeletedAt(nil).
-					Exec(ctx); err != nil {
-					return fmt.Errorf("failed to restore proposed dates: %w", err)
-				}
-			}
-		}
-	}
-
-	return nil
+	return infraerr.MapNotFound(err)
 }
 
 func applyUserCreateOptions(create *ent.UserCreate, opt UserMutationOptions) {
@@ -219,4 +94,17 @@ func applyUserCreateOptions(create *ent.UserCreate, opt UserMutationOptions) {
 func applyUserUpdateOptions(update *ent.UserUpdateOne, opt UserMutationOptions) {
 	update.SetNillableName(opt.Name)
 	update.SetNillableAvatarURL(opt.AvatarURL)
+}
+
+func toModelUser(userEntity *ent.User) *models.User {
+	if userEntity == nil {
+		return nil
+	}
+
+	return &models.User{
+		ID:        userEntity.ID,
+		Email:     userEntity.Email,
+		Name:      userEntity.Name,
+		AvatarURL: userEntity.AvatarURL,
+	}
 }

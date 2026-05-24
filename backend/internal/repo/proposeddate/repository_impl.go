@@ -6,9 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/event"
+	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type ProposedDateRepositoryImpl struct {
@@ -21,55 +23,58 @@ func NewProposedDateRepository(client *ent.Client) *ProposedDateRepositoryImpl {
 	}
 }
 
-func (r *ProposedDateRepositoryImpl) Read(ctx context.Context, tx *ent.Tx, id uuid.UUID) (*ent.ProposedDate, error) {
-	if tx != nil {
-		return tx.ProposedDate.Get(ctx, id)
-	}
-	return r.client.ProposedDate.Get(ctx, id)
+func (r *ProposedDateRepositoryImpl) WithTx(tx transaction.Tx) ProposedDateRepository {
+	return &ProposedDateRepositoryImpl{client: tx.Client()}
 }
 
-func (r *ProposedDateRepositoryImpl) FilterByEventID(ctx context.Context, tx *ent.Tx, eventID uuid.UUID) ([]*ent.ProposedDate, error) {
-	filterProposedDate := r.client.ProposedDate.Query()
-	if tx != nil {
-		filterProposedDate = tx.ProposedDate.Query()
+func (r *ProposedDateRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*models.StoredProposedDate, error) {
+	entity, err := r.client.ProposedDate.Get(ctx, id)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
 	}
-	return filterProposedDate.
+	return toStoredProposedDate(entity), nil
+}
+
+func (r *ProposedDateRepositoryImpl) FilterByEventID(ctx context.Context, eventID uuid.UUID) ([]*models.StoredProposedDate, error) {
+	entities, err := r.client.ProposedDate.Query().
 		Where(proposeddate.HasEventWith(event.IDEQ(eventID))).
 		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toStoredProposedDates(entities), nil
 }
 
-func (r* ProposedDateRepositoryImpl) ExclusionEventID(ctx context.Context, tx *ent.Tx, eventID uuid.UUID) ([]*ent.ProposedDate, error) {
-	filterProposedDate := r.client.ProposedDate.Query()
-	if tx != nil {
-		filterProposedDate = tx.ProposedDate.Query()
-	}
-	return filterProposedDate.
+func (r *ProposedDateRepositoryImpl) ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*models.StoredProposedDate, error) {
+	entities, err := r.client.ProposedDate.Query().
 		Where(proposeddate.Not(proposeddate.HasEventWith(event.IDEQ(eventID)))).
 		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toStoredProposedDates(entities), nil
 }
 
-func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, opt ProposedDateQueryOptions, entEvent *ent.Event) (*ent.ProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDateQueryOptions, eventID uuid.UUID) (*models.StoredProposedDate, error) {
 	proposedDateCreate := r.client.ProposedDate.Create()
-	if tx != nil {
-		proposedDateCreate = tx.ProposedDate.Create()
-	}
 
 	proposedDateCreate = proposedDateCreate.
 		SetStartTime(*opt.StartTime).
 		SetEndTime(*opt.EndTime).
 		SetPriority(*opt.Priority).
-		SetEvent(entEvent)
+		SetEventID(eventID)
 
-	return proposedDateCreate.Save(ctx)
+	entity, err := proposedDateCreate.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toStoredProposedDate(entity), nil
 }
 
-func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt ProposedDateQueryOptions) (*ent.ProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt ProposedDateQueryOptions) (*models.StoredProposedDate, error) {
 	proposedDateUpdate := r.client.ProposedDate.UpdateOneID(id)
-	if tx != nil {
-		proposedDateUpdate = tx.ProposedDate.UpdateOneID(id)
-	}
 
-	if opt.StartTime!= nil {
+	if opt.StartTime != nil {
 		proposedDateUpdate = proposedDateUpdate.SetStartTime(*opt.StartTime)
 	}
 
@@ -81,69 +86,56 @@ func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id 
 		proposedDateUpdate = proposedDateUpdate.SetPriority(*opt.Priority)
 	}
 
-	return proposedDateUpdate.Save(ctx)
+	entity, err := proposedDateUpdate.Save(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toStoredProposedDate(entity), nil
 }
 
-func (r *ProposedDateRepositoryImpl) Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx != nil {
-		return tx.ProposedDate.DeleteOneID(id).Exec(ctx)
-	}
-	return r.client.ProposedDate.DeleteOneID(id).Exec(ctx)
+func (r *ProposedDateRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.ProposedDate.DeleteOneID(id).Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *ProposedDateRepositoryImpl) SoftDelete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	softDeleteProposedDate := r.client.ProposedDate.UpdateOneID(id)
-	if tx != nil {
-		softDeleteProposedDate = tx.ProposedDate.UpdateOneID(id)
-	}
-	return softDeleteProposedDate.
+func (r *ProposedDateRepositoryImpl) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.ProposedDate.UpdateOneID(id).
 		SetDeletedAt(time.Now()).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *ProposedDateRepositoryImpl) Restore(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	restoreProposedDate := r.client.ProposedDate.UpdateOneID(id)
-	if tx != nil {
-		restoreProposedDate = tx.ProposedDate.UpdateOneID(id)
-	}
-	return restoreProposedDate.
+func (r *ProposedDateRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
+	err := r.client.ProposedDate.UpdateOneID(id).
 		SetNillableDeletedAt(nil).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, tx *ent.Tx, selectedDates []models.SelectedDate, entEvent *ent.Event) ([]*ent.ProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDates []models.SelectedDate, eventID uuid.UUID) ([]*models.StoredProposedDate, error) {
 	var proposedDateCreates []*ent.ProposedDateCreate
 
 	for _, selectedDate := range selectedDates {
 		proposedDateCreate := r.client.ProposedDate.Create()
-		if tx != nil {
-			proposedDateCreate = tx.ProposedDate.Create()
-		}
 
 		proposedDateCreate = proposedDateCreate.
 			SetStartTime(selectedDate.Start).
 			SetEndTime(selectedDate.End).
 			SetPriority(selectedDate.Priority).
-			SetEvent(entEvent)
+			SetEventID(eventID)
 
 		proposedDateCreates = append(proposedDateCreates, proposedDateCreate)
 	}
 
-	if (tx != nil) {
-		return tx.ProposedDate.CreateBulk(proposedDateCreates...).Save(ctx)
+	entities, err := r.client.ProposedDate.CreateBulk(proposedDateCreates...).Save(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	return r.client.ProposedDate.CreateBulk(proposedDateCreates...).Save(ctx)
+	return toStoredProposedDates(entities), nil
 }
 
-
-func (r *ProposedDateRepositoryImpl) DecrementPriorityExceptID(ctx context.Context, tx *ent.Tx, eventID, excludeID uuid.UUID) error {
-	update := r.client.ProposedDate.Update()
-	if tx != nil {
-		update = tx.ProposedDate.Update()
-	}
-
-	_, err := update.Where(
+func (r *ProposedDateRepositoryImpl) DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error {
+	_, err := r.client.ProposedDate.Update().Where(
 		proposeddate.HasEventWith(event.IDEQ(eventID)),
 		proposeddate.IDNEQ(excludeID),
 	).
@@ -153,14 +145,9 @@ func (r *ProposedDateRepositoryImpl) DecrementPriorityExceptID(ctx context.Conte
 	return err
 }
 
-func (r *ProposedDateRepositoryImpl) ReorderPriority(ctx context.Context, tx *ent.Tx, eventID uuid.UUID) error {
-	query := r.client.ProposedDate.Query()
-	if tx != nil {
-		query = tx.ProposedDate.Query()
-	}
-
+func (r *ProposedDateRepositoryImpl) ReorderPriority(ctx context.Context, eventID uuid.UUID) error {
 	// eventIDに紐づくProposedDateをpriority順に取得
-	proposedDates, err := query.
+	proposedDates, err := r.client.ProposedDate.Query().
 		Where(proposeddate.HasEventWith(event.IDEQ(eventID))).
 		Order(ent.Asc(proposeddate.FieldPriority)).
 		All(ctx)
@@ -170,7 +157,7 @@ func (r *ProposedDateRepositoryImpl) ReorderPriority(ctx context.Context, tx *en
 
 	// priorityが連番でない時に振り直す
 	if !r.isSequential(proposedDates) {
-		return r.updateToSequentialPriority(ctx, tx, proposedDates)
+		return r.updateToSequentialPriority(ctx, proposedDates)
 	}
 
 	return nil
@@ -178,17 +165,17 @@ func (r *ProposedDateRepositoryImpl) ReorderPriority(ctx context.Context, tx *en
 
 func (r *ProposedDateRepositoryImpl) isSequential(proposedDates []*ent.ProposedDate) bool {
 	for i, proposedDate := range proposedDates {
-		if proposedDate.Priority != i + 1 {
+		if proposedDate.Priority != i+1 {
 			return false
 		}
 	}
 	return true
 }
 
-func (r *ProposedDateRepositoryImpl) updateToSequentialPriority (ctx context.Context, tx *ent.Tx, proposedDates []*ent.ProposedDate) error {
+func (r *ProposedDateRepositoryImpl) updateToSequentialPriority(ctx context.Context, proposedDates []*ent.ProposedDate) error {
 	for i, proposedDate := range proposedDates {
 		priority := i + 1
-		_, err := r.Update(ctx, tx, proposedDate.ID, ProposedDateQueryOptions{
+		_, err := r.Update(ctx, proposedDate.ID, ProposedDateQueryOptions{
 			Priority: &priority,
 		})
 		if err != nil {
@@ -196,4 +183,26 @@ func (r *ProposedDateRepositoryImpl) updateToSequentialPriority (ctx context.Con
 		}
 	}
 	return nil
+}
+
+func toStoredProposedDate(entity *ent.ProposedDate) *models.StoredProposedDate {
+	if entity == nil {
+		return nil
+	}
+
+	return &models.StoredProposedDate{
+		ID:        entity.ID,
+		EventID:   entity.EventID,
+		StartTime: entity.StartTime,
+		EndTime:   entity.EndTime,
+		Priority:  entity.Priority,
+	}
+}
+
+func toStoredProposedDates(entities []*ent.ProposedDate) []*models.StoredProposedDate {
+	storedDates := make([]*models.StoredProposedDate, 0, len(entities))
+	for _, entity := range entities {
+		storedDates = append(storedDates, toStoredProposedDate(entity))
+	}
+	return storedDates
 }

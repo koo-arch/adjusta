@@ -3,15 +3,17 @@ package event
 import (
 	"context"
 	"time"
-	"fmt"
 
 	"github.com/google/uuid"
-	"google.golang.org/api/calendar/v3"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/user"
 	dbCalendar "github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	"github.com/koo-arch/adjusta-backend/internal/transaction"
+	"google.golang.org/api/calendar/v3"
 )
 
 type EventRepositoryImpl struct {
@@ -24,24 +26,26 @@ func NewEventRepository(client *ent.Client) *EventRepositoryImpl {
 	}
 }
 
-func (r *EventRepositoryImpl) Read(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt EventQueryOptions) (*ent.Event, error) {
+func (r *EventRepositoryImpl) WithTx(tx transaction.Tx) EventRepository {
+	return &EventRepositoryImpl{client: tx.Client()}
+}
+
+func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*models.StoredEvent, error) {
 	query := r.client.Event.Query()
-	if tx != nil {
-		query = tx.Event.Query()
-	}
 
 	if opt.WithProposedDates {
 		query = query.WithProposedDates()
 	}
 
-	return query.Where(event.IDEQ(id)).Only(ctx)
+	entity, err := query.Where(event.IDEQ(id)).Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toStoredEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, tx *ent.Tx, calendarID uuid.UUID, opt EventQueryOptions) ([]*ent.Event, error) {
+func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*models.StoredEvent, error) {
 	filterEvent := r.client.Event.Query()
-	if tx != nil {
-		filterEvent = tx.Event.Query()
-	}
 
 	filterEvent = filterEvent.Where(event.HasCalendarWith(dbCalendar.IDEQ(calendarID)))
 
@@ -65,32 +69,34 @@ func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, tx *ent.Tx
 		})
 	}
 
-	return filterEvent.All(ctx)
+	entities, err := filterEvent.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toStoredEvents(entities), nil
 }
 
-func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, tx *ent.Tx, userID uuid.UUID, slug string, opt EventQueryOptions) (*ent.Event, error) {
+func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*models.StoredEvent, error) {
 	query := r.client.Event.Query()
-	if tx != nil {
-		query = tx.Event.Query()
-	}
 
 	if opt.WithProposedDates {
 		query = query.WithProposedDates()
 	}
 
-	return query.
+	entity, err := query.
 		Where(
 			event.SlugEQ(slug),
 			event.HasCalendarWith(dbCalendar.HasUserWith(user.IDEQ(userID))),
 		).
 		Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toStoredEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, googleEvent *calendar.Event, entCalendar *ent.Calendar) (*ent.Event, error) {
+func (r *EventRepositoryImpl) Create(ctx context.Context, googleEvent *calendar.Event, calendarID uuid.UUID) (*models.StoredEvent, error) {
 	eventCreate := r.client.Event.Create()
-	if tx != nil {
-		eventCreate = tx.Event.Create()
-	}
 
 	if googleEvent.Id != "" {
 		eventCreate = eventCreate.SetGoogleEventID(googleEvent.Id)
@@ -100,16 +106,17 @@ func (r *EventRepositoryImpl) Create(ctx context.Context, tx *ent.Tx, googleEven
 		SetSummary(googleEvent.Summary).
 		SetDescription(googleEvent.Description).
 		SetLocation(googleEvent.Location).
-		SetCalendar(entCalendar)
+		SetCalendarID(calendarID)
 
-	return eventCreate.Save(ctx)
+	entity, err := eventCreate.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toStoredEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UUID, opt EventQueryOptions) (*ent.Event, error) {
+func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*models.StoredEvent, error) {
 	eventUpdate := r.client.Event.UpdateOneID(id)
-	if tx != nil {
-		eventUpdate = tx.Event.UpdateOneID(id)
-	}
 
 	if opt.Summary != nil {
 		eventUpdate = eventUpdate.SetSummary(*opt.Summary)
@@ -136,101 +143,34 @@ func (r *EventRepositoryImpl) Update(ctx context.Context, tx *ent.Tx, id uuid.UU
 		eventUpdate = eventUpdate.SetGoogleEventID(*opt.GoogleEventID)
 	}
 
-	return eventUpdate.Save(ctx)
+	entity, err := eventUpdate.Save(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toStoredEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Delete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx != nil {
-		return tx.Event.DeleteOneID(id).Exec(ctx)
-	}
-	return r.client.Event.DeleteOneID(id).Exec(ctx)
+func (r *EventRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.Event.DeleteOneID(id).Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *EventRepositoryImpl) SoftDelete(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	softDeleteEvent := r.client.Event.UpdateOneID(id)
-	if tx != nil {
-		softDeleteEvent = tx.Event.UpdateOneID(id)
-	}
-	return softDeleteEvent.
+func (r *EventRepositoryImpl) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	err := r.client.Event.UpdateOneID(id).
 		SetDeletedAt(time.Now()).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *EventRepositoryImpl) Restore(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	restoreEvent := r.client.Event.UpdateOneID(id)
-	if tx != nil {
-		restoreEvent = tx.Event.UpdateOneID(id)
-	}
-	return restoreEvent.
+func (r *EventRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
+	err := r.client.Event.UpdateOneID(id).
 		SetNillableDeletedAt(nil).
 		Exec(ctx)
+	return infraerr.MapNotFound(err)
 }
 
-func (r *EventRepositoryImpl) SoftDeleteWithRelations(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx == nil {
-		return fmt.Errorf("transaction is nil")
-	}
-
-	// イベントを論理削除
-	if err := r.SoftDelete(ctx, tx, id); err != nil {
-		return fmt.Errorf("failed to soft delete event: %w", err)
-	}
-
-	// 関連する提案日を論理削除
-	proposedDateIDs, err := tx.ProposedDate.
-		Query().
-		Where(proposeddate.HasEventWith(event.IDEQ(id))).
-		IDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to query proposed dates: %w", err)
-	}
-	if len(proposedDateIDs) > 0 {
-		if err := tx.ProposedDate.Update().
-			Where(proposeddate.IDIn(proposedDateIDs...)).
-			SetDeletedAt(time.Now()).
-			Exec(ctx); err != nil {
-			return fmt.Errorf("failed to soft delete proposed dates: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (r *EventRepositoryImpl) RestoreWithRelations(ctx context.Context, tx *ent.Tx, id uuid.UUID) error {
-	if tx == nil {
-		return fmt.Errorf("transaction is nil")
-	}
-
-	// イベントを復元
-	if err := r.Restore(ctx, tx, id); err != nil {
-		return fmt.Errorf("failed to restore event: %w", err)
-	}
-
-	// 関連する提案日を復元
-	proposedDateIDs, err := tx.ProposedDate.
-		Query().
-		Where(proposeddate.HasEventWith(event.IDEQ(id))).
-		IDs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to query proposed dates: %w", err)
-	}
-	if len(proposedDateIDs) > 0 {
-		if err := tx.ProposedDate.Update().
-			Where(proposeddate.IDIn(proposedDateIDs...)).
-			SetNillableDeletedAt(nil).
-			Exec(ctx); err != nil {
-			return fmt.Errorf("failed to restore proposed dates: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, tx *ent.Tx, id, calendarID uuid.UUID, opt EventQueryOptions) ([]*ent.Event, error) {
+func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventQueryOptions) ([]*models.StoredEvent, error) {
 	query := r.client.Event.Query()
-	if tx != nil {
-		query = tx.Event.Query()
-	}
 
 	query = query.Where(event.HasCalendarWith(dbCalendar.IDEQ(calendarID)))
 
@@ -290,8 +230,8 @@ func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, tx *ent.Tx, id, 
 						query = query.Order(ent.Asc(proposeddate.FieldPriority))
 					}
 				default:
-				// デフォルトは StartTime 昇順
-				query = query.Order(ent.Asc(proposeddate.FieldStartTime))
+					// デフォルトは StartTime 昇順
+					query = query.Order(ent.Asc(proposeddate.FieldStartTime))
 				}
 			}
 
@@ -320,5 +260,49 @@ func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, tx *ent.Tx, id, 
 		})
 	}
 
-	return query.All(ctx)
+	entities, err := query.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toStoredEvents(entities), nil
+}
+
+func toStoredEvent(entity *ent.Event) *models.StoredEvent {
+	if entity == nil {
+		return nil
+	}
+
+	return &models.StoredEvent{
+		ID:              entity.ID,
+		Summary:         entity.Summary,
+		Location:        entity.Location,
+		Description:     entity.Description,
+		Status:          models.EventStatus(entity.Status),
+		ConfirmedDateID: entity.ConfirmedDateID,
+		GoogleEventID:   entity.GoogleEventID,
+		Slug:            entity.Slug,
+		ProposedDates:   toStoredEventProposedDates(entity.Edges.ProposedDates),
+	}
+}
+
+func toStoredEvents(entities []*ent.Event) []*models.StoredEvent {
+	storedEvents := make([]*models.StoredEvent, 0, len(entities))
+	for _, entity := range entities {
+		storedEvents = append(storedEvents, toStoredEvent(entity))
+	}
+	return storedEvents
+}
+
+func toStoredEventProposedDates(entities []*ent.ProposedDate) []*models.StoredProposedDate {
+	storedDates := make([]*models.StoredProposedDate, 0, len(entities))
+	for _, entity := range entities {
+		storedDates = append(storedDates, &models.StoredProposedDate{
+			ID:        entity.ID,
+			EventID:   entity.EventID,
+			StartTime: entity.StartTime,
+			EndTime:   entity.EndTime,
+			Priority:  entity.Priority,
+		})
+	}
+	return storedDates
 }

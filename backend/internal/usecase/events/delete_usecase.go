@@ -6,39 +6,27 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 )
 
 func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftDetail) error {
-	tx, err := uc.client.Tx(ctx)
-	if err != nil {
-		log.Printf("failed starting transaction: %v", err)
-		return internalErrors.NewAPIError(http.StatusInternalServerError, "エラーが発生しました")
-	}
-
-	defer transaction.HandleTransaction(tx, &err)
-
-	isPrimary := true
-	findOptions := repoCalendar.CalendarQueryOptions{
-		IsPrimary: &isPrimary,
-	}
-
-	_, err = uc.calendarRepo.FindByFields(ctx, tx, userID, findOptions)
-	if err != nil {
-		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
-		if ent.IsNotFound(err) {
-			return internalErrors.NewAPIError(http.StatusNotFound, "カレンダーが見つかりませんでした")
+	err := uc.uow.Do(ctx, func(repos internalRepo.Repositories) error {
+		if _, err := uc.findPrimaryCalendar(ctx, repos, userID, email); err != nil {
+			return err
 		}
-		return internalErrors.NewAPIError(http.StatusInternalServerError, "カレンダー取得時にエラーが発生しました")
-	}
 
-	if err := uc.eventRepo.SoftDelete(ctx, tx, eventReq.ID); err != nil {
-		log.Printf("failed to delete event for account: %s, error: %v", email, err)
-		return internalErrors.NewAPIError(http.StatusInternalServerError, "イベント削除時にエラーが発生しました")
+		if err := repos.Event.SoftDelete(ctx, eventReq.ID); err != nil {
+			log.Printf("failed to delete event for account: %s, error: %v", email, err)
+			return internalErrors.NewAPIError(http.StatusInternalServerError, "イベント削除時にエラーが発生しました")
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Printf("failed running delete drafted event transaction: %v", err)
+		return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
 
 	return nil
