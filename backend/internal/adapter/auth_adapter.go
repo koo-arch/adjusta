@@ -1,15 +1,16 @@
-package repo
+package adapter
 
 import (
 	"context"
 	"time"
 
 	"github.com/google/uuid"
-	internalAuth "github.com/koo-arch/adjusta-backend/internal/auth"
 	internalModels "github.com/koo-arch/adjusta-backend/internal/models"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
+	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 )
 
 type authReader struct {
@@ -17,7 +18,7 @@ type authReader struct {
 	accountRepo repoAccount.AccountRepository
 }
 
-func NewAuthReader(userRepo repoUser.UserRepository, accountRepo repoAccount.AccountRepository) internalAuth.SignInReader {
+func NewAuthReader(userRepo repoUser.UserRepository, accountRepo repoAccount.AccountRepository) usecaseAuth.SignInReader {
 	return &authReader{
 		userRepo:    userRepo,
 		accountRepo: accountRepo,
@@ -33,15 +34,15 @@ func (r *authReader) FindAccountByUserID(ctx context.Context, userID uuid.UUID) 
 }
 
 type authTransaction struct {
-	uow UnitOfWork
+	uow internalRepo.UnitOfWork
 }
 
-func NewAuthTransaction(uow UnitOfWork) internalAuth.SignInTransaction {
+func NewAuthTransaction(uow internalRepo.UnitOfWork) usecaseAuth.SignInTransaction {
 	return &authTransaction{uow: uow}
 }
 
-func (t *authTransaction) Do(ctx context.Context, fn func(store internalAuth.SignInStore) error) error {
-	return t.uow.Do(ctx, func(repos Repositories) error {
+func (t *authTransaction) Do(ctx context.Context, fn func(store usecaseAuth.SignInStore) error) error {
+	return t.uow.Do(ctx, func(repos internalRepo.Repositories) error {
 		return fn(&authStore{
 			userRepo:    repos.User,
 			accountRepo: repos.Account,
@@ -54,21 +55,21 @@ type authStore struct {
 	accountRepo repoAccount.AccountRepository
 }
 
-func (s *authStore) CreateUser(ctx context.Context, email string, opt internalAuth.UserMutation) (*internalModels.User, error) {
+func (s *authStore) CreateUser(ctx context.Context, email string, opt usecaseAuth.UserMutation) (*internalModels.User, error) {
 	return s.userRepo.Create(ctx, email, repoUser.UserMutationOptions{
 		Name:      opt.Name,
 		AvatarURL: opt.AvatarURL,
 	})
 }
 
-func (s *authStore) UpdateUser(ctx context.Context, userID uuid.UUID, opt internalAuth.UserMutation) (*internalModels.User, error) {
+func (s *authStore) UpdateUser(ctx context.Context, userID uuid.UUID, opt usecaseAuth.UserMutation) (*internalModels.User, error) {
 	return s.userRepo.Update(ctx, userID, repoUser.UserMutationOptions{
 		Name:      opt.Name,
 		AvatarURL: opt.AvatarURL,
 	})
 }
 
-func (s *authStore) CreateAccount(ctx context.Context, userID uuid.UUID, opt internalAuth.AccountMutation) (*internalModels.Account, error) {
+func (s *authStore) CreateAccount(ctx context.Context, userID uuid.UUID, opt usecaseAuth.AccountMutation) (*internalModels.Account, error) {
 	return s.accountRepo.Create(ctx, userID, repoAccount.AccountMutationOptions{
 		GoogleUserID: opt.GoogleUserID,
 		AccessToken:  opt.AccessToken,
@@ -78,7 +79,7 @@ func (s *authStore) CreateAccount(ctx context.Context, userID uuid.UUID, opt int
 	})
 }
 
-func (s *authStore) UpdateAccount(ctx context.Context, accountID uuid.UUID, opt internalAuth.AccountMutation) (*internalModels.Account, error) {
+func (s *authStore) UpdateAccount(ctx context.Context, accountID uuid.UUID, opt usecaseAuth.AccountMutation) (*internalModels.Account, error) {
 	return s.accountRepo.Update(ctx, accountID, repoAccount.AccountMutationOptions{
 		GoogleUserID: opt.GoogleUserID,
 		AccessToken:  opt.AccessToken,
@@ -92,7 +93,7 @@ type authSessionStore struct {
 	sessionRepo repoSession.SessionRepository
 }
 
-func NewAuthSessionStore(sessionRepo repoSession.SessionRepository) internalAuth.SessionStore {
+func NewAuthSessionStore(sessionRepo repoSession.SessionRepository) usecaseAuth.SessionStore {
 	return &authSessionStore{sessionRepo: sessionRepo}
 }
 

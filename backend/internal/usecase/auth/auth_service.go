@@ -14,21 +14,21 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type AuthManager struct {
+type AuthService struct {
 	reader   SignInReader
 	tx       SignInTransaction
 	sessions SessionStore
 }
 
-func NewAuthManager(reader SignInReader, tx SignInTransaction, sessions SessionStore) *AuthManager {
-	return &AuthManager{
+func NewAuthService(reader SignInReader, tx SignInTransaction, sessions SessionStore) *AuthService {
+	return &AuthService{
 		reader:   reader,
 		tx:       tx,
 		sessions: sessions,
 	}
 }
 
-func (am *AuthManager) ProcessUserSignIn(ctx context.Context, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
+func (am *AuthService) ProcessUserSignIn(ctx context.Context, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
 	u, err := am.reader.FindUserByEmail(ctx, userInfo.Email)
 	if err != nil {
 		log.Printf("failed to get user by email: %v", err)
@@ -52,7 +52,7 @@ func (am *AuthManager) ProcessUserSignIn(ctx context.Context, userInfo *userinfo
 	return am.UpdateUserAndAccount(ctx, u.ID, accountInfo.ID, userInfo, oauthToken)
 }
 
-func (am *AuthManager) CreateUser(ctx context.Context, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
+func (am *AuthService) CreateUser(ctx context.Context, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
 	var u *internalModels.User
 
 	err := am.tx.Do(ctx, func(store SignInStore) error {
@@ -78,7 +78,7 @@ func (am *AuthManager) CreateUser(ctx context.Context, userInfo *userinfo.UserIn
 	return u, nil
 }
 
-func (am *AuthManager) UpdateUserAndCreateAccount(ctx context.Context, userID uuid.UUID, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
+func (am *AuthService) UpdateUserAndCreateAccount(ctx context.Context, userID uuid.UUID, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
 	var u *internalModels.User
 
 	err := am.tx.Do(ctx, func(store SignInStore) error {
@@ -107,7 +107,7 @@ func (am *AuthManager) UpdateUserAndCreateAccount(ctx context.Context, userID uu
 	return u, nil
 }
 
-func (am *AuthManager) UpdateUserAndAccount(ctx context.Context, userID, accountID uuid.UUID, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
+func (am *AuthService) UpdateUserAndAccount(ctx context.Context, userID, accountID uuid.UUID, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
 	var u *internalModels.User
 
 	err := am.tx.Do(ctx, func(store SignInStore) error {
@@ -140,7 +140,7 @@ func (am *AuthManager) UpdateUserAndAccount(ctx context.Context, userID, account
 
 }
 
-func (am *AuthManager) CreateSession(ctx context.Context, userID uuid.UUID) (*internalModels.Session, error) {
+func (am *AuthService) CreateSession(ctx context.Context, userID uuid.UUID) (*internalModels.Session, error) {
 	sessionToken := uuid.NewString()
 	expiresAt := buildSessionExpiry()
 
@@ -153,7 +153,7 @@ func (am *AuthManager) CreateSession(ctx context.Context, userID uuid.UUID) (*in
 	return entSession, nil
 }
 
-func (am *AuthManager) AuthenticateSession(ctx context.Context, sessionToken string) (*internalModels.User, error) {
+func (am *AuthService) AuthenticateSession(ctx context.Context, sessionToken string) (*internalModels.User, error) {
 	entSession, err := am.sessions.FindSessionByToken(ctx, sessionToken, true)
 	if err != nil {
 		log.Printf("failed to find session by token: %v", err)
@@ -182,7 +182,7 @@ func (am *AuthManager) AuthenticateSession(ctx context.Context, sessionToken str
 	return entSession.User, nil
 }
 
-func (am *AuthManager) DeleteSession(ctx context.Context, sessionToken string) error {
+func (am *AuthService) DeleteSession(ctx context.Context, sessionToken string) error {
 	if sessionToken == "" {
 		return nil
 	}

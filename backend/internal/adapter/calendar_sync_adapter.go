@@ -1,10 +1,11 @@
-package repo
+package adapter
 
 import (
 	"context"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repoGoogleCalendarInfo "github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
@@ -24,21 +25,21 @@ func (r *calendarSyncUserReader) GetByID(ctx context.Context, userID uuid.UUID) 
 }
 
 type calendarSyncTransaction struct {
-	uow UnitOfWork
+	uow internalRepo.UnitOfWork
 }
 
-func NewCalendarSyncTransaction(uow UnitOfWork) usecaseCalendar.SyncTransaction {
+func NewCalendarSyncTransaction(uow internalRepo.UnitOfWork) usecaseCalendar.SyncTransaction {
 	return &calendarSyncTransaction{uow: uow}
 }
 
 func (t *calendarSyncTransaction) Do(ctx context.Context, fn func(store usecaseCalendar.SyncStore) error) error {
-	return t.uow.Do(ctx, func(repos Repositories) error {
+	return t.uow.Do(ctx, func(repos internalRepo.Repositories) error {
 		return fn(&calendarSyncStore{repos: repos})
 	})
 }
 
 type calendarSyncStore struct {
-	repos Repositories
+	repos internalRepo.Repositories
 }
 
 func (s *calendarSyncStore) FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*models.StoredCalendar, error) {

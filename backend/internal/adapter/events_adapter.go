@@ -1,4 +1,4 @@
-package repo
+package adapter
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/models"
+	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
@@ -14,10 +15,10 @@ import (
 )
 
 type eventReader struct {
-	repos Repositories
+	repos internalRepo.Repositories
 }
 
-func NewEventReader(repos Repositories) usecaseEvents.EventReader {
+func NewEventReader(repos internalRepo.Repositories) usecaseEvents.EventReader {
 	return &eventReader{repos: repos}
 }
 
@@ -43,11 +44,11 @@ func (r *eventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID, slu
 }
 
 type eventTransaction struct {
-	uow         UnitOfWork
+	uow         internalRepo.UnitOfWork
 	calendarApp *appCalendar.GoogleCalendarManager
 }
 
-func NewEventTransaction(uow UnitOfWork, calendarApp *appCalendar.GoogleCalendarManager) usecaseEvents.EventTransaction {
+func NewEventTransaction(uow internalRepo.UnitOfWork, calendarApp *appCalendar.GoogleCalendarManager) usecaseEvents.EventTransaction {
 	return &eventTransaction{
 		uow:         uow,
 		calendarApp: calendarApp,
@@ -55,7 +56,7 @@ func NewEventTransaction(uow UnitOfWork, calendarApp *appCalendar.GoogleCalendar
 }
 
 func (t *eventTransaction) Do(ctx context.Context, fn func(store usecaseEvents.EventTxStore) error) error {
-	return t.uow.Do(ctx, func(repos Repositories) error {
+	return t.uow.Do(ctx, func(repos internalRepo.Repositories) error {
 		return fn(&eventTxStore{
 			repos:       repos,
 			calendarApp: t.calendarApp,
@@ -64,7 +65,7 @@ func (t *eventTransaction) Do(ctx context.Context, fn func(store usecaseEvents.E
 }
 
 type eventTxStore struct {
-	repos       Repositories
+	repos       internalRepo.Repositories
 	calendarApp *appCalendar.GoogleCalendarManager
 }
 
