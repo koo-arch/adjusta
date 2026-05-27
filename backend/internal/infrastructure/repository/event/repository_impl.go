@@ -10,11 +10,15 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 	"google.golang.org/api/calendar/v3"
 )
+
+type EventRepository = repoEvent.EventRepository
+type EventQueryOptions = repoEvent.EventQueryOptions
 
 type EventRepositoryImpl struct {
 	client *ent.Client

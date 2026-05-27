@@ -1,12 +1,12 @@
-package adapter
+package auth
 
 import (
 	"context"
 	"time"
 
 	"github.com/google/uuid"
+	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	internalModels "github.com/koo-arch/adjusta-backend/internal/models"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
@@ -34,15 +34,15 @@ func (r *authReader) FindAccountByUserID(ctx context.Context, userID uuid.UUID) 
 }
 
 type authTransaction struct {
-	uow internalRepo.UnitOfWork
+	uow infraRepository.UnitOfWork
 }
 
-func NewAuthTransaction(uow internalRepo.UnitOfWork) usecaseAuth.SignInTransaction {
+func NewAuthTransaction(uow infraRepository.UnitOfWork) usecaseAuth.SignInTransaction {
 	return &authTransaction{uow: uow}
 }
 
 func (t *authTransaction) Do(ctx context.Context, fn func(store usecaseAuth.SignInStore) error) error {
-	return t.uow.Do(ctx, func(repos internalRepo.Repositories) error {
+	return t.uow.Do(ctx, func(repos infraRepository.Repositories) error {
 		return fn(&authStore{
 			userRepo:    repos.User,
 			accountRepo: repos.Account,

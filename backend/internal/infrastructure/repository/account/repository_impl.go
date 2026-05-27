@@ -6,10 +6,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	entAccount "github.com/koo-arch/adjusta-backend/ent/account"
+	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
+
+type AccountRepository = repoAccount.AccountRepository
+type AccountMutationOptions = repoAccount.AccountMutationOptions
 
 type AccountRepositoryImpl struct {
 	client *ent.Client

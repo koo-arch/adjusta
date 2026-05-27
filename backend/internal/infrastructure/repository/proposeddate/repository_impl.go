@@ -8,10 +8,14 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
+
+type ProposedDateRepository = repoProposedDate.ProposedDateRepository
+type ProposedDateQueryOptions = repoProposedDate.ProposedDateQueryOptions
 
 type ProposedDateRepositoryImpl struct {
 	client *ent.Client

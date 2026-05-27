@@ -7,10 +7,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
+
+type UserRepository = repoUser.UserRepository
+type UserQueryOptions = repoUser.UserQueryOptions
+type UserMutationOptions = repoUser.UserMutationOptions
 
 type UserRepositoryImpl struct {
 	client *ent.Client

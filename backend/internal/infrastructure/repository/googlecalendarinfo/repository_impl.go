@@ -9,10 +9,14 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	repoGoogleCalendarInfo "github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
+
+type GoogleCalendarInfoRepository = repoGoogleCalendarInfo.GoogleCalendarInfoRepository
+type GoogleCalendarInfoQueryOptions = repoGoogleCalendarInfo.GoogleCalendarInfoQueryOptions
 
 type GoogleCalendarInfoImpl struct {
 	client *ent.Client

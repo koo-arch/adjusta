@@ -1,13 +1,13 @@
-package adapter
+package events
 
 import (
 	"context"
 	"time"
 
 	"github.com/google/uuid"
-	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
+	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
+	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
@@ -15,10 +15,10 @@ import (
 )
 
 type eventReader struct {
-	repos internalRepo.Repositories
+	repos infraRepository.Repositories
 }
 
-func NewEventReader(repos internalRepo.Repositories) usecaseEvents.EventReader {
+func NewEventReader(repos infraRepository.Repositories) usecaseEvents.EventReader {
 	return &eventReader{repos: repos}
 }
 
@@ -44,11 +44,11 @@ func (r *eventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID, slu
 }
 
 type eventTransaction struct {
-	uow         internalRepo.UnitOfWork
-	calendarApp *appCalendar.GoogleCalendarManager
+	uow         infraRepository.UnitOfWork
+	calendarApp *infraGoogleCalendar.GoogleCalendarManager
 }
 
-func NewEventTransaction(uow internalRepo.UnitOfWork, calendarApp *appCalendar.GoogleCalendarManager) usecaseEvents.EventTransaction {
+func NewEventTransaction(uow infraRepository.UnitOfWork, calendarApp *infraGoogleCalendar.GoogleCalendarManager) usecaseEvents.EventTransaction {
 	return &eventTransaction{
 		uow:         uow,
 		calendarApp: calendarApp,
@@ -56,7 +56,7 @@ func NewEventTransaction(uow internalRepo.UnitOfWork, calendarApp *appCalendar.G
 }
 
 func (t *eventTransaction) Do(ctx context.Context, fn func(store usecaseEvents.EventTxStore) error) error {
-	return t.uow.Do(ctx, func(repos internalRepo.Repositories) error {
+	return t.uow.Do(ctx, func(repos infraRepository.Repositories) error {
 		return fn(&eventTxStore{
 			repos:       repos,
 			calendarApp: t.calendarApp,
@@ -65,8 +65,8 @@ func (t *eventTransaction) Do(ctx context.Context, fn func(store usecaseEvents.E
 }
 
 type eventTxStore struct {
-	repos       internalRepo.Repositories
-	calendarApp *appCalendar.GoogleCalendarManager
+	repos       infraRepository.Repositories
+	calendarApp *infraGoogleCalendar.GoogleCalendarManager
 }
 
 func (s *eventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error) {

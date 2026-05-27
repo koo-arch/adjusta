@@ -17,12 +17,14 @@ import (
 	"github.com/koo-arch/adjusta-backend/configs"
 	opCookie "github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/ent"
-	internalAdapter "github.com/koo-arch/adjusta-backend/internal/adapter"
-	appCalendar "github.com/koo-arch/adjusta-backend/internal/apps/calendar"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
-	internalRepo "github.com/koo-arch/adjusta-backend/internal/repo"
+	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
+	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/calendar"
+	infraEvents "github.com/koo-arch/adjusta-backend/internal/infrastructure/events"
+	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
+	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
@@ -60,13 +62,13 @@ func main() {
 	}
 
 	cacheStore := cache.NewCache()
-	repos := internalRepo.NewRepositories(client)
-	uow := internalRepo.NewUnitOfWork(client, repos)
-	calendarApp := appCalendar.NewGoogleCalendarManager()
+	repos := infraRepository.NewRepositories(client)
+	uow := infraRepository.NewUnitOfWork(client, repos)
+	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
 	authService := usecaseAuth.NewAuthService(
-		internalAdapter.NewAuthReader(repos.User, repos.Account),
-		internalAdapter.NewAuthTransaction(uow),
-		internalAdapter.NewAuthSessionStore(repos.Session),
+		infraAuth.NewAuthReader(repos.User, repos.Account),
+		infraAuth.NewAuthTransaction(uow),
+		infraAuth.NewAuthSessionStore(repos.Session),
 	)
 	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
@@ -79,17 +81,17 @@ func main() {
 		usecaseAuth.UserInfoFetcherFunc(googleUserInfo.FetchGoogleUserInfo),
 	)
 	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(
-		internalAdapter.NewCalendarSyncUserReader(repos.User),
+		infraCalendar.NewCalendarSyncUserReader(repos.User),
 		googleTokenManager,
 		usecaseCalendar.CalendarServiceFactoryFunc(func(ctx context.Context, token *oauth2.Token) (usecaseCalendar.CalendarService, error) {
 			return customCalendar.NewCalendar(ctx, token)
 		}),
-		internalAdapter.NewCalendarSyncTransaction(uow),
+		infraCalendar.NewCalendarSyncTransaction(uow),
 	)
 	eventUsecase := usecaseEvents.NewUsecase(
-		internalAdapter.NewEventReader(repos),
-		internalAdapter.NewEventTransaction(uow, calendarApp),
-		appCalendar.NewEventGateway(googleTokenManager, calendarApp),
+		infraEvents.NewEventReader(repos),
+		infraEvents.NewEventTransaction(uow, calendarApp),
+		infraGoogleCalendar.NewEventGateway(googleTokenManager, calendarApp),
 	)
 
 	server := api.NewServer(api.Dependencies{

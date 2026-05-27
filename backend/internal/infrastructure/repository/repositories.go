@@ -1,7 +1,14 @@
-package repo
+package repository
 
 import (
 	"github.com/koo-arch/adjusta-backend/ent"
+	infraAccount "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/account"
+	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/calendar"
+	infraEvent "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/event"
+	infraGoogleCalendarInfo "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/googlecalendarinfo"
+	infraProposedDate "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/proposeddate"
+	infraSession "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/session"
+	infraUser "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/user"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
@@ -24,13 +31,13 @@ type Repositories struct {
 
 func NewRepositories(client *ent.Client) Repositories {
 	return Repositories{
-		Account:            repoAccount.NewAccountRepository(client),
-		Calendar:           repoCalendar.NewCalendarRepository(client),
-		Event:              repoEvent.NewEventRepository(client),
-		GoogleCalendarInfo: repoGoogleCalendarInfo.NewGoogleCalendarInfoRepository(client),
-		ProposedDate:       repoProposedDate.NewProposedDateRepository(client),
-		Session:            repoSession.NewSessionRepository(client),
-		User:               repoUser.NewUserRepository(client),
+		Account:            infraAccount.NewAccountRepository(client),
+		Calendar:           infraCalendar.NewCalendarRepository(client),
+		Event:              infraEvent.NewEventRepository(client),
+		GoogleCalendarInfo: infraGoogleCalendarInfo.NewGoogleCalendarInfoRepository(client),
+		ProposedDate:       infraProposedDate.NewProposedDateRepository(client),
+		Session:            infraSession.NewSessionRepository(client),
+		User:               infraUser.NewUserRepository(client),
 	}
 }
 

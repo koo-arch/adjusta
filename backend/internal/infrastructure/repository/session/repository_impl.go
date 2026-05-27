@@ -7,10 +7,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	entSession "github.com/koo-arch/adjusta-backend/ent/session"
+	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/repo/infraerr"
+	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
+
+type SessionRepository = repoSession.SessionRepository
+type SessionQueryOptions = repoSession.SessionQueryOptions
 
 type SessionRepositoryImpl struct {
 	client *ent.Client
