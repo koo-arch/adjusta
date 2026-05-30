@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api/queryparser"
+	"github.com/koo-arch/adjusta-backend/api/validation"
 	"github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/models"
-	"github.com/koo-arch/adjusta-backend/internal/validation"
-	"github.com/koo-arch/adjusta-backend/queryparser"
 	"github.com/koo-arch/adjusta-backend/utils"
 )
 

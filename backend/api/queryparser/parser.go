@@ -2,8 +2,8 @@ package queryparser
 
 import (
 	"fmt"
-	"time"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +30,7 @@ func (qp *QueryParser) ParseTime(key string) (*time.Time, error) {
 	return &t, nil
 }
 
-func(qp *QueryParser) ParseDefaultTime(key string, defaultValue time.Time) (*time.Time, error) {
+func (qp *QueryParser) ParseDefaultTime(key string, defaultValue time.Time) (*time.Time, error) {
 	timeStr := qp.c.Query(key)
 	if timeStr == "" {
 		return &defaultValue, nil
@@ -49,11 +49,11 @@ func (qp *QueryParser) ParseString(key string) (*string, error) {
 	if str == "" {
 		return nil, nil
 	}
-	
+
 	return &str, nil
 }
 
-func(qp *QueryParser) ParseDefaultString(key string, defaultValue string) (*string, error) {
+func (qp *QueryParser) ParseDefaultString(key string, defaultValue string) (*string, error) {
 	str := qp.c.Query(key)
 	if str == "" {
 		return &defaultValue, nil
@@ -67,16 +67,16 @@ func (qp *QueryParser) ParseInt(key string) (*int, error) {
 	if str == "" {
 		return nil, nil
 	}
-	
+
 	i, err := strconv.Atoi(str)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse int: %w", err)
 	}
-	
+
 	return &i, nil
 }
 
-func(qp *QueryParser) ParseDefaultInt(key string, defaultValue int) (*int, error) {
+func (qp *QueryParser) ParseDefaultInt(key string, defaultValue int) (*int, error) {
 	str := qp.c.Query(key)
 	if str == "" {
 		return &defaultValue, nil
@@ -90,7 +90,7 @@ func(qp *QueryParser) ParseDefaultInt(key string, defaultValue int) (*int, error
 	return &i, nil
 }
 
-func(qp *QueryParser) ParseBool(key string) (*bool, error) {
+func (qp *QueryParser) ParseBool(key string) (*bool, error) {
 	str := qp.c.Query(key)
 	if str == "" {
 		return nil, nil
@@ -104,7 +104,7 @@ func(qp *QueryParser) ParseBool(key string) (*bool, error) {
 	return &b, nil
 }
 
-func(qp *QueryParser) ParseDefaultBool(key string, defaultValue bool) (*bool, error) {
+func (qp *QueryParser) ParseDefaultBool(key string, defaultValue bool) (*bool, error) {
 	str := qp.c.Query(key)
 	if str == "" {
 		return &defaultValue, nil
