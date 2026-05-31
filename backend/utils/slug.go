@@ -1,20 +1,19 @@
 package utils
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	"github.com/gosimple/slug"
 )
 
-
 func NormalizeToSlug(ctx context.Context, summary string) (string, error) {
 	// if !IsEnglish(summary) {
-		translated, err := TranslateText(ctx, summary, "en")
-		if err != nil {
-			return "", fmt.Errorf("failed to translate summary: %v", err)
-		}
-		summary = translated
+	translated, err := TranslateText(ctx, summary, "en")
+	if err != nil {
+		return "", fmt.Errorf("failed to translate summary: %v", err)
+	}
+	summary = translated
 	// }
 	fmt.Println("summary: ", summary)
 	return slug.Make(summary), nil

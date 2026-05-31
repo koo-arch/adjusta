@@ -5,7 +5,7 @@ import (
 )
 
 type Middleware struct {
-	Server 	  *api.Server
+	Server *api.Server
 }
 
 func NewMiddleware(server *api.Server) *Middleware {

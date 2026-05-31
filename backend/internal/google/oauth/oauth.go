@@ -1,12 +1,12 @@
 package oauth
 
 import (
+	"github.com/koo-arch/adjusta-backend/configs"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"github.com/koo-arch/adjusta-backend/configs"
 )
 
-var GoogleOAuthConfig   oauth2.Config
+var GoogleOAuthConfig oauth2.Config
 
 func init() {
 	configs.LoadEnv()

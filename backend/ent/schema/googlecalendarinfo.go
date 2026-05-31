@@ -2,9 +2,9 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"github.com/google/uuid"
-	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
 )
 

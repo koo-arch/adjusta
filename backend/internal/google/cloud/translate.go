@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	translate "cloud.google.com/go/translate/apiv3"
 	"cloud.google.com/go/compute/metadata"
+	translate "cloud.google.com/go/translate/apiv3"
 	"cloud.google.com/go/translate/apiv3/translatepb"
 	"github.com/koo-arch/adjusta-backend/configs"
 )
@@ -15,7 +15,7 @@ type serviceAccount struct {
 }
 
 type Translator struct {
-	client *translate.TranslationClient
+	client    *translate.TranslationClient
 	projectID string
 }
 
@@ -55,8 +55,8 @@ func (t *Translator) getParent() string {
 func (t *Translator) TranslateText(ctx context.Context, text string, targetLang string) (string, error) {
 
 	request := &translatepb.TranslateTextRequest{
-		Parent: t.getParent(),
-		Contents: []string{text},
+		Parent:             t.getParent(),
+		Contents:           []string{text},
 		TargetLanguageCode: targetLang,
 	}
 
@@ -68,6 +68,6 @@ func (t *Translator) TranslateText(ctx context.Context, text string, targetLang 
 	if len(resp.Translations) == 0 {
 		return "", fmt.Errorf("no translations returned")
 	}
-	
+
 	return resp.GetTranslations()[0].GetTranslatedText(), nil
 }
