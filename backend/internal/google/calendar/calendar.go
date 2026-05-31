@@ -4,17 +4,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
-	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 )
 
 type CalendarList struct {
 	CalendarID string `json:"calendar_id"`
 	Summary    string `json:"summary"`
-	Primary   bool   `json:"primary"`
+	Primary    bool   `json:"primary"`
 }
 
 type Calendar struct {
@@ -41,7 +41,7 @@ func (c *Calendar) FetchCalendarList() ([]*CalendarList, error) {
 		calendar := &CalendarList{
 			CalendarID: item.Id,
 			Summary:    item.Summary,
-			Primary:   item.Primary,
+			Primary:    item.Primary,
 		}
 		calendars = append(calendars, calendar)
 	}
@@ -49,7 +49,7 @@ func (c *Calendar) FetchCalendarList() ([]*CalendarList, error) {
 	return calendars, nil
 }
 
-func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*models.GoogleEvent, error) {
+func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*appmodel.GoogleEvent, error) {
 	events, err := c.Service.Events.List(calendarID).
 		TimeMin(startTime.Format(time.RFC3339)).
 		TimeMax(endTime.Format(time.RFC3339)).
@@ -59,7 +59,7 @@ func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) 
 		return nil, err
 	}
 
-	var eventsList []*models.GoogleEvent
+	var eventsList []*appmodel.GoogleEvent
 
 	for _, item := range events.Items {
 		// nilチェックを追加
@@ -76,14 +76,14 @@ func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) 
 				end = item.End.Date
 			}
 		}
-		event := &models.GoogleEvent{
-			ID:      item.Id,
-			Summary: item.Summary,
+		event := &appmodel.GoogleEvent{
+			ID:          item.Id,
+			Summary:     item.Summary,
 			Description: item.Description,
-			Location: item.Location,
-			ColorID: item.ColorId,
-			Start:   start,
-			End:     end,
+			Location:    item.Location,
+			ColorID:     item.ColorId,
+			Start:       start,
+			End:         end,
 		}
 		eventsList = append(eventsList, event)
 	}

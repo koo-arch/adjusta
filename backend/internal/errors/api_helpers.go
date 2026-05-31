@@ -1,38 +1,31 @@
 package errors
 
-import (
-	stderrors "errors"
-	"net/http"
-
-	"google.golang.org/api/googleapi"
-)
-
 func NewBadRequestError(message string) *APIError {
-	return NewAPIError(http.StatusBadRequest, message)
+	return NewAPIError(KindBadRequest, message)
 }
 
 func NewUnauthorizedError(message string) *APIError {
-	return NewAPIError(http.StatusUnauthorized, message)
+	return NewAPIError(KindUnauthorized, message)
 }
 
 func NewForbiddenError(message string) *APIError {
-	return NewAPIError(http.StatusForbidden, message)
+	return NewAPIError(KindForbidden, message)
 }
 
 func NewNotFoundError(message string) *APIError {
-	return NewAPIError(http.StatusNotFound, message)
+	return NewAPIError(KindNotFound, message)
 }
 
 func NewInternalError(message string) *APIError {
-	return NewAPIError(http.StatusInternalServerError, message)
+	return NewAPIError(KindInternal, message)
 }
 
 func NewBadGatewayError(message string) *APIError {
-	return NewAPIError(http.StatusBadGateway, message)
+	return NewAPIError(KindBadGateway, message)
 }
 
 func NewPartialContentError(message string, details map[string][]string) *APIError {
-	return NewAPIErrorWithDetails(http.StatusPartialContent, message, details)
+	return NewAPIErrorWithDetails(KindPartial, message, details)
 }
 
 func NormalizeAPIError(err error, fallbackMessage string) error {
@@ -45,22 +38,4 @@ func NormalizeAPIError(err error, fallbackMessage string) error {
 	}
 
 	return NewInternalError(fallbackMessage)
-}
-
-func FromGoogleAPIError(err error) error {
-	var gErr *googleapi.Error
-	if stderrors.As(err, &gErr) {
-		switch gErr.Code {
-		case http.StatusUnauthorized:
-			return NewUnauthorizedError("認証エラーが発生しました")
-		case http.StatusForbidden:
-			return NewForbiddenError("アクセス権限がありません")
-		case http.StatusNotFound:
-			return NewNotFoundError("リソースが見つかりません")
-		default:
-			return NewInternalError("Google APIエラーが発生しました")
-		}
-	}
-
-	return NewInternalError("予期せぬエラーが発生しました")
 }

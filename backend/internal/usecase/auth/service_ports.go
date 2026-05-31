@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	internalModels "github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type UserMutation struct {
@@ -22,15 +22,15 @@ type AccountMutation struct {
 }
 
 type SignInReader interface {
-	FindUserByEmail(ctx context.Context, email string) (*internalModels.User, error)
-	FindAccountByUserID(ctx context.Context, userID uuid.UUID) (*internalModels.Account, error)
+	FindUserByEmail(ctx context.Context, email string) (*repositorymodel.User, error)
+	FindAccountByUserID(ctx context.Context, userID uuid.UUID) (*repositorymodel.Account, error)
 }
 
 type SignInStore interface {
-	CreateUser(ctx context.Context, email string, opt UserMutation) (*internalModels.User, error)
-	UpdateUser(ctx context.Context, userID uuid.UUID, opt UserMutation) (*internalModels.User, error)
-	CreateAccount(ctx context.Context, userID uuid.UUID, opt AccountMutation) (*internalModels.Account, error)
-	UpdateAccount(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*internalModels.Account, error)
+	CreateUser(ctx context.Context, email string, opt UserMutation) (*repositorymodel.User, error)
+	UpdateUser(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repositorymodel.User, error)
+	CreateAccount(ctx context.Context, userID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error)
+	UpdateAccount(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error)
 }
 
 type SignInTransaction interface {
@@ -38,8 +38,8 @@ type SignInTransaction interface {
 }
 
 type SessionStore interface {
-	CreateSession(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*internalModels.Session, error)
-	FindSessionByToken(ctx context.Context, sessionToken string, withUser bool) (*internalModels.Session, error)
-	UpdateSessionExpiry(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*internalModels.Session, error)
+	CreateSession(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repositorymodel.Session, error)
+	FindSessionByToken(ctx context.Context, sessionToken string, withUser bool) (*repositorymodel.Session, error)
+	UpdateSessionExpiry(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*repositorymodel.Session, error)
 	DeleteSessionByToken(ctx context.Context, sessionToken string) error
 }

@@ -6,12 +6,13 @@ import (
 	"sort"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
-func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*models.StoredCalendar, error) {
+func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*repositorymodel.StoredCalendar, error) {
 	storedCalendar, err := finder.FindPrimaryCalendar(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
@@ -24,10 +25,10 @@ func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalend
 	return storedCalendar, nil
 }
 
-func buildProposedDates(storedDates []*models.StoredProposedDate) []models.ProposedDate {
-	proposedDates := make([]models.ProposedDate, 0, len(storedDates))
+func buildProposedDates(storedDates []*repositorymodel.StoredProposedDate) []appmodel.ProposedDate {
+	proposedDates := make([]appmodel.ProposedDate, 0, len(storedDates))
 	for _, storedDate := range storedDates {
-		proposedDates = append(proposedDates, models.ProposedDate{
+		proposedDates = append(proposedDates, appmodel.ProposedDate{
 			ID:       &storedDate.ID,
 			Start:    &storedDate.StartTime,
 			End:      &storedDate.EndTime,
@@ -42,12 +43,12 @@ func buildProposedDates(storedDates []*models.StoredProposedDate) []models.Propo
 	return proposedDates
 }
 
-func buildEventDraftDetail(storedEvent *models.StoredEvent) (*models.EventDraftDetail, error) {
+func buildEventDraftDetail(storedEvent *repositorymodel.StoredEvent) (*appmodel.EventDraftDetail, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return &models.EventDraftDetail{
+	return &appmodel.EventDraftDetail{
 		ID:              storedEvent.ID,
 		Title:           storedEvent.Summary,
 		Location:        storedEvent.Location,

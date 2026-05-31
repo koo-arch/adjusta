@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*models.GoogleEvent, error) {
+func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleEvent, error) {
 	now := time.Now()
 	startTime := now.AddDate(0, -2, 0)
 	endTime := now.AddDate(1, 0, 0)
@@ -28,7 +29,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 
 	result, err := uc.googleCalendar.FetchEvents(ctx, userID, googleCalendars, startTime, endTime)
 	if result == nil {
-		return nil, internalErrors.NormalizeAPIError(err, "認証エラーが発生しました")
+		return nil, internalErrors.NormalizeAPIError(err, "Googleカレンダーのイベント取得に失敗しました")
 	}
 	if len(result.FailedCalendars) > 0 {
 		log.Printf("failed to fetch events from calendars: %v", result.FailedCalendars)
@@ -43,13 +44,13 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 	}
 	if err != nil && len(result.Events) == 0 {
 		log.Printf("failed to fetch events from Google Calendar: %v", err)
-		return nil, internalErrors.FromGoogleAPIError(err)
+		return nil, internalErrors.NormalizeAPIError(err, "Googleカレンダーのイベント取得に失敗しました")
 	}
 
 	return result.Events, nil
 }
 
-func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*models.EventDraftDetail, error) {
+func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.EventDraftDetail, error) {
 	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -67,7 +68,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	draftedEvents := make([]*models.EventDraftDetail, 0, len(storedEvents))
+	draftedEvents := make([]*appmodel.EventDraftDetail, 0, len(storedEvents))
 	for _, storedEvent := range storedEvents {
 		draft, err := buildEventDraftDetail(storedEvent)
 		if err != nil {
@@ -79,7 +80,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 	return draftedEvents, nil
 }
 
-func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*models.EventDraftDetail, error) {
+func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*appmodel.EventDraftDetail, error) {
 	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -105,7 +106,7 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	searchResult := make([]*models.EventDraftDetail, 0, len(storedEvents))
+	searchResult := make([]*appmodel.EventDraftDetail, 0, len(storedEvents))
 	for _, storedEvent := range storedEvents {
 		draft, err := buildEventDraftDetail(storedEvent)
 		if err != nil {
@@ -117,7 +118,7 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 	return searchResult, nil
 }
 
-func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, slug string) (*models.EventDraftDetail, error) {
+func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, slug string) (*appmodel.EventDraftDetail, error) {
 	storedEvent, err := uc.reader.FindEventBySlug(ctx, userID, slug, true)
 	if err != nil {
 		log.Printf("failed to get event detail for account: %s, error: %v", email, err)
@@ -130,7 +131,7 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 	return buildEventDraftDetail(storedEvent)
 }
 
-func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]models.UpcomingEvent, error) {
+func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error) {
 	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -138,7 +139,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 
 	currentTime := time.Now()
 	startTime := currentTime.AddDate(0, 0, daysBefore)
-	confirmed := models.StatusConfirmed
+	confirmed := domainvalue.StatusConfirmed
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
 		Status:            &confirmed,
@@ -152,7 +153,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 		return nil, internalErrors.NewInternalError("イベント取得時にエラーが発生しました")
 	}
 
-	upcomingEvents := make([]models.UpcomingEvent, 0)
+	upcomingEvents := make([]appmodel.UpcomingEvent, 0)
 	for _, storedEvent := range storedEvents {
 		if storedEvent.ProposedDates == nil {
 			log.Printf("No association found between calendar and event")
@@ -161,7 +162,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 
 		for _, storedDate := range storedEvent.ProposedDates {
 			if storedEvent.ConfirmedDateID == storedDate.ID {
-				upcomingEvents = append(upcomingEvents, models.UpcomingEvent{
+				upcomingEvents = append(upcomingEvents, appmodel.UpcomingEvent{
 					ID:              storedEvent.ID,
 					Title:           storedEvent.Summary,
 					Location:        storedEvent.Location,
@@ -185,7 +186,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 	return upcomingEvents, nil
 }
 
-func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]models.NeedsActionDraft, error) {
+func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error) {
 	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -193,7 +194,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 
 	currentTime := time.Now()
 	startTime := currentTime.AddDate(0, 0, daysBefore)
-	pending := models.StatusPending
+	pending := domainvalue.StatusPending
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
 		Status:            &pending,
@@ -211,7 +212,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	needsActionDrafts := make([]models.NeedsActionDraft, 0)
+	needsActionDrafts := make([]appmodel.NeedsActionDraft, 0)
 	for _, storedEvent := range storedEvents {
 		if storedEvent.ProposedDates == nil {
 			log.Printf("No association found between calendar and event")
@@ -219,7 +220,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		}
 
 		for _, storedDate := range storedEvent.ProposedDates {
-			needsActionDrafts = append(needsActionDrafts, models.NeedsActionDraft{
+			needsActionDrafts = append(needsActionDrafts, appmodel.NeedsActionDraft{
 				ID:             storedEvent.ID,
 				Title:          storedEvent.Summary,
 				Location:       storedEvent.Location,

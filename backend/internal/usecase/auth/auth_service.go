@@ -7,11 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	opCookie "github.com/koo-arch/adjusta-backend/cookie"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/google/userinfo"
-	internalModels "github.com/koo-arch/adjusta-backend/internal/models"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	"golang.org/x/oauth2"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type AuthService struct {
@@ -28,7 +27,7 @@ func NewAuthService(reader SignInReader, tx SignInTransaction, sessions SessionS
 	}
 }
 
-func (am *AuthService) ProcessUserSignIn(ctx context.Context, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
+func (am *AuthService) ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error) {
 	u, err := am.reader.FindUserByEmail(ctx, userInfo.Email)
 	if err != nil {
 		log.Printf("failed to get user by email: %v", err)
@@ -52,8 +51,8 @@ func (am *AuthService) ProcessUserSignIn(ctx context.Context, userInfo *userinfo
 	return am.UpdateUserAndAccount(ctx, u.ID, accountInfo.ID, userInfo, oauthToken)
 }
 
-func (am *AuthService) CreateUser(ctx context.Context, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
-	var u *internalModels.User
+func (am *AuthService) CreateUser(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error) {
+	var u *repositorymodel.User
 
 	err := am.tx.Do(ctx, func(store SignInStore) error {
 		var err error
@@ -78,8 +77,8 @@ func (am *AuthService) CreateUser(ctx context.Context, userInfo *userinfo.UserIn
 	return u, nil
 }
 
-func (am *AuthService) UpdateUserAndCreateAccount(ctx context.Context, userID uuid.UUID, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
-	var u *internalModels.User
+func (am *AuthService) UpdateUserAndCreateAccount(ctx context.Context, userID uuid.UUID, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error) {
+	var u *repositorymodel.User
 
 	err := am.tx.Do(ctx, func(store SignInStore) error {
 		var err error
@@ -107,8 +106,8 @@ func (am *AuthService) UpdateUserAndCreateAccount(ctx context.Context, userID uu
 	return u, nil
 }
 
-func (am *AuthService) UpdateUserAndAccount(ctx context.Context, userID, accountID uuid.UUID, userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error) {
-	var u *internalModels.User
+func (am *AuthService) UpdateUserAndAccount(ctx context.Context, userID, accountID uuid.UUID, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error) {
+	var u *repositorymodel.User
 
 	err := am.tx.Do(ctx, func(store SignInStore) error {
 		var err error
@@ -140,7 +139,7 @@ func (am *AuthService) UpdateUserAndAccount(ctx context.Context, userID, account
 
 }
 
-func (am *AuthService) CreateSession(ctx context.Context, userID uuid.UUID) (*internalModels.Session, error) {
+func (am *AuthService) CreateSession(ctx context.Context, userID uuid.UUID) (*repositorymodel.Session, error) {
 	sessionToken := uuid.NewString()
 	expiresAt := buildSessionExpiry()
 
@@ -153,7 +152,7 @@ func (am *AuthService) CreateSession(ctx context.Context, userID uuid.UUID) (*in
 	return entSession, nil
 }
 
-func (am *AuthService) AuthenticateSession(ctx context.Context, sessionToken string) (*internalModels.User, error) {
+func (am *AuthService) AuthenticateSession(ctx context.Context, sessionToken string) (*repositorymodel.User, error) {
 	entSession, err := am.sessions.FindSessionByToken(ctx, sessionToken, true)
 	if err != nil {
 		log.Printf("failed to find session by token: %v", err)
@@ -195,7 +194,7 @@ func (am *AuthService) DeleteSession(ctx context.Context, sessionToken string) e
 	return nil
 }
 
-func buildUserMutationOptions(userInfo *userinfo.UserInfo) UserMutation {
+func buildUserMutationOptions(userInfo *appmodel.GoogleUserProfile) UserMutation {
 	return UserMutation{
 		Name:      nullableString(userInfo.Name),
 		AvatarURL: nullableString(userInfo.Picture),
@@ -206,23 +205,14 @@ func buildSessionExpiry() time.Time {
 	return time.Now().Add(time.Duration(opCookie.DefaultCookieOptions().MaxAge) * time.Second)
 }
 
-func buildAccountMutationOptions(userInfo *userinfo.UserInfo, oauthToken *oauth2.Token) AccountMutation {
+func buildAccountMutationOptions(userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) AccountMutation {
 	return AccountMutation{
 		GoogleUserID: &userInfo.GoogleID,
 		AccessToken:  &oauthToken.AccessToken,
 		RefreshToken: nullableString(oauthToken.RefreshToken),
 		ExpiresAt:    &oauthToken.Expiry,
-		Scope:        tokenScope(oauthToken),
+		Scope:        oauthToken.Scope,
 	}
-}
-
-func tokenScope(oauthToken *oauth2.Token) *string {
-	rawScope := oauthToken.Extra("scope")
-	scope, ok := rawScope.(string)
-	if !ok || scope == "" {
-		return nil
-	}
-	return &scope
 }
 
 func nullableString(value string) *string {

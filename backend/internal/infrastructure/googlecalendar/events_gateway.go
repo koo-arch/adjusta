@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -23,7 +24,7 @@ func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, cale
 	}
 }
 
-func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*models.GoogleCalendarInfo, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
+func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.GoogleCalendarInfo, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
 	calendarService, err := g.newCalendarService(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -31,13 +32,13 @@ func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calend
 
 	result, err := g.calendarManager.FetchEventsFromCalendars(calendarService, calendars, startTime, endTime)
 	if result == nil {
-		return nil, err
+		return nil, normalizeGoogleAPIError(err)
 	}
 
 	return &usecaseEvents.GoogleEventFetchResult{
 		Events:          result.Events,
 		FailedCalendars: result.FailedCalendars,
-	}, err
+	}, normalizeGoogleAPIError(err)
 }
 
 func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
@@ -47,11 +48,11 @@ func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, existi
 	}
 
 	if existingGoogleEventID == nil || *existingGoogleEventID == "" {
-		eventReq := &models.EventDraftCreation{
+		eventReq := &appmodel.EventDraftCreation{
 			Title:       title,
 			Location:    location,
 			Description: description,
-			SelectedDates: []models.SelectedDate{
+			SelectedDates: []appmodel.SelectedDate{
 				{
 					Start: start,
 					End:   end,
@@ -84,5 +85,10 @@ func (g *eventGateway) newCalendarService(ctx context.Context, userID uuid.UUID)
 		return nil, err
 	}
 
-	return customCalendar.NewCalendar(ctx, token)
+	calendarService, err := customCalendar.NewCalendar(ctx, toOAuth2Token(token))
+	if err != nil {
+		return nil, normalizeGoogleAPIError(err)
+	}
+
+	return calendarService, nil
 }

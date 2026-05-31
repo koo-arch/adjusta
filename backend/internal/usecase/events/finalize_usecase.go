@@ -6,12 +6,14 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
-func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *models.ConfirmEvent) error {
+func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.ConfirmEvent) error {
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		storedEvent, err := store.FindEventBySlug(ctx, userID, slug, false)
 		if err != nil {
@@ -43,7 +45,7 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, s
 	return nil
 }
 
-func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, storedEvent *models.StoredEvent, eventReq *models.ConfirmEvent) (*string, error) {
+func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, storedEvent *repositorymodel.StoredEvent, eventReq *appmodel.ConfirmEvent) (*string, error) {
 	var existingGoogleEventID *string
 	if eventReq.ConfirmDate.ID != nil && storedEvent.GoogleEventID != "" {
 		existingGoogleEventID = &storedEvent.GoogleEventID
@@ -66,7 +68,7 @@ func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, stor
 	return &googleEventID, nil
 }
 
-func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, googleEventID *string, eventReq *models.ConfirmEvent, storedEvent *models.StoredEvent) error {
+func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, googleEventID *string, eventReq *appmodel.ConfirmEvent, storedEvent *repositorymodel.StoredEvent) error {
 	priority := 1
 	dateOptions := ProposedDateMutation{
 		Priority: &priority,
@@ -101,7 +103,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 		}
 	}
 
-	status := models.StatusConfirmed
+	status := domainvalue.StatusConfirmed
 	eventOptions := EventMutation{
 		Status:          &status,
 		ConfirmedDateID: confirmDateID,

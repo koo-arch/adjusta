@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -22,22 +23,22 @@ func NewEventReader(repos infraRepository.Repositories) usecaseEvents.EventReade
 	return &eventReader{repos: repos}
 }
 
-func (r *eventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error) {
+func (r *eventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
 	isPrimary := true
 	return r.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		IsPrimary: &isPrimary,
 	})
 }
 
-func (r *eventReader) ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error) {
+func (r *eventReader) ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error) {
 	return r.repos.GoogleCalendarInfo.ListByUser(ctx, userID)
 }
 
-func (r *eventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt usecaseEvents.EventSearchOptions) ([]*models.StoredEvent, error) {
+func (r *eventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt usecaseEvents.EventSearchOptions) ([]*repositorymodel.StoredEvent, error) {
 	return r.repos.Event.SearchEvents(ctx, userID, calendarID, toEventQueryOptions(opt))
 }
 
-func (r *eventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*models.StoredEvent, error) {
+func (r *eventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error) {
 	return r.repos.Event.FindBySlugAndUser(ctx, userID, slug, repoEvent.EventQueryOptions{
 		WithProposedDates: withProposedDates,
 	})
@@ -69,25 +70,25 @@ type eventTxStore struct {
 	calendarApp *infraGoogleCalendar.GoogleCalendarManager
 }
 
-func (s *eventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error) {
+func (s *eventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
 	isPrimary := true
 	return s.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		IsPrimary: &isPrimary,
 	})
 }
 
-func (s *eventTxStore) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*models.StoredEvent, error) {
+func (s *eventTxStore) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error) {
 	return s.repos.Event.FindBySlugAndUser(ctx, userID, slug, repoEvent.EventQueryOptions{
 		WithProposedDates: withProposedDates,
 	})
 }
 
-func (s *eventTxStore) CreateEvent(ctx context.Context, calendarID uuid.UUID, title, location, description string, start, end time.Time) (*models.StoredEvent, error) {
+func (s *eventTxStore) CreateEvent(ctx context.Context, calendarID uuid.UUID, title, location, description string, start, end time.Time) (*repositorymodel.StoredEvent, error) {
 	googleEvent := s.calendarApp.ConvertToCalendarEvent(nil, title, location, description, start, end)
 	return s.repos.Event.Create(ctx, googleEvent, calendarID)
 }
 
-func (s *eventTxStore) UpdateEvent(ctx context.Context, id uuid.UUID, opt usecaseEvents.EventMutation) (*models.StoredEvent, error) {
+func (s *eventTxStore) UpdateEvent(ctx context.Context, id uuid.UUID, opt usecaseEvents.EventMutation) (*repositorymodel.StoredEvent, error) {
 	return s.repos.Event.Update(ctx, id, repoEvent.EventQueryOptions{
 		Summary:         opt.Title,
 		Location:        opt.Location,
@@ -102,15 +103,15 @@ func (s *eventTxStore) SoftDeleteEvent(ctx context.Context, id uuid.UUID) error 
 	return s.repos.Event.SoftDelete(ctx, id)
 }
 
-func (s *eventTxStore) ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*models.StoredProposedDate, error) {
+func (s *eventTxStore) ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error) {
 	return s.repos.ProposedDate.FilterByEventID(ctx, eventID)
 }
 
-func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []models.SelectedDate, eventID uuid.UUID) ([]*models.StoredProposedDate, error) {
+func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error) {
 	return s.repos.ProposedDate.CreateBulk(ctx, selectedDates, eventID)
 }
 
-func (s *eventTxStore) UpdateProposedDate(ctx context.Context, id uuid.UUID, opt usecaseEvents.ProposedDateMutation) (*models.StoredProposedDate, error) {
+func (s *eventTxStore) UpdateProposedDate(ctx context.Context, id uuid.UUID, opt usecaseEvents.ProposedDateMutation) (*repositorymodel.StoredProposedDate, error) {
 	return s.repos.ProposedDate.Update(ctx, id, toProposedDateQueryOptions(opt))
 }
 
@@ -118,7 +119,7 @@ func (s *eventTxStore) DeleteProposedDate(ctx context.Context, id uuid.UUID) err
 	return s.repos.ProposedDate.Delete(ctx, id)
 }
 
-func (s *eventTxStore) CreateProposedDate(ctx context.Context, opt usecaseEvents.ProposedDateMutation, eventID uuid.UUID) (*models.StoredProposedDate, error) {
+func (s *eventTxStore) CreateProposedDate(ctx context.Context, opt usecaseEvents.ProposedDateMutation, eventID uuid.UUID) (*repositorymodel.StoredProposedDate, error) {
 	return s.repos.ProposedDate.Create(ctx, toProposedDateQueryOptions(opt), eventID)
 }
 

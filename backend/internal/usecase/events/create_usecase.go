@@ -5,12 +5,12 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 )
 
-func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftCreation) (*models.EventDraftDetail, error) {
-	var response *models.EventDraftDetail
+func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftCreation) (*appmodel.EventDraftDetail, error) {
+	var response *appmodel.EventDraftDetail
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		storedCalendar, err := uc.findPrimaryCalendar(ctx, store, userID, email)
@@ -30,7 +30,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		response = &models.EventDraftDetail{
+		response = &appmodel.EventDraftDetail{
 			ID:            storedEvent.ID,
 			Title:         storedEvent.Summary,
 			Location:      storedEvent.Location,

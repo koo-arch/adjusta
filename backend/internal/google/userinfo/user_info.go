@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	"golang.org/x/oauth2"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
 type UserInfo struct {
@@ -23,7 +23,7 @@ func FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*UserInfo, e
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
 		log.Printf("failed to fetch user info: %v", err)
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, "GoogleAPIからのユーザー情報取得に失敗しました")
+		return nil, internalErrors.NewInternalError("GoogleAPIからのユーザー情報取得に失敗しました")
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -34,12 +34,21 @@ func FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*UserInfo, e
 	// レスポンスのステータスコードが200以外の場合はエラー
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("failed to fetch user info: %s", resp.Status)
-		return nil, internalErrors.NewAPIError(resp.StatusCode, "ユーザー情報の取得に失敗しました")
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
+			return nil, internalErrors.NewUnauthorizedError("ユーザー情報の取得に失敗しました")
+		case http.StatusForbidden:
+			return nil, internalErrors.NewForbiddenError("ユーザー情報の取得に失敗しました")
+		case http.StatusNotFound:
+			return nil, internalErrors.NewNotFoundError("ユーザー情報の取得に失敗しました")
+		default:
+			return nil, internalErrors.NewInternalError("ユーザー情報の取得に失敗しました")
+		}
 	}
 
 	var userInfo UserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
 	return &userInfo, nil

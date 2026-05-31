@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/googleapi"
 )
@@ -16,7 +17,7 @@ import (
 type GoogleCalendarManager struct{}
 
 type FetchResult struct {
-	Events          []*models.GoogleEvent
+	Events          []*appmodel.GoogleEvent
 	FailedCalendars []string
 }
 
@@ -24,8 +25,8 @@ func NewGoogleCalendarManager() *GoogleCalendarManager {
 	return &GoogleCalendarManager{}
 }
 
-func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*models.GoogleCalendarInfo, startTime, endTime time.Time) (*FetchResult, error) {
-	var events []*models.GoogleEvent
+func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*repositorymodel.GoogleCalendarInfo, startTime, endTime time.Time) (*FetchResult, error) {
+	var events []*appmodel.GoogleEvent
 	var failedCalendars []string
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -33,7 +34,7 @@ func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *cust
 
 	for _, cal := range calendars {
 		wg.Add(1)
-		go func(cal *models.GoogleCalendarInfo) {
+		go func(cal *repositorymodel.GoogleCalendarInfo) {
 			defer wg.Done()
 
 			calEvents, err := calendarService.FetchEvents(cal.GoogleCalendarID, startTime, endTime)
@@ -74,7 +75,7 @@ func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *cust
 	}, joinedErr
 }
 
-func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *customCalendar.Calendar, eventReq *models.EventDraftCreation) ([]*calendar.Event, error) {
+func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *customCalendar.Calendar, eventReq *appmodel.EventDraftCreation) ([]*calendar.Event, error) {
 	// Googleカレンダーに登録されたイベントを追跡するスライス
 	insertedGoogleEvents := make([]*calendar.Event, len(eventReq.SelectedDates))
 
@@ -88,7 +89,7 @@ func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *customCale
 
 	wg.Add(len(eventReq.SelectedDates))
 	for i, date := range eventReq.SelectedDates {
-		go func(i int, date models.SelectedDate) {
+		go func(i int, date appmodel.SelectedDate) {
 			defer wg.Done()
 
 			select {
@@ -130,7 +131,7 @@ func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *customCale
 	return insertedGoogleEvents, nil
 }
 
-func (gcm *GoogleCalendarManager) UpdateGoogleCalendarEvents(calendarService *customCalendar.Calendar, eventReq *models.EventDraftDetail) error {
+func (gcm *GoogleCalendarManager) UpdateGoogleCalendarEvents(calendarService *customCalendar.Calendar, eventReq *appmodel.EventDraftDetail) error {
 	// Googleカレンダーに登録されたイベントを追跡するスライス
 	var backupGoogleEvents []*calendar.Event
 
@@ -141,7 +142,7 @@ func (gcm *GoogleCalendarManager) UpdateGoogleCalendarEvents(calendarService *cu
 
 	wg.Add(len(eventReq.ProposedDates))
 	for _, date := range eventReq.ProposedDates {
-		go func(date models.ProposedDate) {
+		go func(date appmodel.ProposedDate) {
 			defer wg.Done()
 
 			event := gcm.ConvertToCalendarEvent(&eventReq.GoogleEventID, eventReq.Title, eventReq.Location, eventReq.Description, *date.Start, *date.End)
@@ -201,7 +202,7 @@ func (gcm *GoogleCalendarManager) UpdateOrCreateGoogleEvent(calendarService *cus
 
 }
 
-func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *customCalendar.Calendar, eventReq *models.EventDraftDetail) ([]*calendar.Event, error) {
+func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *customCalendar.Calendar, eventReq *appmodel.EventDraftDetail) ([]*calendar.Event, error) {
 	var backupGoogleEvents []*calendar.Event // 削除前のイベントをバックアップするためのスライス
 
 	// 並列処理でイベントを削除
@@ -211,7 +212,7 @@ func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *cu
 
 	wg.Add(len(eventReq.ProposedDates))
 	for _, date := range eventReq.ProposedDates {
-		go func(date models.ProposedDate) {
+		go func(date appmodel.ProposedDate) {
 			defer wg.Done()
 
 			// 削除前にイベントをバックアップできるように、Googleカレンダーからイベントを取得

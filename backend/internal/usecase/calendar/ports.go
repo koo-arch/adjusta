@@ -4,23 +4,23 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/models"
-	"golang.org/x/oauth2"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type UserReader interface {
-	GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
+	GetByID(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error)
 }
 
-type UserReaderFunc func(ctx context.Context, userID uuid.UUID) (*models.User, error)
+type UserReaderFunc func(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error)
 
-func (f UserReaderFunc) GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+func (f UserReaderFunc) GetByID(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error) {
 	return f(ctx, userID)
 }
 
 type GoogleTokenProvider interface {
-	GetToken(ctx context.Context, userID uuid.UUID) (*oauth2.Token, error)
+	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
 }
 
 type CalendarService interface {
@@ -28,22 +28,22 @@ type CalendarService interface {
 }
 
 type CalendarServiceFactory interface {
-	New(ctx context.Context, token *oauth2.Token) (CalendarService, error)
+	New(ctx context.Context, token *appmodel.GoogleAuthToken) (CalendarService, error)
 }
 
-type CalendarServiceFactoryFunc func(ctx context.Context, token *oauth2.Token) (CalendarService, error)
+type CalendarServiceFactoryFunc func(ctx context.Context, token *appmodel.GoogleAuthToken) (CalendarService, error)
 
-func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *oauth2.Token) (CalendarService, error) {
+func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *appmodel.GoogleAuthToken) (CalendarService, error) {
 	return f(ctx, token)
 }
 
 type SyncStore interface {
-	FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*models.StoredCalendar, error)
-	CreateCalendar(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error)
-	FindGoogleCalendarInfoByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*models.GoogleCalendarInfo, error)
-	CreateGoogleCalendarInfo(ctx context.Context, googleCalendarID, summary string, isPrimary bool, calendarID uuid.UUID) (*models.GoogleCalendarInfo, error)
+	FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repositorymodel.StoredCalendar, error)
+	CreateCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error)
+	FindGoogleCalendarInfoByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.GoogleCalendarInfo, error)
+	CreateGoogleCalendarInfo(ctx context.Context, googleCalendarID, summary string, isPrimary bool, calendarID uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error)
 	LinkGoogleCalendarInfoToCalendar(ctx context.Context, googleCalendarInfoID, calendarID uuid.UUID) error
-	ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error)
+	ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error)
 	SoftDeleteGoogleCalendarInfo(ctx context.Context, id uuid.UUID) error
 }
 

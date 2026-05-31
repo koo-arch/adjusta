@@ -3,14 +3,14 @@ package oauth
 import (
 	"context"
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"golang.org/x/oauth2"
 )
 
@@ -24,18 +24,18 @@ func NewTokenManager(accountRepo repoAccount.AccountRepository) *TokenManager {
 	}
 }
 
-func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*oauth2.Token, error) {
+func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error) {
 	entAccount, err := tm.accountRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get account by user id: %v", err)
 		if repoerr.IsNotFound(err) {
-			return nil, internalErrors.NewAPIError(http.StatusNotFound, "アカウント情報が見つかりませんでした")
+			return nil, internalErrors.NewNotFoundError("アカウント情報が見つかりませんでした")
 		}
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
 	if entAccount.AccessToken == nil || entAccount.RefreshToken == nil || entAccount.ExpiresAt == nil {
-		return nil, internalErrors.NewAPIError(http.StatusUnauthorized, "Googleアカウントの連携情報が不足しています。再認証してください")
+		return nil, internalErrors.NewUnauthorizedError("Googleアカウントの連携情報が不足しています。再認証してください")
 	}
 
 	token := &oauth2.Token{
@@ -49,15 +49,15 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*oauth2
 	if err != nil {
 		log.Printf("failed to get new token: %v", err)
 		if strings.Contains(err.Error(), "invalid_token") {
-			return nil, internalErrors.NewAPIError(http.StatusUnauthorized, "トークンが無効です。再認証してください")
+			return nil, internalErrors.NewUnauthorizedError("トークンが無効です。再認証してください")
 		}
 		if strings.Contains(err.Error(), "insufficient_scope") {
-			return nil, internalErrors.NewAPIError(http.StatusForbidden, "トークンのスコープが不足しています。再認証してください")
+			return nil, internalErrors.NewForbiddenError("トークンのスコープが不足しています。再認証してください")
 		}
 		if strings.Contains(err.Error(), "network error") {
-			return nil, internalErrors.NewAPIError(http.StatusBadGateway, "トークン取得サーバーに接続できませんでした")
+			return nil, internalErrors.NewBadGatewayError("トークン取得サーバーに接続できませんでした")
 		}
-		return nil, internalErrors.NewAPIError(http.StatusInternalServerError, "トークンの再取得中にエラーが発生しました")
+		return nil, internalErrors.NewInternalError("トークンの再取得中にエラーが発生しました")
 	}
 
 	if shouldPersistRefreshedToken(entAccount, refreshedToken) {
@@ -65,16 +65,26 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*oauth2
 		if err != nil {
 			log.Printf("failed to update token: %v", err)
 			if repoerr.IsNotFound(err) {
-				return nil, internalErrors.NewAPIError(http.StatusNotFound, "アカウント情報が見つかりませんでした")
+				return nil, internalErrors.NewNotFoundError("アカウント情報が見つかりませんでした")
 			}
-			return nil, internalErrors.NewAPIError(http.StatusInternalServerError, internalErrors.InternalErrorMessage)
+			return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 	}
 
-	return refreshedToken, nil
+	return buildGoogleAuthToken(refreshedToken), nil
 }
 
-func buildAccountTokenRefreshOptions(account *models.Account, oauthToken *oauth2.Token) repoAccount.AccountMutationOptions {
+func buildGoogleAuthToken(token *oauth2.Token) *appmodel.GoogleAuthToken {
+	return &appmodel.GoogleAuthToken{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+		Scope:        tokenScope(token),
+	}
+}
+
+func buildAccountTokenRefreshOptions(account *repositorymodel.Account, oauthToken *oauth2.Token) repoAccount.AccountMutationOptions {
 	refreshToken := account.RefreshToken
 	if oauthToken.RefreshToken != "" {
 		refreshToken = &oauthToken.RefreshToken
@@ -95,7 +105,7 @@ func buildAccountTokenRefreshOptions(account *models.Account, oauthToken *oauth2
 	return opt
 }
 
-func shouldPersistRefreshedToken(account *models.Account, oauthToken *oauth2.Token) bool {
+func shouldPersistRefreshedToken(account *repositorymodel.Account, oauthToken *oauth2.Token) bool {
 	if account.AccessToken == nil || *account.AccessToken != oauthToken.AccessToken {
 		return true
 	}

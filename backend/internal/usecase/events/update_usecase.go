@@ -6,12 +6,14 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
-func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *models.EventDraftUpdate) error {
+func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.EventDraftUpdate) error {
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		if _, err := uc.findPrimaryCalendar(ctx, store, userID, email); err != nil {
 			return err
@@ -47,14 +49,14 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		if eventReq.Status == models.StatusConfirmed {
-			confirmDate := models.ConfirmDate{
+		if eventReq.Status == domainvalue.StatusConfirmed {
+			confirmDate := appmodel.ConfirmDate{
 				ID:       eventReq.ProposedDates[0].ID,
 				Start:    eventReq.ProposedDates[0].Start,
 				End:      eventReq.ProposedDates[0].End,
 				Priority: eventReq.ProposedDates[0].Priority,
 			}
-			confirmEvent := models.ConfirmEvent{
+			confirmEvent := appmodel.ConfirmEvent{
 				ConfirmDate: confirmDate,
 			}
 
@@ -84,8 +86,8 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 	return nil
 }
 
-func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *models.EventDraftUpdate, storedEvent *models.StoredEvent, existingDates []*models.StoredProposedDate) error {
-	updateDateMap := make(map[uuid.UUID]models.ProposedDate)
+func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *repositorymodel.StoredEvent, existingDates []*repositorymodel.StoredProposedDate) error {
+	updateDateMap := make(map[uuid.UUID]appmodel.ProposedDate)
 	for _, date := range eventReq.ProposedDates {
 		if date.ID != nil {
 			updateDateMap[*date.ID] = date

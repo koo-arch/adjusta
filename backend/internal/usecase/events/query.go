@@ -3,14 +3,14 @@ package events
 import (
 	"time"
 
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 )
 
 type SearchDraftQuery struct {
 	Title        *string
 	Location     *string
 	Description  *string
-	Status       *models.EventStatus
+	Status       *domainvalue.EventStatus
 	StartTimeGTE *time.Time
 	StartTimeLTE *time.Time
 	EndTimeGTE   *time.Time

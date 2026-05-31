@@ -17,7 +17,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/configs"
 	opCookie "github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/ent"
-	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
@@ -73,19 +73,17 @@ func main() {
 	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
 		googleTokenManager,
-		usecaseAccount.UserInfoFetcherFunc(googleUserInfo.FetchGoogleUserInfo),
+		usecaseAccount.UserInfoFetcherFunc(fetchGoogleUserProfile),
 	)
 	authSessionUsecase := usecaseAuth.NewSessionUsecase(
 		authService,
-		googleOAuth.GetGoogleAuthConfig(),
-		usecaseAuth.UserInfoFetcherFunc(googleUserInfo.FetchGoogleUserInfo),
+		usecaseAuth.OAuthExchangerFunc(exchangeGoogleAuthToken),
+		usecaseAuth.UserInfoFetcherFunc(fetchGoogleUserProfile),
 	)
 	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(
 		infraCalendar.NewCalendarSyncUserReader(repos.User),
 		googleTokenManager,
-		usecaseCalendar.CalendarServiceFactoryFunc(func(ctx context.Context, token *oauth2.Token) (usecaseCalendar.CalendarService, error) {
-			return customCalendar.NewCalendar(ctx, token)
-		}),
+		infraGoogleCalendar.NewCalendarServiceFactory(),
 		infraCalendar.NewCalendarSyncTransaction(uow),
 	)
 	eventUsecase := usecaseEvents.NewUsecase(
@@ -168,4 +166,45 @@ func main() {
 		log.Fatalf("failed to run server: %v", err)
 	}
 
+}
+
+func exchangeGoogleAuthToken(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+	token, err := googleOAuth.GetGoogleAuthConfig().Exchange(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+
+	scope := token.Extra("scope")
+	scopeValue, ok := scope.(string)
+	var tokenScope *string
+	if ok && scopeValue != "" {
+		tokenScope = &scopeValue
+	}
+
+	return &appmodel.GoogleAuthToken{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+		Scope:        tokenScope,
+	}, nil
+}
+
+func fetchGoogleUserProfile(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+	userInfo, err := googleUserInfo.FetchGoogleUserInfo(ctx, &oauth2.Token{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &appmodel.GoogleUserProfile{
+		GoogleID: userInfo.GoogleID,
+		Email:    userInfo.Email,
+		Name:     userInfo.Name,
+		Picture:  userInfo.Picture,
+	}, nil
 }

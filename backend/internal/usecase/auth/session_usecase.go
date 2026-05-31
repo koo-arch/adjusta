@@ -5,10 +5,9 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
-	internalModels "github.com/koo-arch/adjusta-backend/internal/models"
-	"golang.org/x/oauth2"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type GoogleSignInResult struct {
@@ -17,22 +16,28 @@ type GoogleSignInResult struct {
 }
 
 type SessionAuthenticator interface {
-	ProcessUserSignIn(ctx context.Context, userInfo *googleUserInfo.UserInfo, oauthToken *oauth2.Token) (*internalModels.User, error)
-	CreateSession(ctx context.Context, userID uuid.UUID) (*internalModels.Session, error)
+	ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error)
+	CreateSession(ctx context.Context, userID uuid.UUID) (*repositorymodel.Session, error)
 	DeleteSession(ctx context.Context, sessionToken string) error
 }
 
 type OAuthExchanger interface {
-	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+	Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error)
 }
 
 type UserInfoFetcher interface {
-	FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error)
+	FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
 }
 
-type UserInfoFetcherFunc func(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error)
+type OAuthExchangerFunc func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error)
 
-func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error) {
+func (f OAuthExchangerFunc) Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+	return f(ctx, code)
+}
+
+type UserInfoFetcherFunc func(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
+
+func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
 	return f(ctx, token)
 }
 

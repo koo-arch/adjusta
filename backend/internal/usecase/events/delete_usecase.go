@@ -5,11 +5,11 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 )
 
-func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftDetail) error {
+func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftDetail) error {
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		if _, err := uc.findPrimaryCalendar(ctx, store, userID, email); err != nil {
 			return err

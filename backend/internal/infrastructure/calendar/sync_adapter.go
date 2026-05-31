@@ -5,10 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repoGoogleCalendarInfo "github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 )
 
@@ -20,7 +20,7 @@ func NewCalendarSyncUserReader(userRepo repoUser.UserRepository) usecaseCalendar
 	return &calendarSyncUserReader{userRepo: userRepo}
 }
 
-func (r *calendarSyncUserReader) GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+func (r *calendarSyncUserReader) GetByID(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error) {
 	return r.userRepo.Read(ctx, userID, repoUser.UserQueryOptions{})
 }
 
@@ -42,24 +42,24 @@ type calendarSyncStore struct {
 	repos infraRepository.Repositories
 }
 
-func (s *calendarSyncStore) FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*models.StoredCalendar, error) {
+func (s *calendarSyncStore) FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repositorymodel.StoredCalendar, error) {
 	return s.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		WithGoogleCalendarInfo: true,
 		GoogleCalendarID:       &googleCalendarID,
 	})
 }
 
-func (s *calendarSyncStore) CreateCalendar(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error) {
+func (s *calendarSyncStore) CreateCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
 	return s.repos.Calendar.Create(ctx, userID)
 }
 
-func (s *calendarSyncStore) FindGoogleCalendarInfoByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*models.GoogleCalendarInfo, error) {
+func (s *calendarSyncStore) FindGoogleCalendarInfoByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.GoogleCalendarInfo, error) {
 	return s.repos.GoogleCalendarInfo.FindByFields(ctx, repoGoogleCalendarInfo.GoogleCalendarInfoQueryOptions{
 		GoogleCalendarID: &googleCalendarID,
 	})
 }
 
-func (s *calendarSyncStore) CreateGoogleCalendarInfo(ctx context.Context, googleCalendarID, summary string, isPrimary bool, calendarID uuid.UUID) (*models.GoogleCalendarInfo, error) {
+func (s *calendarSyncStore) CreateGoogleCalendarInfo(ctx context.Context, googleCalendarID, summary string, isPrimary bool, calendarID uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error) {
 	return s.repos.GoogleCalendarInfo.Create(ctx, repoGoogleCalendarInfo.GoogleCalendarInfoQueryOptions{
 		GoogleCalendarID: &googleCalendarID,
 		Summary:          &summary,
@@ -72,7 +72,7 @@ func (s *calendarSyncStore) LinkGoogleCalendarInfoToCalendar(ctx context.Context
 	return err
 }
 
-func (s *calendarSyncStore) ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error) {
+func (s *calendarSyncStore) ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error) {
 	return s.repos.GoogleCalendarInfo.ListByUser(ctx, userID)
 }
 

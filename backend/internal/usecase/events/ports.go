@@ -5,36 +5,37 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/models"
-	"golang.org/x/oauth2"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type GoogleTokenProvider interface {
-	GetToken(ctx context.Context, userID uuid.UUID) (*oauth2.Token, error)
+	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
 }
 
 type PrimaryCalendarFinder interface {
-	FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error)
+	FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error)
 }
 
 type EventReader interface {
 	PrimaryCalendarFinder
-	ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error)
-	SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*models.StoredEvent, error)
-	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*models.StoredEvent, error)
+	ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error)
+	SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*repositorymodel.StoredEvent, error)
+	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error)
 }
 
 type EventTxStore interface {
 	PrimaryCalendarFinder
-	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*models.StoredEvent, error)
-	CreateEvent(ctx context.Context, calendarID uuid.UUID, title, location, description string, start, end time.Time) (*models.StoredEvent, error)
-	UpdateEvent(ctx context.Context, id uuid.UUID, opt EventMutation) (*models.StoredEvent, error)
+	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error)
+	CreateEvent(ctx context.Context, calendarID uuid.UUID, title, location, description string, start, end time.Time) (*repositorymodel.StoredEvent, error)
+	UpdateEvent(ctx context.Context, id uuid.UUID, opt EventMutation) (*repositorymodel.StoredEvent, error)
 	SoftDeleteEvent(ctx context.Context, id uuid.UUID) error
-	ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*models.StoredProposedDate, error)
-	CreateProposedDates(ctx context.Context, selectedDates []models.SelectedDate, eventID uuid.UUID) ([]*models.StoredProposedDate, error)
-	UpdateProposedDate(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*models.StoredProposedDate, error)
+	ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error)
+	CreateProposedDates(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error)
+	UpdateProposedDate(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*repositorymodel.StoredProposedDate, error)
 	DeleteProposedDate(ctx context.Context, id uuid.UUID) error
-	CreateProposedDate(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*models.StoredProposedDate, error)
+	CreateProposedDate(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*repositorymodel.StoredProposedDate, error)
 	DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error
 	ReorderPriority(ctx context.Context, eventID uuid.UUID) error
 }
@@ -48,7 +49,7 @@ type EventSearchOptions struct {
 	Title             *string
 	Location          *string
 	Description       *string
-	Status            *models.EventStatus
+	Status            *domainvalue.EventStatus
 	StartTimeGTE      *time.Time
 	StartTimeLTE      *time.Time
 	EndTimeGTE        *time.Time
@@ -61,7 +62,7 @@ type EventMutation struct {
 	Title           *string
 	Location        *string
 	Description     *string
-	Status          *models.EventStatus
+	Status          *domainvalue.EventStatus
 	ConfirmedDateID *uuid.UUID
 	GoogleEventID   *string
 }
@@ -73,11 +74,11 @@ type ProposedDateMutation struct {
 }
 
 type GoogleEventFetchResult struct {
-	Events          []*models.GoogleEvent
+	Events          []*appmodel.GoogleEvent
 	FailedCalendars []string
 }
 
 type GoogleCalendarGateway interface {
-	FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*models.GoogleCalendarInfo, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
+	FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.GoogleCalendarInfo, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
 	UpsertEvent(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
 }

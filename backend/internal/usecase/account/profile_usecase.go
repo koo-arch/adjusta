@@ -4,28 +4,22 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
-	"golang.org/x/oauth2"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 )
 
-type GoogleProfile struct {
-	GoogleID string `json:"sub"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Picture  string `json:"picture"`
-}
+type GoogleProfile = appmodel.GoogleUserProfile
 
 type GoogleTokenProvider interface {
-	GetToken(ctx context.Context, userID uuid.UUID) (*oauth2.Token, error)
+	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
 }
 
 type UserInfoFetcher interface {
-	FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error)
+	FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
 }
 
-type UserInfoFetcherFunc func(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error)
+type UserInfoFetcherFunc func(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
 
-func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*googleUserInfo.UserInfo, error) {
+func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
 	return f(ctx, token)
 }
 
@@ -52,10 +46,5 @@ func (uc *ProfileUsecase) FetchGoogleProfile(ctx context.Context, userID uuid.UU
 		return nil, err
 	}
 
-	return &GoogleProfile{
-		GoogleID: userInfo.GoogleID,
-		Email:    userInfo.Email,
-		Name:     userInfo.Name,
-		Picture:  userInfo.Picture,
-	}, nil
+	return userInfo, nil
 }
