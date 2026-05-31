@@ -12,16 +12,16 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/hook"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	"github.com/koo-arch/adjusta-backend/utils"
 )
 
 const (
-	StatusDraft     = models.StatusDraft
-	StatusActive    = models.StatusActive
-	StatusPending   = models.StatusPending
-	StatusConfirmed = models.StatusConfirmed
-	StatusCancelled = models.StatusCancelled
+	StatusDraft     = domainvalue.StatusDraft
+	StatusActive    = domainvalue.StatusActive
+	StatusPending   = domainvalue.StatusPending
+	StatusConfirmed = domainvalue.StatusConfirmed
+	StatusCancelled = domainvalue.StatusCancelled
 
 	randomStringLen = 4
 )
@@ -55,12 +55,12 @@ func (Event) Fields() []ent.Field {
 		field.String("confirmed_google_event_id").Optional().Nillable(),
 		field.Enum("sync_status").
 			Values(
-				string(models.SyncStatusNotSynced),
-				string(models.SyncStatusPending),
-				string(models.SyncStatusSynced),
-				string(models.SyncStatusFailed),
+				string(domainvalue.SyncStatusNotSynced),
+				string(domainvalue.SyncStatusPending),
+				string(domainvalue.SyncStatusSynced),
+				string(domainvalue.SyncStatusFailed),
 			).
-			Default(string(models.SyncStatusNotSynced)),
+			Default(string(domainvalue.SyncStatusNotSynced)),
 		field.Time("last_synced_at").Optional().Nillable(),
 		field.Text("last_sync_error").Optional().Nillable(),
 		field.String("slug").Unique(),

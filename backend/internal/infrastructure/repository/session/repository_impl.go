@@ -8,8 +8,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	entSession "github.com/koo-arch/adjusta-backend/ent/session"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -30,7 +30,7 @@ func (r *SessionRepositoryImpl) WithTx(tx transaction.Tx) SessionRepository {
 	return &SessionRepositoryImpl{client: tx.Client()}
 }
 
-func (r *SessionRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt SessionQueryOptions) (*models.Session, error) {
+func (r *SessionRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt SessionQueryOptions) (*repositorymodel.Session, error) {
 	query := r.client.Session.Query()
 	if opt.WithUser {
 		query = query.WithUser()
@@ -45,7 +45,7 @@ func (r *SessionRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt Sess
 	return toModelSession(sessionEntity), nil
 }
 
-func (r *SessionRepositoryImpl) FindByToken(ctx context.Context, sessionToken string, opt SessionQueryOptions) (*models.Session, error) {
+func (r *SessionRepositoryImpl) FindByToken(ctx context.Context, sessionToken string, opt SessionQueryOptions) (*repositorymodel.Session, error) {
 	query := r.client.Session.Query()
 	if opt.WithUser {
 		query = query.WithUser()
@@ -60,7 +60,7 @@ func (r *SessionRepositoryImpl) FindByToken(ctx context.Context, sessionToken st
 	return toModelSession(sessionEntity), nil
 }
 
-func (r *SessionRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*models.Session, error) {
+func (r *SessionRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repositorymodel.Session, error) {
 	create := r.client.Session.Create()
 	sessionEntity, err := create.
 		SetUserID(userID).
@@ -73,7 +73,7 @@ func (r *SessionRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, se
 	return toModelSession(sessionEntity), nil
 }
 
-func (r *SessionRepositoryImpl) UpdateExpiry(ctx context.Context, id uuid.UUID, expiresAt time.Time) (*models.Session, error) {
+func (r *SessionRepositoryImpl) UpdateExpiry(ctx context.Context, id uuid.UUID, expiresAt time.Time) (*repositorymodel.Session, error) {
 	update := r.client.Session.UpdateOneID(id)
 	sessionEntity, err := update.
 		SetExpiresAt(expiresAt).
@@ -91,19 +91,19 @@ func (r *SessionRepositoryImpl) DeleteByToken(ctx context.Context, sessionToken 
 	return err
 }
 
-func toModelSession(sessionEntity *ent.Session) *models.Session {
+func toModelSession(sessionEntity *ent.Session) *repositorymodel.Session {
 	if sessionEntity == nil {
 		return nil
 	}
 
-	model := &models.Session{
+	model := &repositorymodel.Session{
 		ID:           sessionEntity.ID,
 		UserID:       sessionEntity.UserID,
 		SessionToken: sessionEntity.SessionToken,
 		ExpiresAt:    sessionEntity.ExpiresAt,
 	}
 	if sessionEntity.Edges.User != nil {
-		model.User = &models.User{
+		model.User = &repositorymodel.User{
 			ID:        sessionEntity.Edges.User.ID,
 			Email:     sessionEntity.Edges.User.Email,
 			Name:      sessionEntity.Edges.User.Name,

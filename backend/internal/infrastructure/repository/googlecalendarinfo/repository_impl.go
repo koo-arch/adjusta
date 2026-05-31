@@ -10,8 +10,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/user"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoGoogleCalendarInfo "github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -32,7 +32,7 @@ func (r *GoogleCalendarInfoImpl) WithTx(tx transaction.Tx) GoogleCalendarInfoRep
 	return &GoogleCalendarInfoImpl{client: tx.Client()}
 }
 
-func (r *GoogleCalendarInfoImpl) Read(ctx context.Context, id uuid.UUID) (*models.GoogleCalendarInfo, error) {
+func (r *GoogleCalendarInfoImpl) Read(ctx context.Context, id uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error) {
 	entity, err := r.client.GoogleCalendarInfo.Get(ctx, id)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
@@ -40,7 +40,7 @@ func (r *GoogleCalendarInfoImpl) Read(ctx context.Context, id uuid.UUID) (*model
 	return toModelGoogleCalendarInfo(entity), nil
 }
 
-func (r *GoogleCalendarInfoImpl) FindByFields(ctx context.Context, opt GoogleCalendarInfoQueryOptions) (*models.GoogleCalendarInfo, error) {
+func (r *GoogleCalendarInfoImpl) FindByFields(ctx context.Context, opt GoogleCalendarInfoQueryOptions) (*repositorymodel.GoogleCalendarInfo, error) {
 	findGoogleCalendarInfo := r.client.GoogleCalendarInfo.Query()
 
 	if opt.GoogleCalendarID != nil {
@@ -60,7 +60,7 @@ func (r *GoogleCalendarInfoImpl) FindByFields(ctx context.Context, opt GoogleCal
 	return toModelGoogleCalendarInfo(entity), nil
 }
 
-func (r *GoogleCalendarInfoImpl) ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error) {
+func (r *GoogleCalendarInfoImpl) ListByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error) {
 	entities, err := r.client.GoogleCalendarInfo.Query().
 		Where(googlecalendarinfo.HasCalendarsWith(calendar.HasUserWith(user.IDEQ(userID)))).
 		All(ctx)
@@ -68,14 +68,14 @@ func (r *GoogleCalendarInfoImpl) ListByUser(ctx context.Context, userID uuid.UUI
 		return nil, err
 	}
 
-	modelsInfo := make([]*models.GoogleCalendarInfo, 0, len(entities))
+	modelsInfo := make([]*repositorymodel.GoogleCalendarInfo, 0, len(entities))
 	for _, entity := range entities {
 		modelsInfo = append(modelsInfo, toModelGoogleCalendarInfo(entity))
 	}
 	return modelsInfo, nil
 }
 
-func (r *GoogleCalendarInfoImpl) Create(ctx context.Context, opt GoogleCalendarInfoQueryOptions, calendarID uuid.UUID) (*models.GoogleCalendarInfo, error) {
+func (r *GoogleCalendarInfoImpl) Create(ctx context.Context, opt GoogleCalendarInfoQueryOptions, calendarID uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error) {
 	googleCalendarInfoCreate := r.client.GoogleCalendarInfo.Create()
 
 	entity, err := googleCalendarInfoCreate.
@@ -90,7 +90,7 @@ func (r *GoogleCalendarInfoImpl) Create(ctx context.Context, opt GoogleCalendarI
 	return toModelGoogleCalendarInfo(entity), nil
 }
 
-func (r *GoogleCalendarInfoImpl) Update(ctx context.Context, id uuid.UUID, opt GoogleCalendarInfoQueryOptions, calendarID *uuid.UUID) (*models.GoogleCalendarInfo, error) {
+func (r *GoogleCalendarInfoImpl) Update(ctx context.Context, id uuid.UUID, opt GoogleCalendarInfoQueryOptions, calendarID *uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error) {
 	googleCalendarInfoUpdate := r.client.GoogleCalendarInfo.UpdateOneID(id)
 
 	if opt.GoogleCalendarID != nil {
@@ -133,12 +133,12 @@ func (r *GoogleCalendarInfoImpl) Restore(ctx context.Context, id uuid.UUID) erro
 	return infraerr.MapNotFound(err)
 }
 
-func toModelGoogleCalendarInfo(entity *ent.GoogleCalendarInfo) *models.GoogleCalendarInfo {
+func toModelGoogleCalendarInfo(entity *ent.GoogleCalendarInfo) *repositorymodel.GoogleCalendarInfo {
 	if entity == nil {
 		return nil
 	}
 
-	return &models.GoogleCalendarInfo{
+	return &repositorymodel.GoogleCalendarInfo{
 		ID:               entity.ID,
 		GoogleCalendarID: entity.GoogleCalendarID,
 		Summary:          entity.Summary,

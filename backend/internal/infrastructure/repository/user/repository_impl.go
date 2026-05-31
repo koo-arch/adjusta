@@ -8,8 +8,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/user"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -31,7 +31,7 @@ func (r *UserRepositoryImpl) WithTx(tx transaction.Tx) UserRepository {
 	return &UserRepositoryImpl{client: tx.Client()}
 }
 
-func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*models.User, error) {
+func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*repositorymodel.User, error) {
 	userEntity, err := r.client.User.Query().
 		Where(user.IDEQ(id)).
 		Only(ctx)
@@ -41,7 +41,7 @@ func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQue
 	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*models.User, error) {
+func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*repositorymodel.User, error) {
 	userEntity, err := r.client.User.Query().
 		Where(user.EmailEQ(email)).
 		Only(ctx)
@@ -51,7 +51,7 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string, opt 
 	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) Create(ctx context.Context, email string, opt UserMutationOptions) (*models.User, error) {
+func (r *UserRepositoryImpl) Create(ctx context.Context, email string, opt UserMutationOptions) (*repositorymodel.User, error) {
 	userCreate := r.client.User.Create()
 	userCreate.SetEmail(email)
 	applyUserCreateOptions(userCreate, opt)
@@ -62,7 +62,7 @@ func (r *UserRepositoryImpl) Create(ctx context.Context, email string, opt UserM
 	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt UserMutationOptions) (*models.User, error) {
+func (r *UserRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt UserMutationOptions) (*repositorymodel.User, error) {
 	userUpdate := r.client.User.UpdateOneID(id)
 	applyUserUpdateOptions(userUpdate, opt)
 	userEntity, err := userUpdate.Save(ctx)
@@ -101,12 +101,12 @@ func applyUserUpdateOptions(update *ent.UserUpdateOne, opt UserMutationOptions) 
 	update.SetNillableAvatarURL(opt.AvatarURL)
 }
 
-func toModelUser(userEntity *ent.User) *models.User {
+func toModelUser(userEntity *ent.User) *repositorymodel.User {
 	if userEntity == nil {
 		return nil
 	}
 
-	return &models.User{
+	return &repositorymodel.User{
 		ID:        userEntity.ID,
 		Email:     userEntity.Email,
 		Name:      userEntity.Name,

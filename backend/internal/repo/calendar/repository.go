@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -23,12 +23,12 @@ type CalendarQueryOptions struct {
 
 type CalendarRepository interface {
 	WithTx(tx transaction.Tx) CalendarRepository
-	Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*models.StoredCalendar, error)
-	FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*models.StoredCalendar, error)
-	FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*models.StoredCalendar, error)
-	FilterByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) ([]*models.StoredCalendar, error)
-	Create(ctx context.Context, userID uuid.UUID) (*models.StoredCalendar, error)
-	Update(ctx context.Context, id uuid.UUID) (*models.StoredCalendar, error)
+	Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*repositorymodel.StoredCalendar, error)
+	FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error)
+	FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*repositorymodel.StoredCalendar, error)
+	FilterByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) ([]*repositorymodel.StoredCalendar, error)
+	Create(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error)
+	Update(ctx context.Context, id uuid.UUID) (*repositorymodel.StoredCalendar, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error

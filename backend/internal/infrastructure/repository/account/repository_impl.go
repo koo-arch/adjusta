@@ -7,8 +7,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	entAccount "github.com/koo-arch/adjusta-backend/ent/account"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -29,7 +29,7 @@ func (r *AccountRepositoryImpl) WithTx(tx transaction.Tx) AccountRepository {
 	return &AccountRepositoryImpl{client: tx.Client()}
 }
 
-func (r *AccountRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*models.Account, error) {
+func (r *AccountRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repositorymodel.Account, error) {
 	accountEntity, err := r.client.Account.Get(ctx, id)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
@@ -37,7 +37,7 @@ func (r *AccountRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*models
 	return toModel(accountEntity), nil
 }
 
-func (r *AccountRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID) (*models.Account, error) {
+func (r *AccountRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UUID) (*repositorymodel.Account, error) {
 	accountEntity, err := r.client.Account.Query().
 		Where(entAccount.UserIDEQ(userID)).
 		Only(ctx)
@@ -47,7 +47,7 @@ func (r *AccountRepositoryImpl) FindByUserID(ctx context.Context, userID uuid.UU
 	return toModel(accountEntity), nil
 }
 
-func (r *AccountRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, opt AccountMutationOptions) (*models.Account, error) {
+func (r *AccountRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, opt AccountMutationOptions) (*repositorymodel.Account, error) {
 	create := r.client.Account.Create()
 	create.SetUserID(userID)
 	applyAccountCreateOptions(create, opt)
@@ -58,7 +58,7 @@ func (r *AccountRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, op
 	return toModel(accountEntity), nil
 }
 
-func (r *AccountRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt AccountMutationOptions) (*models.Account, error) {
+func (r *AccountRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt AccountMutationOptions) (*repositorymodel.Account, error) {
 	update := r.client.Account.UpdateOneID(id)
 	applyAccountUpdateOptions(update, opt)
 	accountEntity, err := update.Save(ctx)
@@ -68,12 +68,12 @@ func (r *AccountRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt Ac
 	return toModel(accountEntity), nil
 }
 
-func toModel(accountEntity *ent.Account) *models.Account {
+func toModel(accountEntity *ent.Account) *repositorymodel.Account {
 	if accountEntity == nil {
 		return nil
 	}
 
-	return &models.Account{
+	return &repositorymodel.Account{
 		ID:           accountEntity.ID,
 		UserID:       accountEntity.UserID,
 		GoogleUserID: accountEntity.GoogleUserID,

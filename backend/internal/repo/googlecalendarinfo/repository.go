@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -16,11 +16,11 @@ type GoogleCalendarInfoQueryOptions struct {
 
 type GoogleCalendarInfoRepository interface {
 	WithTx(tx transaction.Tx) GoogleCalendarInfoRepository
-	Read(ctx context.Context, id uuid.UUID) (*models.GoogleCalendarInfo, error)
-	FindByFields(ctx context.Context, opt GoogleCalendarInfoQueryOptions) (*models.GoogleCalendarInfo, error)
-	ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.GoogleCalendarInfo, error)
-	Create(ctx context.Context, opt GoogleCalendarInfoQueryOptions, calendarID uuid.UUID) (*models.GoogleCalendarInfo, error)
-	Update(ctx context.Context, id uuid.UUID, opt GoogleCalendarInfoQueryOptions, calendarID *uuid.UUID) (*models.GoogleCalendarInfo, error)
+	Read(ctx context.Context, id uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error)
+	FindByFields(ctx context.Context, opt GoogleCalendarInfoQueryOptions) (*repositorymodel.GoogleCalendarInfo, error)
+	ListByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error)
+	Create(ctx context.Context, opt GoogleCalendarInfoQueryOptions, calendarID uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error)
+	Update(ctx context.Context, id uuid.UUID, opt GoogleCalendarInfoQueryOptions, calendarID *uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error
