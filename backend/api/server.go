@@ -5,15 +5,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/cache"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/models"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
 type SessionAuthenticator interface {
-	AuthenticateSession(ctx context.Context, sessionToken string) (*models.User, error)
+	AuthenticateSession(ctx context.Context, sessionToken string) (*repositorymodel.User, error)
 }
 
 type AccountProfileService interface {
@@ -30,16 +31,16 @@ type CalendarSyncService interface {
 }
 
 type EventService interface {
-	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*models.GoogleEvent, error)
-	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*models.EventDraftDetail, error)
-	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*models.EventDraftDetail, error)
-	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email, slug string) (*models.EventDraftDetail, error)
-	FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]models.UpcomingEvent, error)
-	FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]models.NeedsActionDraft, error)
-	CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftCreation) (*models.EventDraftDetail, error)
-	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *models.ConfirmEvent) error
-	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *models.EventDraftUpdate) error
-	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *models.EventDraftDetail) error
+	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleEvent, error)
+	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.EventDraftDetail, error)
+	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*appmodel.EventDraftDetail, error)
+	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email, slug string) (*appmodel.EventDraftDetail, error)
+	FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error)
+	FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error)
+	CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftCreation) (*appmodel.EventDraftDetail, error)
+	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.ConfirmEvent) error
+	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.EventDraftUpdate) error
+	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftDetail) error
 }
 
 type Dependencies struct {

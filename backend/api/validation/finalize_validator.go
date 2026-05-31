@@ -1,11 +1,11 @@
 package validation
 
 import (
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 )
 
-func FinalizeValidation(confirmEvent *models.ConfirmEvent) *internalErrors.ValidationError {
+func FinalizeValidation(confirmEvent *appmodel.ConfirmEvent) *internalErrors.ValidationError {
 	validationErrors := NewValidationErrors()
 
 	// confirm_dateのバリデーション

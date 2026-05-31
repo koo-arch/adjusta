@@ -177,6 +177,13 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - repository interface は domain/usecase 側の語彙で定義する
 - ent は infrastructure/persistence 実装に閉じ込める
 
+#### 5.2.1 エラー処理の境界
+
+- usecase / infrastructure は `gin` や `net/http` を知らず、application error を返す
+- handler / middleware は、下位層から受け取った error を HTTP に変換するとき `respond.Error` を使う
+- query / path / body / session 保存失敗など、HTTP 境界でその場で種類が決まる失敗は handler / middleware で `respond.BadRequest` などを使う
+- これにより「アプリケーション上の失敗」と「HTTP 入出力上の失敗」を分離する
+
 ### 5.3 永続化
 
 初期案として、以下のテーブル構成を目標とする。

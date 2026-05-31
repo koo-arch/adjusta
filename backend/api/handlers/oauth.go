@@ -7,10 +7,10 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/configs"
 	"github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	"github.com/koo-arch/adjusta-backend/utils"
 	"golang.org/x/oauth2"
 )
 
@@ -28,7 +28,7 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 	session.Set("oauth_state", state)
 	if err := session.Save(); err != nil {
 		log.Printf("failed to save oauth state: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "認証状態の保存に失敗しました"})
+		respond.Internal(c, "認証状態の保存に失敗しました")
 		return
 	}
 
@@ -42,20 +42,20 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 
 	authSessionUsecase := oh.handler.Server.AuthSessionUsecase
 	if err := authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
-		utils.HandleAPIError(c, err, "セッションの削除に失敗しました")
+		respond.Error(c, err, "セッションの削除に失敗しました")
 		return
 	}
 
 	session.Clear()
 	if err := session.Save(); err != nil {
 		log.Printf("failed to save cleared session: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "セッションの保存に失敗しました"})
+		respond.Internal(c, "セッションの保存に失敗しました")
 		return
 	}
 
 	cookie.DeleteCookie(c, "session")
 
-	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
+	respond.OKMessage(c, "logged out")
 }
 
 func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
@@ -65,14 +65,14 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 		code := c.Query("code")
 		if code == "" {
 			log.Printf("missing code")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "codeがありません"})
+			respond.BadRequest(c, "codeがありません")
 			return
 		}
 
 		expectedState, ok := session.Get("oauth_state").(string)
 		if !ok || expectedState == "" || state != expectedState {
 			log.Printf("invalid oauth state")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "stateが不正です"})
+			respond.BadRequest(c, "stateが不正です")
 			return
 		}
 
@@ -81,7 +81,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 		signInResult, err := authSessionUsecase.CompleteGoogleSignIn(ctx, code)
 		if err != nil {
 			log.Printf("failed to complete google sign in: %v", err)
-			utils.HandleAPIError(c, err, "ログインに失敗しました")
+			respond.Error(c, err, "ログインに失敗しました")
 			return
 		}
 
@@ -89,7 +89,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 		session.Set("session_token", signInResult.SessionToken)
 		if err := session.Save(); err != nil {
 			log.Printf("failed to save session token for account: %s, error: %v", signInResult.UserEmail, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "セッションの保存に失敗しました"})
+			respond.Internal(c, "セッションの保存に失敗しました")
 			return
 		}
 

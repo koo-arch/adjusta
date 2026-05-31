@@ -1,11 +1,11 @@
 package validation
 
 import (
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/models"
 )
 
-func CreateEventValidation(eventDraft *models.EventDraftCreation) *internalErrors.ValidationError {
+func CreateEventValidation(eventDraft *appmodel.EventDraftCreation) *internalErrors.ValidationError {
 	validationErrors := NewValidationErrors()
 
 	// 基本情報のバリデーション
@@ -33,7 +33,7 @@ func CreateEventValidation(eventDraft *models.EventDraftCreation) *internalError
 	return nil
 }
 
-func UpdateEventValidation(eventDraft *models.EventDraftUpdate) error {
+func UpdateEventValidation(eventDraft *appmodel.EventDraftUpdate) error {
 	validationErrors := NewValidationErrors()
 
 	// 基本情報のバリデーション

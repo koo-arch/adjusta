@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/utils"
+	"github.com/koo-arch/adjusta-backend/api/requestctx"
+	"github.com/koo-arch/adjusta-backend/api/respond"
 )
 
 type UserHandler struct {
@@ -18,10 +18,10 @@ func NewUserHandler(handler *Handler) *UserHandler {
 
 func (uh *UserHandler) GetCurrentUserHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userid, email, err := utils.ExtractUserIDAndEmail(c)
+		userid, email, err := requestctx.UserIDAndEmail(c)
 		if err != nil {
 			log.Printf("failed to extract user info for account: %s, %v", email, err)
-			utils.HandleAPIError(c, err, "ユーザー情報確認時にエラーが発生しました")
+			respond.Error(c, err, "ユーザー情報確認時にエラーが発生しました")
 			return
 		}
 
@@ -31,10 +31,10 @@ func (uh *UserHandler) GetCurrentUserHandler() gin.HandlerFunc {
 		userInfo, err := accountProfileUsecase.FetchGoogleProfile(ctx, userid)
 		if err != nil {
 			log.Printf("failed to fetch user info for account: %s, %v", email, err)
-			utils.HandleAPIError(c, err, "ユーザー情報取得に失敗しました")
+			respond.Error(c, err, "ユーザー情報取得に失敗しました")
 			return
 		}
 
-		c.JSON(http.StatusOK, userInfo)
+		respond.OK(c, userInfo)
 	}
 }

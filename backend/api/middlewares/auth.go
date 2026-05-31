@@ -2,10 +2,10 @@ package middlewares
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/cookie"
 )
 
@@ -23,8 +23,7 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		sessionToken, ok := session.Get("session_token").(string)
 		if !ok || sessionToken == "" {
 			am.clearSession(c)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "認証情報がありません"})
-			c.Abort()
+			respond.Unauthorized(c, "認証情報がありません")
 			return
 		}
 
@@ -35,8 +34,7 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		if err != nil {
 			log.Printf("failed to authenticate session: %v", err)
 			am.clearSession(c)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "認証に失敗しました"})
-			c.Abort()
+			respond.Unauthorized(c, "認証に失敗しました")
 			return
 		}
 
