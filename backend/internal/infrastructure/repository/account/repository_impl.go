@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	entAccount "github.com/koo-arch/adjusta-backend/ent/account"
+	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )

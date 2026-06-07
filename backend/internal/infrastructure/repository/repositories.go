@@ -2,6 +2,13 @@ package repository
 
 import (
 	"github.com/koo-arch/adjusta-backend/ent"
+	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
+	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
+	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	infraAccount "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/account"
 	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/calendar"
 	infraEvent "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/event"
@@ -9,13 +16,6 @@ import (
 	infraSession "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/session"
 	infraUser "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/user"
 	infraUserCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/usercalendar"
-	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
-	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
-	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
-	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
-	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/repo/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 

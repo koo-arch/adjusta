@@ -9,8 +9,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )

@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"golang.org/x/oauth2"

@@ -9,8 +9,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )

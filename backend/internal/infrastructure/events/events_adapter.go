@@ -6,12 +6,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
-	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/repo/proposeddate"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )

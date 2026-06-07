@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
 	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )

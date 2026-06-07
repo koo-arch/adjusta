@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
+	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	repoAccount "github.com/koo-arch/adjusta-backend/internal/repo/account"
-	repoSession "github.com/koo-arch/adjusta-backend/internal/repo/session"
-	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
 	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 )

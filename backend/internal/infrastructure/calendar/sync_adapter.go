@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
+	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
-	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/repo/usercalendar"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 )
