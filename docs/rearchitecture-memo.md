@@ -30,8 +30,8 @@
 | 認証方式 | Google OAuth を用い、自前 JWT は原則持たない。認証状態はセッションまたは OAuth ベースで管理する | バックエンドで独自 JWT を発行し、フロントエンドは `access_token` cookie を見て画面遷移を制御している | 認証基盤、middleware、cookie 設計、API 認可方式を見直す必要がある |
 | User モデル | `users` は Adjusta 利用者の基本情報のみを保持し、Google アカウント識別情報と token は `accounts` で管理する | `users` に `refresh_token` と `refresh_token_expiry` を保持している | User と Token の責務が混在しており、モデル再定義が必要 |
 | OAuth トークン管理 | Google Calendar API 用トークンを安全に保存する | `OAuthToken` テーブルと `users.refresh_token` が併存している | `accounts` に集約する前提でトークン保存先の正規化が必要 |
-| カレンダーの関係 | `users` と `calendars` は `user_calendars` を介した多対多 | 現行スキーマは `User -> Calendar` の 1 対多に近い構造で、`user_calendars` が存在しない | 共有カレンダー、用途別カレンダー、メインカレンダー管理の前提を満たせない |
-| カレンダー属性の置き場所 | `calendars` が `google_calendar_id`、`summary`、`description`、`timezone` を持つ | `google_calendar_id` と `is_primary` が `google_calendar_infos` にあり、`calendars` は実質 ID のみ | カレンダー集約の設計を見直す必要がある |
+| カレンダーの関係 | `users` と `calendars` は `user_calendars` を介した多対多 | `user_calendars` を導入し、`users` と `calendars` の関係は docs に沿った多対多へ移行済み | この差分は概ね解消済み。今後は `user_calendars.role` を前提に用途別ロジックを整理する |
+| カレンダー属性の置き場所 | `calendars` が `google_calendar_id`、`summary`、`description`、`timezone` を持つ | `calendars` に Google Calendar 情報を集約し、`google_calendar_infos` は廃止済み | この差分は解消済み。以後 `googlecalendarinfo` を正本として扱わない |
 | Event 所有者と登録先 | `events` は `user_id`、`primary_calendar_id`、`confirmed_date_id` を持つ | 現行は `calendar` エッジ中心で、`user_id` と `primary_calendar_id` を直接持たない | イベントの所有権、登録先カレンダー、認可判定が曖昧 |
 | 確定予定の Google Event ID | 要件書では `Event.confirmed_google_event_id` の保持を想定している | 現行 `events.google_event_id` の意味が候補予定か確定予定か曖昧 | Google Calendar との同期対象が曖昧になりやすい |
 | ProposedDate の状態 | `proposed_dates` は `google_event_id`、`status`、`priority` を持ち、`status` は `active` / `confirmed` / `not_selected` / `cancelled` を取る | 現行は `start_time`、`end_time`、`priority` のみで、`status` と `google_event_id` がない | 候補、確定、非選択、取り下げなどの状態管理ができない |
@@ -125,6 +125,13 @@
 | `primary` | 確定予定の登録先 |
 | `adjusta_candidate` | 候補予定の登録先 |
 | `reference` | 空き時間判定の参照先 |
+
+#### 4.2.1 Google Calendar 情報の正本
+
+- Google Calendar の識別子とメタデータは `calendars` に保持する
+- ユーザーごとの用途や表示設定は `user_calendars` に保持する
+- `googlecalendarinfo` / `google_calendar_infos` は旧設計の名残として扱い、再設計後の正本には含めない
+- `is_primary` のようなユーザー依存の意味は、`user_calendars.role = primary` に統一する
 
 ### 4.3 ProposedDate の状態語彙
 

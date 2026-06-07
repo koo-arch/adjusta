@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
-	repoGoogleCalendarInfo "github.com/koo-arch/adjusta-backend/internal/repo/googlecalendarinfo"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/repo/user"
+	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/repo/usercalendar"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 )
@@ -44,38 +45,42 @@ type calendarSyncStore struct {
 
 func (s *calendarSyncStore) FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repositorymodel.StoredCalendar, error) {
 	return s.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
-		WithGoogleCalendarInfo: true,
-		GoogleCalendarID:       &googleCalendarID,
-	})
-}
-
-func (s *calendarSyncStore) CreateCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
-	return s.repos.Calendar.Create(ctx, userID)
-}
-
-func (s *calendarSyncStore) FindGoogleCalendarInfoByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.GoogleCalendarInfo, error) {
-	return s.repos.GoogleCalendarInfo.FindByFields(ctx, repoGoogleCalendarInfo.GoogleCalendarInfoQueryOptions{
 		GoogleCalendarID: &googleCalendarID,
 	})
 }
 
-func (s *calendarSyncStore) CreateGoogleCalendarInfo(ctx context.Context, googleCalendarID, summary string, isPrimary bool, calendarID uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error) {
-	return s.repos.GoogleCalendarInfo.Create(ctx, repoGoogleCalendarInfo.GoogleCalendarInfoQueryOptions{
+func (s *calendarSyncStore) FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.StoredCalendar, error) {
+	return s.repos.Calendar.FindByGoogleCalendarID(ctx, googleCalendarID)
+}
+
+func (s *calendarSyncStore) CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error) {
+	return s.repos.Calendar.Create(ctx, repoCalendar.CalendarMutationOptions{
 		GoogleCalendarID: &googleCalendarID,
 		Summary:          &summary,
-		IsPrimary:        &isPrimary,
-	}, calendarID)
+	})
 }
 
-func (s *calendarSyncStore) LinkGoogleCalendarInfoToCalendar(ctx context.Context, googleCalendarInfoID, calendarID uuid.UUID) error {
-	_, err := s.repos.GoogleCalendarInfo.Update(ctx, googleCalendarInfoID, repoGoogleCalendarInfo.GoogleCalendarInfoQueryOptions{}, &calendarID)
-	return err
+func (s *calendarSyncStore) UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error) {
+	return s.repos.Calendar.Update(ctx, id, repoCalendar.CalendarMutationOptions{
+		GoogleCalendarID: &googleCalendarID,
+		Summary:          &summary,
+	})
 }
 
-func (s *calendarSyncStore) ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error) {
-	return s.repos.GoogleCalendarInfo.ListByUser(ctx, userID)
+func (s *calendarSyncStore) EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repositorymodel.UserCalendar, error) {
+	isVisible := true
+	syncProposedDates := role == domainvalue.UserCalendarRoleAdjustaCandidate
+	return s.repos.UserCalendar.Ensure(ctx, userID, calendarID, repoUserCalendar.UserCalendarQueryOptions{
+		Role:              &role,
+		IsVisible:         &isVisible,
+		SyncProposedDates: &syncProposedDates,
+	})
 }
 
-func (s *calendarSyncStore) SoftDeleteGoogleCalendarInfo(ctx context.Context, id uuid.UUID) error {
-	return s.repos.GoogleCalendarInfo.SoftDelete(ctx, id)
+func (s *calendarSyncStore) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error) {
+	return s.repos.Calendar.FilterByUserID(ctx, userID)
+}
+
+func (s *calendarSyncStore) SoftDeleteUserCalendar(ctx context.Context, userID, calendarID uuid.UUID) error {
+	return s.repos.UserCalendar.SoftDeleteByUserAndCalendar(ctx, userID, calendarID)
 }

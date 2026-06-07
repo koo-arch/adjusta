@@ -431,29 +431,6 @@ func AvatarURLContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldAvatarURL, v))
 }
 
-// HasCalendars applies the HasEdge predicate on the "calendars" edge.
-func HasCalendars() predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, CalendarsTable, CalendarsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCalendarsWith applies the HasEdge predicate on the "calendars" edge with a given conditions (other predicates).
-func HasCalendarsWith(preds ...predicate.Calendar) predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		step := newCalendarsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasAccount applies the HasEdge predicate on the "account" edge.
 func HasAccount() predicate.User {
 	return predicate.User(func(s *sql.Selector) {

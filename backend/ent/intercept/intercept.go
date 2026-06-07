@@ -11,7 +11,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/session"
@@ -156,33 +155,6 @@ func (f TraverseEvent) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.EventQuery", q)
 }
 
-// The GoogleCalendarInfoFunc type is an adapter to allow the use of ordinary function as a Querier.
-type GoogleCalendarInfoFunc func(context.Context, *ent.GoogleCalendarInfoQuery) (ent.Value, error)
-
-// Query calls f(ctx, q).
-func (f GoogleCalendarInfoFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
-	if q, ok := q.(*ent.GoogleCalendarInfoQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *ent.GoogleCalendarInfoQuery", q)
-}
-
-// The TraverseGoogleCalendarInfo type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseGoogleCalendarInfo func(context.Context, *ent.GoogleCalendarInfoQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseGoogleCalendarInfo) Intercept(next ent.Querier) ent.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseGoogleCalendarInfo) Traverse(ctx context.Context, q ent.Query) error {
-	if q, ok := q.(*ent.GoogleCalendarInfoQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *ent.GoogleCalendarInfoQuery", q)
-}
-
 // The ProposedDateFunc type is an adapter to allow the use of ordinary function as a Querier.
 type ProposedDateFunc func(context.Context, *ent.ProposedDateQuery) (ent.Value, error)
 
@@ -300,8 +272,6 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.CalendarQuery, predicate.Calendar, calendar.OrderOption]{typ: ent.TypeCalendar, tq: q}, nil
 	case *ent.EventQuery:
 		return &query[*ent.EventQuery, predicate.Event, event.OrderOption]{typ: ent.TypeEvent, tq: q}, nil
-	case *ent.GoogleCalendarInfoQuery:
-		return &query[*ent.GoogleCalendarInfoQuery, predicate.GoogleCalendarInfo, googlecalendarinfo.OrderOption]{typ: ent.TypeGoogleCalendarInfo, tq: q}, nil
 	case *ent.ProposedDateQuery:
 		return &query[*ent.ProposedDateQuery, predicate.ProposedDate, proposeddate.OrderOption]{typ: ent.TypeProposedDate, tq: q}, nil
 	case *ent.SessionQuery:

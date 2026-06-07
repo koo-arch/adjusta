@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
-	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 // Calendar is the model entity for the Calendar schema.
@@ -35,17 +34,12 @@ type Calendar struct {
 	Timezone *string `json:"timezone,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CalendarQuery when eager-loading is set.
-	Edges          CalendarEdges `json:"edges"`
-	user_calendars *uuid.UUID
-	selectValues   sql.SelectValues
+	Edges        CalendarEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // CalendarEdges holds the relations/edges for other nodes in the graph.
 type CalendarEdges struct {
-	// User holds the value of the user edge.
-	User *User `json:"user,omitempty"`
-	// GoogleCalendarInfos holds the value of the google_calendar_infos edge.
-	GoogleCalendarInfos []*GoogleCalendarInfo `json:"google_calendar_infos,omitempty"`
 	// Events holds the value of the events edge.
 	Events []*Event `json:"events,omitempty"`
 	// UserCalendars holds the value of the user_calendars edge.
@@ -54,33 +48,13 @@ type CalendarEdges struct {
 	PrimaryEvents []*Event `json:"primary_events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
-}
-
-// UserOrErr returns the User value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e CalendarEdges) UserOrErr() (*User, error) {
-	if e.User != nil {
-		return e.User, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: user.Label}
-	}
-	return nil, &NotLoadedError{edge: "user"}
-}
-
-// GoogleCalendarInfosOrErr returns the GoogleCalendarInfos value or an error if the edge
-// was not loaded in eager-loading.
-func (e CalendarEdges) GoogleCalendarInfosOrErr() ([]*GoogleCalendarInfo, error) {
-	if e.loadedTypes[1] {
-		return e.GoogleCalendarInfos, nil
-	}
-	return nil, &NotLoadedError{edge: "google_calendar_infos"}
+	loadedTypes [3]bool
 }
 
 // EventsOrErr returns the Events value or an error if the edge
 // was not loaded in eager-loading.
 func (e CalendarEdges) EventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[0] {
 		return e.Events, nil
 	}
 	return nil, &NotLoadedError{edge: "events"}
@@ -89,7 +63,7 @@ func (e CalendarEdges) EventsOrErr() ([]*Event, error) {
 // UserCalendarsOrErr returns the UserCalendars value or an error if the edge
 // was not loaded in eager-loading.
 func (e CalendarEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[1] {
 		return e.UserCalendars, nil
 	}
 	return nil, &NotLoadedError{edge: "user_calendars"}
@@ -98,7 +72,7 @@ func (e CalendarEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
 // PrimaryEventsOrErr returns the PrimaryEvents value or an error if the edge
 // was not loaded in eager-loading.
 func (e CalendarEdges) PrimaryEventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[2] {
 		return e.PrimaryEvents, nil
 	}
 	return nil, &NotLoadedError{edge: "primary_events"}
@@ -115,8 +89,6 @@ func (*Calendar) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case calendar.FieldID:
 			values[i] = new(uuid.UUID)
-		case calendar.ForeignKeys[0]: // user_calendars
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -185,13 +157,6 @@ func (c *Calendar) assignValues(columns []string, values []any) error {
 				c.Timezone = new(string)
 				*c.Timezone = value.String
 			}
-		case calendar.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field user_calendars", values[i])
-			} else if value.Valid {
-				c.user_calendars = new(uuid.UUID)
-				*c.user_calendars = *value.S.(*uuid.UUID)
-			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
 		}
@@ -203,16 +168,6 @@ func (c *Calendar) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (c *Calendar) Value(name string) (ent.Value, error) {
 	return c.selectValues.Get(name)
-}
-
-// QueryUser queries the "user" edge of the Calendar entity.
-func (c *Calendar) QueryUser() *UserQuery {
-	return NewCalendarClient(c.config).QueryUser(c)
-}
-
-// QueryGoogleCalendarInfos queries the "google_calendar_infos" edge of the Calendar entity.
-func (c *Calendar) QueryGoogleCalendarInfos() *GoogleCalendarInfoQuery {
-	return NewCalendarClient(c.config).QueryGoogleCalendarInfos(c)
 }
 
 // QueryEvents queries the "events" edge of the Calendar entity.

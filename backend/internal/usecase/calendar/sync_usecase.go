@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -81,40 +82,42 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCale
 					return fmt.Errorf("failed to find calendar: %w", err)
 				}
 
-				storedCalendar, err = store.CreateCalendar(ctx, entUser.ID)
+				storedCalendar, err = store.FindAnyCalendarByGoogleCalendarID(ctx, cal.CalendarID)
 				if err != nil {
-					return fmt.Errorf("failed to create calendar: %w", err)
+					if !repoerr.IsNotFound(err) {
+						return fmt.Errorf("failed to find global calendar: %w", err)
+					}
+
+					storedCalendar, err = store.CreateCalendar(ctx, cal.CalendarID, cal.Summary)
+					if err != nil {
+						return fmt.Errorf("failed to create calendar: %w", err)
+					}
 				}
 			}
 
-			entGoogleCalendar, err := store.FindGoogleCalendarInfoByGoogleCalendarID(ctx, cal.CalendarID)
+			_, err = store.UpdateCalendar(ctx, storedCalendar.ID, cal.CalendarID, cal.Summary)
 			if err != nil {
-				if !repoerr.IsNotFound(err) {
-					return fmt.Errorf("failed to find google calendar info: %w", err)
-				}
-
-				_, err := store.CreateGoogleCalendarInfo(ctx, cal.CalendarID, cal.Summary, cal.Primary, storedCalendar.ID)
-				if err != nil {
-					return fmt.Errorf("failed to create google calendar info: %w", err)
-				}
+				return fmt.Errorf("failed to update calendar: %w", err)
 			}
 
-			if entGoogleCalendar != nil {
-				if err := store.LinkGoogleCalendarInfoToCalendar(ctx, entGoogleCalendar.ID, storedCalendar.ID); err != nil {
-					return fmt.Errorf("failed to update google calendar info: %w", err)
-				}
+			role := domainvalue.UserCalendarRoleReference
+			if cal.Primary {
+				role = domainvalue.UserCalendarRolePrimary
+			}
+			if _, err := store.EnsureUserCalendar(ctx, entUser.ID, storedCalendar.ID, role); err != nil {
+				return fmt.Errorf("failed to ensure user calendar relation: %w", err)
 			}
 		}
 
-		dbInfos, err := store.ListGoogleCalendarInfosByUser(ctx, entUser.ID)
+		dbCalendars, err := store.ListCalendarsByUser(ctx, entUser.ID)
 		if err != nil {
-			return fmt.Errorf("failed to list google calendar info: %w", err)
+			return fmt.Errorf("failed to list calendars: %w", err)
 		}
 
-		for _, dbInfo := range dbInfos {
-			if _, ok := incoming[dbInfo.GoogleCalendarID]; !ok {
-				if err := store.SoftDeleteGoogleCalendarInfo(ctx, dbInfo.ID); err != nil {
-					return fmt.Errorf("failed to soft delete google calendar info: %w", err)
+		for _, dbCalendar := range dbCalendars {
+			if _, ok := incoming[dbCalendar.GoogleCalendarID]; !ok {
+				if err := store.SoftDeleteUserCalendar(ctx, entUser.ID, dbCalendar.ID); err != nil {
+					return fmt.Errorf("failed to soft delete user calendar relation: %w", err)
 				}
 			}
 		}

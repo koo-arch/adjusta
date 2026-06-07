@@ -13,8 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/ent/user"
 	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
@@ -135,40 +133,6 @@ func (cc *CalendarCreate) SetNillableID(u *uuid.UUID) *CalendarCreate {
 		cc.SetID(*u)
 	}
 	return cc
-}
-
-// SetUserID sets the "user" edge to the User entity by ID.
-func (cc *CalendarCreate) SetUserID(id uuid.UUID) *CalendarCreate {
-	cc.mutation.SetUserID(id)
-	return cc
-}
-
-// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
-func (cc *CalendarCreate) SetNillableUserID(id *uuid.UUID) *CalendarCreate {
-	if id != nil {
-		cc = cc.SetUserID(*id)
-	}
-	return cc
-}
-
-// SetUser sets the "user" edge to the User entity.
-func (cc *CalendarCreate) SetUser(u *User) *CalendarCreate {
-	return cc.SetUserID(u.ID)
-}
-
-// AddGoogleCalendarInfoIDs adds the "google_calendar_infos" edge to the GoogleCalendarInfo entity by IDs.
-func (cc *CalendarCreate) AddGoogleCalendarInfoIDs(ids ...uuid.UUID) *CalendarCreate {
-	cc.mutation.AddGoogleCalendarInfoIDs(ids...)
-	return cc
-}
-
-// AddGoogleCalendarInfos adds the "google_calendar_infos" edges to the GoogleCalendarInfo entity.
-func (cc *CalendarCreate) AddGoogleCalendarInfos(g ...*GoogleCalendarInfo) *CalendarCreate {
-	ids := make([]uuid.UUID, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
-	}
-	return cc.AddGoogleCalendarInfoIDs(ids...)
 }
 
 // AddEventIDs adds the "events" edge to the Event entity by IDs.
@@ -335,39 +299,6 @@ func (cc *CalendarCreate) createSpec() (*Calendar, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.Timezone(); ok {
 		_spec.SetField(calendar.FieldTimezone, field.TypeString, value)
 		_node.Timezone = &value
-	}
-	if nodes := cc.mutation.UserIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   calendar.UserTable,
-			Columns: []string{calendar.UserColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.user_calendars = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := cc.mutation.GoogleCalendarInfosIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   calendar.GoogleCalendarInfosTable,
-			Columns: calendar.GoogleCalendarInfosPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(googlecalendarinfo.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := cc.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

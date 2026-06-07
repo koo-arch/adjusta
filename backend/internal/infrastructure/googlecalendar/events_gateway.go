@@ -24,7 +24,7 @@ func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, cale
 	}
 }
 
-func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.GoogleCalendarInfo, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
+func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
 	calendarService, err := g.newCalendarService(ctx, userID)
 	if err != nil {
 		return nil, err

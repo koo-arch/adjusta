@@ -9,7 +9,7 @@ import (
 	dbCalendar "github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
-	"github.com/koo-arch/adjusta-backend/ent/user"
+	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/repo/event"
@@ -91,7 +91,7 @@ func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid
 	entity, err := query.
 		Where(
 			event.SlugEQ(slug),
-			event.HasCalendarWith(dbCalendar.HasUserWith(user.IDEQ(userID))),
+			event.HasCalendarWith(dbCalendar.HasUserCalendarsWith(dbUserCalendar.UserIDEQ(userID))),
 		).
 		Only(ctx)
 	if err != nil {

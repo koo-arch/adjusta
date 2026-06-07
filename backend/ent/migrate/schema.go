@@ -45,21 +45,12 @@ var (
 		{Name: "summary", Type: field.TypeString, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "timezone", Type: field.TypeString, Nullable: true},
-		{Name: "user_calendars", Type: field.TypeUUID, Nullable: true},
 	}
 	// CalendarsTable holds the schema information for the "calendars" table.
 	CalendarsTable = &schema.Table{
 		Name:       "calendars",
 		Columns:    CalendarsColumns,
 		PrimaryKey: []*schema.Column{CalendarsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "calendars_users_calendars",
-				Columns:    []*schema.Column{CalendarsColumns[8]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
 	}
 	// EventsColumns holds the columns for the "events" table.
 	EventsColumns = []*schema.Column{
@@ -141,22 +132,6 @@ var (
 				Columns: []*schema.Column{EventsColumns[11]},
 			},
 		},
-	}
-	// GoogleCalendarInfosColumns holds the columns for the "google_calendar_infos" table.
-	GoogleCalendarInfosColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "google_calendar_id", Type: field.TypeString, Unique: true},
-		{Name: "summary", Type: field.TypeString, Nullable: true},
-		{Name: "is_primary", Type: field.TypeBool, Default: false},
-	}
-	// GoogleCalendarInfosTable holds the schema information for the "google_calendar_infos" table.
-	GoogleCalendarInfosTable = &schema.Table{
-		Name:       "google_calendar_infos",
-		Columns:    GoogleCalendarInfosColumns,
-		PrimaryKey: []*schema.Column{GoogleCalendarInfosColumns[0]},
 	}
 	// ProposedDatesColumns holds the columns for the "proposed_dates" table.
 	ProposedDatesColumns = []*schema.Column{
@@ -331,48 +306,20 @@ var (
 			},
 		},
 	}
-	// CalendarGoogleCalendarInfosColumns holds the columns for the "calendar_google_calendar_infos" table.
-	CalendarGoogleCalendarInfosColumns = []*schema.Column{
-		{Name: "calendar_id", Type: field.TypeUUID},
-		{Name: "google_calendar_info_id", Type: field.TypeUUID},
-	}
-	// CalendarGoogleCalendarInfosTable holds the schema information for the "calendar_google_calendar_infos" table.
-	CalendarGoogleCalendarInfosTable = &schema.Table{
-		Name:       "calendar_google_calendar_infos",
-		Columns:    CalendarGoogleCalendarInfosColumns,
-		PrimaryKey: []*schema.Column{CalendarGoogleCalendarInfosColumns[0], CalendarGoogleCalendarInfosColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "calendar_google_calendar_infos_calendar_id",
-				Columns:    []*schema.Column{CalendarGoogleCalendarInfosColumns[0]},
-				RefColumns: []*schema.Column{CalendarsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "calendar_google_calendar_infos_google_calendar_info_id",
-				Columns:    []*schema.Column{CalendarGoogleCalendarInfosColumns[1]},
-				RefColumns: []*schema.Column{GoogleCalendarInfosColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AccountsTable,
 		CalendarsTable,
 		EventsTable,
-		GoogleCalendarInfosTable,
 		ProposedDatesTable,
 		SessionsTable,
 		UsersTable,
 		UserCalendarsTable,
-		CalendarGoogleCalendarInfosTable,
 	}
 )
 
 func init() {
 	AccountsTable.ForeignKeys[0].RefTable = UsersTable
-	CalendarsTable.ForeignKeys[0].RefTable = UsersTable
 	EventsTable.ForeignKeys[0].RefTable = CalendarsTable
 	EventsTable.ForeignKeys[1].RefTable = CalendarsTable
 	EventsTable.ForeignKeys[2].RefTable = ProposedDatesTable
@@ -381,6 +328,4 @@ func init() {
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	UserCalendarsTable.ForeignKeys[0].RefTable = CalendarsTable
 	UserCalendarsTable.ForeignKeys[1].RefTable = UsersTable
-	CalendarGoogleCalendarInfosTable.ForeignKeys[0].RefTable = CalendarsTable
-	CalendarGoogleCalendarInfosTable.ForeignKeys[1].RefTable = GoogleCalendarInfosTable
 }

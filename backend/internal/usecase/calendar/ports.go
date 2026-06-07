@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
@@ -39,12 +40,12 @@ func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *appmodel.Goo
 
 type SyncStore interface {
 	FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repositorymodel.StoredCalendar, error)
-	CreateCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error)
-	FindGoogleCalendarInfoByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.GoogleCalendarInfo, error)
-	CreateGoogleCalendarInfo(ctx context.Context, googleCalendarID, summary string, isPrimary bool, calendarID uuid.UUID) (*repositorymodel.GoogleCalendarInfo, error)
-	LinkGoogleCalendarInfoToCalendar(ctx context.Context, googleCalendarInfoID, calendarID uuid.UUID) error
-	ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error)
-	SoftDeleteGoogleCalendarInfo(ctx context.Context, id uuid.UUID) error
+	FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.StoredCalendar, error)
+	CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error)
+	UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error)
+	EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repositorymodel.UserCalendar, error)
+	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error)
+	SoftDeleteUserCalendar(ctx context.Context, userID, calendarID uuid.UUID) error
 }
 
 type SyncTransaction interface {

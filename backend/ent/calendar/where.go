@@ -521,52 +521,6 @@ func TimezoneContainsFold(v string) predicate.Calendar {
 	return predicate.Calendar(sql.FieldContainsFold(FieldTimezone, v))
 }
 
-// HasUser applies the HasEdge predicate on the "user" edge.
-func HasUser() predicate.Calendar {
-	return predicate.Calendar(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
-func HasUserWith(preds ...predicate.User) predicate.Calendar {
-	return predicate.Calendar(func(s *sql.Selector) {
-		step := newUserStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasGoogleCalendarInfos applies the HasEdge predicate on the "google_calendar_infos" edge.
-func HasGoogleCalendarInfos() predicate.Calendar {
-	return predicate.Calendar(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, GoogleCalendarInfosTable, GoogleCalendarInfosPrimaryKey...),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasGoogleCalendarInfosWith applies the HasEdge predicate on the "google_calendar_infos" edge with a given conditions (other predicates).
-func HasGoogleCalendarInfosWith(preds ...predicate.GoogleCalendarInfo) predicate.Calendar {
-	return predicate.Calendar(func(s *sql.Selector) {
-		step := newGoogleCalendarInfosStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasEvents applies the HasEdge predicate on the "events" edge.
 func HasEvents() predicate.Calendar {
 	return predicate.Calendar(func(s *sql.Selector) {

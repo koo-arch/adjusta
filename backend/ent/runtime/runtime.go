@@ -9,7 +9,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/ent/schema"
 	"github.com/koo-arch/adjusta-backend/ent/session"
@@ -88,35 +87,6 @@ func init() {
 	eventDescID := eventFields[0].Descriptor()
 	// event.DefaultID holds the default value on creation for the id field.
 	event.DefaultID = eventDescID.Default.(func() uuid.UUID)
-	googlecalendarinfoMixin := schema.GoogleCalendarInfo{}.Mixin()
-	googlecalendarinfoMixinInters1 := googlecalendarinfoMixin[1].Interceptors()
-	googlecalendarinfo.Interceptors[0] = googlecalendarinfoMixinInters1[0]
-	googlecalendarinfoMixinFields0 := googlecalendarinfoMixin[0].Fields()
-	_ = googlecalendarinfoMixinFields0
-	googlecalendarinfoFields := schema.GoogleCalendarInfo{}.Fields()
-	_ = googlecalendarinfoFields
-	// googlecalendarinfoDescCreatedAt is the schema descriptor for created_at field.
-	googlecalendarinfoDescCreatedAt := googlecalendarinfoMixinFields0[0].Descriptor()
-	// googlecalendarinfo.DefaultCreatedAt holds the default value on creation for the created_at field.
-	googlecalendarinfo.DefaultCreatedAt = googlecalendarinfoDescCreatedAt.Default.(func() time.Time)
-	// googlecalendarinfoDescUpdatedAt is the schema descriptor for updated_at field.
-	googlecalendarinfoDescUpdatedAt := googlecalendarinfoMixinFields0[1].Descriptor()
-	// googlecalendarinfo.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	googlecalendarinfo.DefaultUpdatedAt = googlecalendarinfoDescUpdatedAt.Default.(func() time.Time)
-	// googlecalendarinfo.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	googlecalendarinfo.UpdateDefaultUpdatedAt = googlecalendarinfoDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// googlecalendarinfoDescGoogleCalendarID is the schema descriptor for google_calendar_id field.
-	googlecalendarinfoDescGoogleCalendarID := googlecalendarinfoFields[1].Descriptor()
-	// googlecalendarinfo.GoogleCalendarIDValidator is a validator for the "google_calendar_id" field. It is called by the builders before save.
-	googlecalendarinfo.GoogleCalendarIDValidator = googlecalendarinfoDescGoogleCalendarID.Validators[0].(func(string) error)
-	// googlecalendarinfoDescIsPrimary is the schema descriptor for is_primary field.
-	googlecalendarinfoDescIsPrimary := googlecalendarinfoFields[3].Descriptor()
-	// googlecalendarinfo.DefaultIsPrimary holds the default value on creation for the is_primary field.
-	googlecalendarinfo.DefaultIsPrimary = googlecalendarinfoDescIsPrimary.Default.(bool)
-	// googlecalendarinfoDescID is the schema descriptor for id field.
-	googlecalendarinfoDescID := googlecalendarinfoFields[0].Descriptor()
-	// googlecalendarinfo.DefaultID holds the default value on creation for the id field.
-	googlecalendarinfo.DefaultID = googlecalendarinfoDescID.Default.(func() uuid.UUID)
 	proposeddateMixin := schema.ProposedDate{}.Mixin()
 	proposeddateHooks := schema.ProposedDate{}.Hooks()
 	proposeddate.Hooks[0] = proposeddateHooks[0]

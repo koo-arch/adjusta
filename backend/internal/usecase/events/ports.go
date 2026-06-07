@@ -20,7 +20,7 @@ type PrimaryCalendarFinder interface {
 
 type EventReader interface {
 	PrimaryCalendarFinder
-	ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error)
+	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error)
 	SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*repositorymodel.StoredEvent, error)
 	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error)
 }
@@ -79,6 +79,6 @@ type GoogleEventFetchResult struct {
 }
 
 type GoogleCalendarGateway interface {
-	FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.GoogleCalendarInfo, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
+	FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
 	UpsertEvent(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
 }

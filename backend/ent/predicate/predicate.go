@@ -15,9 +15,6 @@ type Calendar func(*sql.Selector)
 // Event is the predicate function for event builders.
 type Event func(*sql.Selector)
 
-// GoogleCalendarInfo is the predicate function for googlecalendarinfo builders.
-type GoogleCalendarInfo func(*sql.Selector)
-
 // ProposedDate is the predicate function for proposeddate builders.
 type ProposedDate func(*sql.Selector)
 

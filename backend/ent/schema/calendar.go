@@ -28,8 +28,6 @@ func (Calendar) Fields() []ent.Field {
 // Edges of the Calendar.
 func (Calendar) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", User.Type).Ref("calendars").Unique(),
-		edge.To("google_calendar_infos", GoogleCalendarInfo.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("events", Event.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("user_calendars", UserCalendar.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("primary_events", Event.Type).Annotations(entsql.OnDelete(entsql.Cascade)),

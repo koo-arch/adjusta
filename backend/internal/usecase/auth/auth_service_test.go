@@ -1,0 +1,238 @@
+package auth
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/repoerr"
+	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
+)
+
+type fakeSignInReader struct {
+	findUserByEmailFn     func(ctx context.Context, email string) (*repositorymodel.User, error)
+	findAccountByUserIDFn func(ctx context.Context, userID uuid.UUID) (*repositorymodel.Account, error)
+}
+
+func (f *fakeSignInReader) FindUserByEmail(ctx context.Context, email string) (*repositorymodel.User, error) {
+	return f.findUserByEmailFn(ctx, email)
+}
+
+func (f *fakeSignInReader) FindAccountByUserID(ctx context.Context, userID uuid.UUID) (*repositorymodel.Account, error) {
+	return f.findAccountByUserIDFn(ctx, userID)
+}
+
+type fakeSignInStore struct {
+	createUserFn    func(ctx context.Context, email string, opt UserMutation) (*repositorymodel.User, error)
+	updateUserFn    func(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repositorymodel.User, error)
+	createAccountFn func(ctx context.Context, userID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error)
+	updateAccountFn func(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error)
+}
+
+func (f *fakeSignInStore) CreateUser(ctx context.Context, email string, opt UserMutation) (*repositorymodel.User, error) {
+	return f.createUserFn(ctx, email, opt)
+}
+
+func (f *fakeSignInStore) UpdateUser(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repositorymodel.User, error) {
+	return f.updateUserFn(ctx, userID, opt)
+}
+
+func (f *fakeSignInStore) CreateAccount(ctx context.Context, userID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error) {
+	return f.createAccountFn(ctx, userID, opt)
+}
+
+func (f *fakeSignInStore) UpdateAccount(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error) {
+	return f.updateAccountFn(ctx, accountID, opt)
+}
+
+type fakeSignInTransaction struct {
+	store  SignInStore
+	called bool
+}
+
+func (f *fakeSignInTransaction) Do(ctx context.Context, fn func(store SignInStore) error) error {
+	f.called = true
+	return fn(f.store)
+}
+
+type fakeSessionStore struct {
+	createSessionFn        func(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repositorymodel.Session, error)
+	findSessionByTokenFn   func(ctx context.Context, sessionToken string, withUser bool) (*repositorymodel.Session, error)
+	updateSessionExpiryFn  func(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*repositorymodel.Session, error)
+	deleteSessionByTokenFn func(ctx context.Context, sessionToken string) error
+}
+
+func (f *fakeSessionStore) CreateSession(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repositorymodel.Session, error) {
+	return f.createSessionFn(ctx, userID, sessionToken, expiresAt)
+}
+
+func (f *fakeSessionStore) FindSessionByToken(ctx context.Context, sessionToken string, withUser bool) (*repositorymodel.Session, error) {
+	return f.findSessionByTokenFn(ctx, sessionToken, withUser)
+}
+
+func (f *fakeSessionStore) UpdateSessionExpiry(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*repositorymodel.Session, error) {
+	return f.updateSessionExpiryFn(ctx, sessionID, expiresAt)
+}
+
+func (f *fakeSessionStore) DeleteSessionByToken(ctx context.Context, sessionToken string) error {
+	return f.deleteSessionByTokenFn(ctx, sessionToken)
+}
+
+func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	scope := "openid email profile"
+	expiry := time.Now().Add(time.Hour).UTC()
+	profile := &appmodel.GoogleUserProfile{
+		GoogleID: "google-user-id",
+		Email:    "user@example.com",
+		Name:     "Adjusta User",
+		Picture:  "https://example.com/avatar.png",
+	}
+	token := &appmodel.GoogleAuthToken{
+		AccessToken:  "access-token",
+		TokenType:    "Bearer",
+		RefreshToken: "refresh-token",
+		Expiry:       expiry,
+		Scope:        &scope,
+	}
+
+	var createUserCalled bool
+	var createAccountCalled bool
+
+	tx := &fakeSignInTransaction{
+		store: &fakeSignInStore{
+			createUserFn: func(ctx context.Context, email string, opt UserMutation) (*repositorymodel.User, error) {
+				createUserCalled = true
+				if email != profile.Email {
+					t.Fatalf("unexpected email: %s", email)
+				}
+				if opt.Name == nil || *opt.Name != profile.Name {
+					t.Fatalf("unexpected user name mutation: %#v", opt.Name)
+				}
+				if opt.AvatarURL == nil || *opt.AvatarURL != profile.Picture {
+					t.Fatalf("unexpected avatar mutation: %#v", opt.AvatarURL)
+				}
+				return &repositorymodel.User{
+					ID:    userID,
+					Email: email,
+					Name:  opt.Name,
+				}, nil
+			},
+			updateUserFn: func(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repositorymodel.User, error) {
+				t.Fatalf("update user should not be called")
+				return nil, nil
+			},
+			createAccountFn: func(ctx context.Context, gotUserID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error) {
+				createAccountCalled = true
+				if gotUserID != userID {
+					t.Fatalf("unexpected user id: %s", gotUserID)
+				}
+				if opt.GoogleUserID == nil || *opt.GoogleUserID != profile.GoogleID {
+					t.Fatalf("unexpected google user id mutation: %#v", opt.GoogleUserID)
+				}
+				if opt.AccessToken == nil || *opt.AccessToken != token.AccessToken {
+					t.Fatalf("unexpected access token mutation: %#v", opt.AccessToken)
+				}
+				if opt.RefreshToken == nil || *opt.RefreshToken != token.RefreshToken {
+					t.Fatalf("unexpected refresh token mutation: %#v", opt.RefreshToken)
+				}
+				if opt.ExpiresAt == nil || !opt.ExpiresAt.Equal(expiry) {
+					t.Fatalf("unexpected expiry mutation: %#v", opt.ExpiresAt)
+				}
+				if opt.Scope == nil || *opt.Scope != scope {
+					t.Fatalf("unexpected scope mutation: %#v", opt.Scope)
+				}
+				return &repositorymodel.Account{ID: uuid.New(), UserID: gotUserID}, nil
+			},
+			updateAccountFn: func(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repositorymodel.Account, error) {
+				t.Fatalf("update account should not be called")
+				return nil, nil
+			},
+		},
+	}
+
+	service := NewAuthService(
+		&fakeSignInReader{
+			findUserByEmailFn: func(ctx context.Context, email string) (*repositorymodel.User, error) {
+				return nil, repoerr.ErrNotFound
+			},
+			findAccountByUserIDFn: func(ctx context.Context, userID uuid.UUID) (*repositorymodel.Account, error) {
+				t.Fatalf("find account should not be called when user is missing")
+				return nil, nil
+			},
+		},
+		tx,
+		&fakeSessionStore{},
+	)
+
+	gotUser, err := service.ProcessUserSignIn(ctx, profile, token)
+	if err != nil {
+		t.Fatalf("ProcessUserSignIn returned error: %v", err)
+	}
+	if gotUser == nil || gotUser.ID != userID {
+		t.Fatalf("unexpected user: %#v", gotUser)
+	}
+	if !tx.called || !createUserCalled || !createAccountCalled {
+		t.Fatalf("expected transaction and create operations to be called")
+	}
+}
+
+func TestAuthServiceAuthenticateSessionDeletesExpiredSession(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	expiredAt := time.Now().Add(-time.Minute)
+	var deletedToken string
+
+	service := NewAuthService(
+		nil,
+		nil,
+		&fakeSessionStore{
+			createSessionFn: func(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repositorymodel.Session, error) {
+				t.Fatalf("create session should not be called")
+				return nil, nil
+			},
+			findSessionByTokenFn: func(ctx context.Context, sessionToken string, withUser bool) (*repositorymodel.Session, error) {
+				return &repositorymodel.Session{
+					ID:           uuid.New(),
+					UserID:       uuid.New(),
+					SessionToken: sessionToken,
+					ExpiresAt:    expiredAt,
+					User: &repositorymodel.User{
+						ID:    uuid.New(),
+						Email: "user@example.com",
+					},
+				}, nil
+			},
+			updateSessionExpiryFn: func(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*repositorymodel.Session, error) {
+				t.Fatalf("update session expiry should not be called for expired session")
+				return nil, nil
+			},
+			deleteSessionByTokenFn: func(ctx context.Context, sessionToken string) error {
+				deletedToken = sessionToken
+				return nil
+			},
+		},
+	)
+
+	gotUser, err := service.AuthenticateSession(ctx, "expired-session")
+	if gotUser != nil {
+		t.Fatalf("expected nil user, got %#v", gotUser)
+	}
+	apiErr, ok := err.(*internalErrors.APIError)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if apiErr.Kind != internalErrors.KindUnauthorized {
+		t.Fatalf("unexpected error kind: %s", apiErr.Kind)
+	}
+	if deletedToken != "expired-session" {
+		t.Fatalf("expected expired session to be deleted, got token %q", deletedToken)
+	}
+}

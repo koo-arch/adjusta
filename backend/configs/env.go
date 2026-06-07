@@ -11,6 +11,9 @@ func LoadEnv() {
 	if GetEnv("GO_ENV") != "production" {
 		err := godotenv.Load()
 		if err != nil {
+			if os.IsNotExist(err) {
+				return
+			}
 			log.Fatalf("Error loading .env file")
 		}
 	}

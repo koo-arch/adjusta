@@ -39,8 +39,6 @@ type User struct {
 
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
-	// Calendars holds the value of the calendars edge.
-	Calendars []*Calendar `json:"calendars,omitempty"`
 	// Account holds the value of the account edge.
 	Account *Account `json:"account,omitempty"`
 	// Sessions holds the value of the sessions edge.
@@ -51,16 +49,7 @@ type UserEdges struct {
 	Events []*Event `json:"events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
-}
-
-// CalendarsOrErr returns the Calendars value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) CalendarsOrErr() ([]*Calendar, error) {
-	if e.loadedTypes[0] {
-		return e.Calendars, nil
-	}
-	return nil, &NotLoadedError{edge: "calendars"}
+	loadedTypes [4]bool
 }
 
 // AccountOrErr returns the Account value or an error if the edge
@@ -68,7 +57,7 @@ func (e UserEdges) CalendarsOrErr() ([]*Calendar, error) {
 func (e UserEdges) AccountOrErr() (*Account, error) {
 	if e.Account != nil {
 		return e.Account, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: account.Label}
 	}
 	return nil, &NotLoadedError{edge: "account"}
@@ -77,7 +66,7 @@ func (e UserEdges) AccountOrErr() (*Account, error) {
 // SessionsOrErr returns the Sessions value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) SessionsOrErr() ([]*Session, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[1] {
 		return e.Sessions, nil
 	}
 	return nil, &NotLoadedError{edge: "sessions"}
@@ -86,7 +75,7 @@ func (e UserEdges) SessionsOrErr() ([]*Session, error) {
 // UserCalendarsOrErr returns the UserCalendars value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		return e.UserCalendars, nil
 	}
 	return nil, &NotLoadedError{edge: "user_calendars"}
@@ -95,7 +84,7 @@ func (e UserEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
 // EventsOrErr returns the Events value or an error if the edge
 // was not loaded in eager-loading.
 func (e UserEdges) EventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[3] {
 		return e.Events, nil
 	}
 	return nil, &NotLoadedError{edge: "events"}
@@ -183,11 +172,6 @@ func (u *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *User) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
-}
-
-// QueryCalendars queries the "calendars" edge of the User entity.
-func (u *User) QueryCalendars() *CalendarQuery {
-	return NewUserClient(u.config).QueryCalendars(u)
 }
 
 // QueryAccount queries the "account" edge of the User entity.

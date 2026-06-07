@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 # ent のコード生成（intercept 機能を有効に）
 RUN go run -mod=mod entgo.io/ent/cmd/ent generate \
-    --feature intercept,schema/snapshot \
+    --feature intercept \
     ./ent/schema
 
 # Linux amd64 向けにクロスコンパイルする

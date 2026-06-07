@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/repo/calendar"
@@ -24,14 +25,14 @@ func NewEventReader(repos infraRepository.Repositories) usecaseEvents.EventReade
 }
 
 func (r *eventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
-	isPrimary := true
+	role := domainvalue.UserCalendarRolePrimary
 	return r.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
-		IsPrimary: &isPrimary,
+		Role: &role,
 	})
 }
 
-func (r *eventReader) ListGoogleCalendarInfosByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.GoogleCalendarInfo, error) {
-	return r.repos.GoogleCalendarInfo.ListByUser(ctx, userID)
+func (r *eventReader) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error) {
+	return r.repos.Calendar.FilterByUserID(ctx, userID)
 }
 
 func (r *eventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt usecaseEvents.EventSearchOptions) ([]*repositorymodel.StoredEvent, error) {
@@ -71,9 +72,9 @@ type eventTxStore struct {
 }
 
 func (s *eventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
-	isPrimary := true
+	role := domainvalue.UserCalendarRolePrimary
 	return s.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
-		IsPrimary: &isPrimary,
+		Role: &role,
 	})
 }
 

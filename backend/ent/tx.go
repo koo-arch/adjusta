@@ -18,8 +18,6 @@ type Tx struct {
 	Calendar *CalendarClient
 	// Event is the client for interacting with the Event builders.
 	Event *EventClient
-	// GoogleCalendarInfo is the client for interacting with the GoogleCalendarInfo builders.
-	GoogleCalendarInfo *GoogleCalendarInfoClient
 	// ProposedDate is the client for interacting with the ProposedDate builders.
 	ProposedDate *ProposedDateClient
 	// Session is the client for interacting with the Session builders.
@@ -162,7 +160,6 @@ func (tx *Tx) init() {
 	tx.Account = NewAccountClient(tx.config)
 	tx.Calendar = NewCalendarClient(tx.config)
 	tx.Event = NewEventClient(tx.config)
-	tx.GoogleCalendarInfo = NewGoogleCalendarInfoClient(tx.config)
 	tx.ProposedDate = NewProposedDateClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)

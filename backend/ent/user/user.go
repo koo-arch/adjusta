@@ -28,8 +28,6 @@ const (
 	FieldName = "name"
 	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
 	FieldAvatarURL = "avatar_url"
-	// EdgeCalendars holds the string denoting the calendars edge name in mutations.
-	EdgeCalendars = "calendars"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
 	EdgeAccount = "account"
 	// EdgeSessions holds the string denoting the sessions edge name in mutations.
@@ -40,13 +38,6 @@ const (
 	EdgeEvents = "events"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// CalendarsTable is the table that holds the calendars relation/edge.
-	CalendarsTable = "calendars"
-	// CalendarsInverseTable is the table name for the Calendar entity.
-	// It exists in this package in order to avoid circular dependency with the "calendar" package.
-	CalendarsInverseTable = "calendars"
-	// CalendarsColumn is the table column denoting the calendars relation/edge.
-	CalendarsColumn = "user_calendars"
 	// AccountTable is the table that holds the account relation/edge.
 	AccountTable = "accounts"
 	// AccountInverseTable is the table name for the Account entity.
@@ -156,20 +147,6 @@ func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
 }
 
-// ByCalendarsCount orders the results by calendars count.
-func ByCalendarsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCalendarsStep(), opts...)
-	}
-}
-
-// ByCalendars orders the results by calendars terms.
-func ByCalendars(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCalendarsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByAccountField orders the results by account field.
 func ByAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -217,13 +194,6 @@ func ByEvents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newEventsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
-}
-func newCalendarsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CalendarsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, CalendarsTable, CalendarsColumn),
-	)
 }
 func newAccountStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

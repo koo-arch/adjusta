@@ -18,7 +18,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 	startTime := now.AddDate(0, -2, 0)
 	endTime := now.AddDate(1, 0, 0)
 
-	googleCalendars, err := uc.reader.ListGoogleCalendarInfosByUser(ctx, userID)
+	googleCalendars, err := uc.reader.ListCalendarsByUser(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get google calendars for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
