@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -68,12 +69,12 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 
 			if err := uc.confirmEventDate(ctx, store, googleEventID, &confirmEvent, storedEvent); err != nil {
 				log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
-				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+				return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
 			}
 		}
 
 		if err := uc.updateProposedDates(ctx, store, eventReq, storedEvent, existingDates); err != nil {
-			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
 		}
 
 		return nil
@@ -87,41 +88,38 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 }
 
 func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *repositorymodel.StoredEvent, existingDates []*repositorymodel.StoredProposedDate) error {
-	updateDateMap := make(map[uuid.UUID]appmodel.ProposedDate)
-	for _, date := range eventReq.ProposedDates {
-		if date.ID != nil {
-			updateDateMap[*date.ID] = date
-		} else {
-			updateDateMap[uuid.New()] = date
-		}
+	requestedDates, err := toDomainDraftProposedDates(eventReq.ProposedDates)
+	if err != nil {
+		return err
 	}
 
-	for _, date := range existingDates {
-		if updateDate, ok := updateDateMap[date.ID]; ok {
-			dateOptions := ProposedDateMutation{
-				Start:    updateDate.Start,
-				End:      updateDate.End,
-				Priority: &updateDate.Priority,
-			}
-			if _, err := store.UpdateProposedDate(ctx, date.ID, dateOptions); err != nil {
-				return fmt.Errorf("failed to update proposed date for account: %s, error: %w", updateDate.ID, err)
-			}
-			delete(updateDateMap, date.ID)
-		} else {
-			if err := store.DeleteProposedDate(ctx, date.ID); err != nil {
-				return fmt.Errorf("failed to delete proposed date for account: %s, error: %w", date.ID, err)
-			}
-		}
-	}
+	changeSet := domainEvent.BuildProposedDateChangeSet(requestedDates, toDomainExistingProposedDates(existingDates))
 
-	for _, date := range updateDateMap {
+	for _, date := range changeSet.Updates {
 		dateOptions := ProposedDateMutation{
-			Start:    date.Start,
-			End:      date.End,
+			Start:    &date.Start,
+			End:      &date.End,
+			Priority: &date.Priority,
+		}
+		if _, err := store.UpdateProposedDate(ctx, date.ID, dateOptions); err != nil {
+			return fmt.Errorf("failed to update proposed date for account: %s, error: %w", date.ID, err)
+		}
+	}
+
+	for _, dateID := range changeSet.Deletes {
+		if err := store.DeleteProposedDate(ctx, dateID); err != nil {
+			return fmt.Errorf("failed to delete proposed date for account: %s, error: %w", dateID, err)
+		}
+	}
+
+	for _, date := range changeSet.Creates {
+		dateOptions := ProposedDateMutation{
+			Start:    &date.Start,
+			End:      &date.End,
 			Priority: &date.Priority,
 		}
 		if _, err := store.CreateProposedDate(ctx, dateOptions, storedEvent.ID); err != nil {
-			return fmt.Errorf("failed to create proposed date for account: %s, error: %w", date.ID, err)
+			return fmt.Errorf("failed to create proposed date for event: %s, error: %w", storedEvent.ID, err)
 		}
 	}
 
