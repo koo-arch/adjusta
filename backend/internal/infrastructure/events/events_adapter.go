@@ -127,7 +127,7 @@ func (s *eventTxStore) UpdateProposedDate(ctx context.Context, id uuid.UUID, opt
 }
 
 func (s *eventTxStore) DeleteProposedDate(ctx context.Context, id uuid.UUID) error {
-	return s.repos.ProposedDate.Delete(ctx, id)
+	return s.repos.ProposedDate.SoftDelete(ctx, id)
 }
 
 func (s *eventTxStore) CreateProposedDate(ctx context.Context, opt usecaseEvents.ProposedDateMutation, eventID uuid.UUID) (*repositorymodel.StoredProposedDate, error) {

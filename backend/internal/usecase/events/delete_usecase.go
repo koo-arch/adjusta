@@ -15,6 +15,11 @@ func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			return err
 		}
 
+		if _, err := store.UpdateEvent(ctx, eventReq.ID, withPendingEventSync(EventMutation{})); err != nil {
+			log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
+			return internalErrors.NewInternalError("イベント削除時にエラーが発生しました")
+		}
+
 		if err := store.SoftDeleteEvent(ctx, eventReq.ID); err != nil {
 			log.Printf("failed to delete event for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError("イベント削除時にエラーが発生しました")

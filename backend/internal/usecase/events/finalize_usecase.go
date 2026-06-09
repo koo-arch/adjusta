@@ -16,6 +16,8 @@ import (
 )
 
 func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.ConfirmEvent) error {
+	var committedErr error
+
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		storedEvent, err := store.FindEventBySlug(ctx, userID, slug, false)
 		if err != nil {
@@ -35,7 +37,12 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, s
 		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, eventReq)
 		if err != nil {
 			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
-			return internalErrors.NormalizeAPIError(err, "サーバーでエラーが発生しました")
+			if syncErr := uc.markEventSyncFailed(ctx, store, storedEvent.ID, err); syncErr != nil {
+				log.Printf("failed to mark sync failure for account: %s, error: %v", email, syncErr)
+				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			}
+			committedErr = internalErrors.NormalizeAPIError(err, "サーバーでエラーが発生しました")
+			return nil
 		}
 
 		if err := uc.confirmEventDate(ctx, store, googleEventID, eventReq, storedEvent); err != nil {
@@ -48,6 +55,9 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, s
 	if err != nil {
 		log.Printf("failed running finalize proposed date transaction: %v", err)
 		return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
+	}
+	if committedErr != nil {
+		return committedErr
 	}
 
 	return nil
@@ -96,11 +106,12 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 
 	confirmDateID := eventReq.ConfirmDate.ID
 	if eventReq.ConfirmDate.ID == nil {
-		dateOptions := ProposedDateMutation{
+		dateOptions := withPendingProposedDateSync(ProposedDateMutation{
 			Start:    &plan.Create.Start,
 			End:      &plan.Create.End,
 			Priority: &plan.Create.Priority,
-		}
+			Status:   proposedDateStatusPtr(domainvalue.ProposedDateStatusConfirmed),
+		})
 
 		storedDate, err := store.CreateProposedDate(ctx, dateOptions, storedEvent.ID)
 		if err != nil {
@@ -116,9 +127,10 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 	}
 
 	if eventReq.ConfirmDate.ID != nil {
-		dateOptions := ProposedDateMutation{
+		dateOptions := withPendingProposedDateSync(ProposedDateMutation{
 			Priority: &plan.Update.Priority,
-		}
+			Status:   proposedDateStatusPtr(domainvalue.ProposedDateStatusConfirmed),
+		})
 
 		if _, err := store.UpdateProposedDate(ctx, *eventReq.ConfirmDate.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date error: %w", err)
@@ -131,14 +143,51 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 		}
 	}
 
-	eventOptions := EventMutation{
-		Status:          &plan.Status,
-		ConfirmedDateID: confirmDateID,
-		GoogleEventID:   googleEventID,
+	if err := uc.markUnselectedProposedDates(ctx, store, storedEvent.ID, confirmDateID); err != nil {
+		return fmt.Errorf("failed to update proposed date statuses: %w", err)
 	}
+
+	now := time.Now()
+	eventOptions := withSyncedEventSync(EventMutation{
+		Status:                 &plan.Status,
+		ConfirmedDateID:        confirmDateID,
+		GoogleEventID:          googleEventID,
+		ConfirmedGoogleEventID: googleEventID,
+		LastSyncedAt:           &now,
+	})
 	if _, err := store.UpdateEvent(ctx, storedEvent.ID, eventOptions); err != nil {
 		return fmt.Errorf("failed to update event status error: %w", err)
 	}
 
 	return nil
+}
+
+func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, store EventTxStore, eventID uuid.UUID, confirmedDateID *uuid.UUID) error {
+	if confirmedDateID == nil {
+		return nil
+	}
+
+	storedDates, err := store.ListProposedDatesByEvent(ctx, eventID)
+	if err != nil {
+		return err
+	}
+
+	notSelected := domainvalue.ProposedDateStatusNotSelected
+	for _, storedDate := range storedDates {
+		if storedDate.ID == *confirmedDateID {
+			continue
+		}
+
+		if _, err := store.UpdateProposedDate(ctx, storedDate.ID, withPendingProposedDateSync(ProposedDateMutation{
+			Status: &notSelected,
+		})); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func proposedDateStatusPtr(status domainvalue.ProposedDateStatus) *domainvalue.ProposedDateStatus {
+	return &status
 }

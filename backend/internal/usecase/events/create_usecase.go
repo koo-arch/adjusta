@@ -23,11 +23,23 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			log.Printf("failed to create event for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
+		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, withPendingEventSync(EventMutation{}))
+		if err != nil {
+			log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
+			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+		}
 
 		storedDates, err := store.CreateProposedDates(ctx, eventReq.SelectedDates, storedEvent.ID)
 		if err != nil {
 			log.Printf("failed to create proposed dates for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+		}
+		for i, storedDate := range storedDates {
+			storedDates[i], err = store.UpdateProposedDate(ctx, storedDate.ID, withPendingProposedDateSync(ProposedDateMutation{}))
+			if err != nil {
+				log.Printf("failed to mark proposed date sync pending for account: %s, error: %v", email, err)
+				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			}
 		}
 
 		response = &appmodel.EventDraftDetail{
