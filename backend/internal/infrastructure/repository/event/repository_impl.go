@@ -6,10 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent"
-	dbCalendar "github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
-	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
@@ -52,7 +50,7 @@ func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQ
 func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error) {
 	filterEvent := r.client.Event.Query()
 
-	filterEvent = filterEvent.Where(event.HasCalendarWith(dbCalendar.IDEQ(calendarID)))
+	filterEvent = filterEvent.Where(event.PrimaryCalendarIDEQ(calendarID))
 
 	// イベントに対するオフセットとリミットを適用
 	if opt.EventOffset > 0 {
@@ -91,7 +89,7 @@ func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid
 	entity, err := query.
 		Where(
 			event.SlugEQ(slug),
-			event.HasCalendarWith(dbCalendar.HasUserCalendarsWith(dbUserCalendar.UserIDEQ(userID))),
+			event.UserIDEQ(userID),
 		).
 		Only(ctx)
 	if err != nil {
@@ -100,7 +98,7 @@ func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid
 	return toStoredEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Create(ctx context.Context, googleEvent *calendar.Event, calendarID uuid.UUID) (*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, googleEvent *calendar.Event, primaryCalendarID uuid.UUID) (*repositorymodel.StoredEvent, error) {
 	eventCreate := r.client.Event.Create()
 
 	if googleEvent.Id != "" {
@@ -108,10 +106,11 @@ func (r *EventRepositoryImpl) Create(ctx context.Context, googleEvent *calendar.
 	}
 
 	eventCreate = eventCreate.
-		SetSummary(googleEvent.Summary).
+		SetUserID(userID).
+		SetPrimaryCalendarID(primaryCalendarID).
+		SetTitle(googleEvent.Summary).
 		SetDescription(googleEvent.Description).
-		SetLocation(googleEvent.Location).
-		SetCalendarID(calendarID)
+		SetLocation(googleEvent.Location)
 
 	entity, err := eventCreate.Save(ctx)
 	if err != nil {
@@ -123,8 +122,8 @@ func (r *EventRepositoryImpl) Create(ctx context.Context, googleEvent *calendar.
 func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repositorymodel.StoredEvent, error) {
 	eventUpdate := r.client.Event.UpdateOneID(id)
 
-	if opt.Summary != nil {
-		eventUpdate = eventUpdate.SetSummary(*opt.Summary)
+	if opt.Title != nil {
+		eventUpdate = eventUpdate.SetTitle(*opt.Title)
 	}
 
 	if opt.Location != nil {
@@ -140,12 +139,35 @@ func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt Even
 		eventUpdate = eventUpdate.SetStatus(status)
 	}
 
+	if opt.SyncStatus != nil {
+		syncStatus := event.SyncStatus(*opt.SyncStatus)
+		eventUpdate = eventUpdate.SetSyncStatus(syncStatus)
+	}
+
 	if opt.ConfirmedDateID != nil {
 		eventUpdate = eventUpdate.SetConfirmedDateID(*opt.ConfirmedDateID)
 	}
 
 	if opt.GoogleEventID != nil {
 		eventUpdate = eventUpdate.SetGoogleEventID(*opt.GoogleEventID)
+	}
+
+	if opt.ConfirmedGoogleEventID != nil {
+		eventUpdate = eventUpdate.SetConfirmedGoogleEventID(*opt.ConfirmedGoogleEventID)
+	}
+
+	if opt.ClearLastSyncedAt {
+		eventUpdate = eventUpdate.ClearLastSyncedAt()
+	}
+	if opt.LastSyncedAt != nil {
+		eventUpdate = eventUpdate.SetLastSyncedAt(*opt.LastSyncedAt)
+	}
+
+	if opt.ClearLastSyncError {
+		eventUpdate = eventUpdate.ClearLastSyncError()
+	}
+	if opt.LastSyncError != nil {
+		eventUpdate = eventUpdate.SetLastSyncError(*opt.LastSyncError)
 	}
 
 	entity, err := eventUpdate.Save(ctx)
@@ -174,13 +196,16 @@ func (r *EventRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
 	return infraerr.MapNotFound(err)
 }
 
-func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error) {
 	query := r.client.Event.Query()
 
-	query = query.Where(event.HasCalendarWith(dbCalendar.IDEQ(calendarID)))
+	query = query.Where(
+		event.UserIDEQ(userID),
+		event.PrimaryCalendarIDEQ(calendarID),
+	)
 
-	if opt.Summary != nil {
-		query = query.Where(event.SummaryContains(*opt.Summary))
+	if opt.Title != nil {
+		query = query.Where(event.TitleContains(*opt.Title))
 	}
 
 	if opt.Location != nil {
@@ -195,12 +220,20 @@ func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, id, calendarID u
 		query = query.Where(event.StatusEQ(event.Status(*opt.Status)))
 	}
 
+	if opt.SyncStatus != nil {
+		query = query.Where(event.SyncStatusEQ(event.SyncStatus(*opt.SyncStatus)))
+	}
+
 	if opt.ConfirmedDateID != nil {
 		query = query.Where(event.ConfirmedDateIDEQ(*opt.ConfirmedDateID))
 	}
 
 	if opt.GoogleEventID != nil {
 		query = query.Where(event.GoogleEventIDEQ(*opt.GoogleEventID))
+	}
+
+	if opt.ConfirmedGoogleEventID != nil {
+		query = query.Where(event.ConfirmedGoogleEventIDEQ(*opt.ConfirmedGoogleEventID))
 	}
 
 	// イベントに対するオフセットとリミットを適用
@@ -278,15 +311,21 @@ func toStoredEvent(entity *ent.Event) *repositorymodel.StoredEvent {
 	}
 
 	return &repositorymodel.StoredEvent{
-		ID:              entity.ID,
-		Summary:         entity.Summary,
-		Location:        entity.Location,
-		Description:     entity.Description,
-		Status:          domainvalue.EventStatus(entity.Status),
-		ConfirmedDateID: entity.ConfirmedDateID,
-		GoogleEventID:   entity.GoogleEventID,
-		Slug:            entity.Slug,
-		ProposedDates:   toStoredEventProposedDates(entity.Edges.ProposedDates),
+		UserID:                 entity.UserID,
+		ID:                     entity.ID,
+		PrimaryCalendarID:      entity.PrimaryCalendarID,
+		Title:                  entity.Title,
+		Location:               entity.Location,
+		Description:            entity.Description,
+		Status:                 domainvalue.EventStatus(entity.Status),
+		ConfirmedDateID:        entity.ConfirmedDateID,
+		GoogleEventID:          entity.GoogleEventID,
+		ConfirmedGoogleEventID: entity.ConfirmedGoogleEventID,
+		SyncStatus:             domainvalue.SyncStatus(entity.SyncStatus),
+		LastSyncedAt:           entity.LastSyncedAt,
+		LastSyncError:          entity.LastSyncError,
+		Slug:                   entity.Slug,
+		ProposedDates:          toStoredEventProposedDates(entity.Edges.ProposedDates),
 	}
 }
 
@@ -302,11 +341,16 @@ func toStoredEventProposedDates(entities []*ent.ProposedDate) []*repositorymodel
 	storedDates := make([]*repositorymodel.StoredProposedDate, 0, len(entities))
 	for _, entity := range entities {
 		storedDates = append(storedDates, &repositorymodel.StoredProposedDate{
-			ID:        entity.ID,
-			EventID:   entity.EventID,
-			StartTime: entity.StartTime,
-			EndTime:   entity.EndTime,
-			Priority:  entity.Priority,
+			ID:            entity.ID,
+			EventID:       entity.EventID,
+			GoogleEventID: entity.GoogleEventID,
+			StartTime:     entity.StartTime,
+			EndTime:       entity.EndTime,
+			Priority:      entity.Priority,
+			Status:        domainvalue.ProposedDateStatus(entity.Status),
+			SyncStatus:    domainvalue.SyncStatus(entity.SyncStatus),
+			LastSyncedAt:  entity.LastSyncedAt,
+			LastSyncError: entity.LastSyncError,
 		})
 	}
 	return storedDates

@@ -72,53 +72,15 @@ func (ec *EventCreate) SetUserID(u uuid.UUID) *EventCreate {
 	return ec
 }
 
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (ec *EventCreate) SetNillableUserID(u *uuid.UUID) *EventCreate {
-	if u != nil {
-		ec.SetUserID(*u)
-	}
-	return ec
-}
-
 // SetPrimaryCalendarID sets the "primary_calendar_id" field.
 func (ec *EventCreate) SetPrimaryCalendarID(u uuid.UUID) *EventCreate {
 	ec.mutation.SetPrimaryCalendarID(u)
 	return ec
 }
 
-// SetNillablePrimaryCalendarID sets the "primary_calendar_id" field if the given value is not nil.
-func (ec *EventCreate) SetNillablePrimaryCalendarID(u *uuid.UUID) *EventCreate {
-	if u != nil {
-		ec.SetPrimaryCalendarID(*u)
-	}
-	return ec
-}
-
-// SetSummary sets the "summary" field.
-func (ec *EventCreate) SetSummary(s string) *EventCreate {
-	ec.mutation.SetSummary(s)
-	return ec
-}
-
-// SetNillableSummary sets the "summary" field if the given value is not nil.
-func (ec *EventCreate) SetNillableSummary(s *string) *EventCreate {
-	if s != nil {
-		ec.SetSummary(*s)
-	}
-	return ec
-}
-
 // SetTitle sets the "title" field.
 func (ec *EventCreate) SetTitle(s string) *EventCreate {
 	ec.mutation.SetTitle(s)
-	return ec
-}
-
-// SetNillableTitle sets the "title" field if the given value is not nil.
-func (ec *EventCreate) SetNillableTitle(s *string) *EventCreate {
-	if s != nil {
-		ec.SetTitle(*s)
-	}
 	return ec
 }
 
@@ -268,25 +230,6 @@ func (ec *EventCreate) SetNillableID(u *uuid.UUID) *EventCreate {
 	return ec
 }
 
-// SetCalendarID sets the "calendar" edge to the Calendar entity by ID.
-func (ec *EventCreate) SetCalendarID(id uuid.UUID) *EventCreate {
-	ec.mutation.SetCalendarID(id)
-	return ec
-}
-
-// SetNillableCalendarID sets the "calendar" edge to the Calendar entity by ID if the given value is not nil.
-func (ec *EventCreate) SetNillableCalendarID(id *uuid.UUID) *EventCreate {
-	if id != nil {
-		ec = ec.SetCalendarID(*id)
-	}
-	return ec
-}
-
-// SetCalendar sets the "calendar" edge to the Calendar entity.
-func (ec *EventCreate) SetCalendar(c *Calendar) *EventCreate {
-	return ec.SetCalendarID(c.ID)
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (ec *EventCreate) SetUser(u *User) *EventCreate {
 	return ec.SetUserID(u.ID)
@@ -394,6 +337,20 @@ func (ec *EventCreate) check() error {
 	if _, ok := ec.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Event.updated_at"`)}
 	}
+	if _, ok := ec.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Event.user_id"`)}
+	}
+	if _, ok := ec.mutation.PrimaryCalendarID(); !ok {
+		return &ValidationError{Name: "primary_calendar_id", err: errors.New(`ent: missing required field "Event.primary_calendar_id"`)}
+	}
+	if _, ok := ec.mutation.Title(); !ok {
+		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Event.title"`)}
+	}
+	if v, ok := ec.mutation.Title(); ok {
+		if err := event.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Event.title": %w`, err)}
+		}
+	}
 	if _, ok := ec.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Event.status"`)}
 	}
@@ -412,6 +369,12 @@ func (ec *EventCreate) check() error {
 	}
 	if _, ok := ec.mutation.Slug(); !ok {
 		return &ValidationError{Name: "slug", err: errors.New(`ent: missing required field "Event.slug"`)}
+	}
+	if len(ec.mutation.UserIDs()) == 0 {
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Event.user"`)}
+	}
+	if len(ec.mutation.PrimaryCalendarIDs()) == 0 {
+		return &ValidationError{Name: "primary_calendar", err: errors.New(`ent: missing required edge "Event.primary_calendar"`)}
 	}
 	return nil
 }
@@ -460,13 +423,9 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 		_spec.SetField(event.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := ec.mutation.Summary(); ok {
-		_spec.SetField(event.FieldSummary, field.TypeString, value)
-		_node.Summary = value
-	}
 	if value, ok := ec.mutation.Title(); ok {
 		_spec.SetField(event.FieldTitle, field.TypeString, value)
-		_node.Title = &value
+		_node.Title = value
 	}
 	if value, ok := ec.mutation.Description(); ok {
 		_spec.SetField(event.FieldDescription, field.TypeString, value)
@@ -504,23 +463,6 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 		_spec.SetField(event.FieldSlug, field.TypeString, value)
 		_node.Slug = value
 	}
-	if nodes := ec.mutation.CalendarIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   event.CalendarTable,
-			Columns: []string{event.CalendarColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.calendar_events = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	if nodes := ec.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -535,7 +477,7 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.UserID = &nodes[0]
+		_node.UserID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ec.mutation.PrimaryCalendarIDs(); len(nodes) > 0 {
@@ -552,7 +494,7 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.PrimaryCalendarID = &nodes[0]
+		_node.PrimaryCalendarID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ec.mutation.ConfirmedDateIDs(); len(nodes) > 0 {

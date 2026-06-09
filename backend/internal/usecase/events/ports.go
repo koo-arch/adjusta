@@ -28,7 +28,8 @@ type EventReader interface {
 type EventTxStore interface {
 	PrimaryCalendarFinder
 	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error)
-	CreateEvent(ctx context.Context, calendarID uuid.UUID, title, location, description string, start, end time.Time) (*repositorymodel.StoredEvent, error)
+	ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*repositorymodel.StoredCalendar, error)
+	CreateEvent(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*repositorymodel.StoredEvent, error)
 	UpdateEvent(ctx context.Context, id uuid.UUID, opt EventMutation) (*repositorymodel.StoredEvent, error)
 	SoftDeleteEvent(ctx context.Context, id uuid.UUID) error
 	ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error)
@@ -59,18 +60,31 @@ type EventSearchOptions struct {
 }
 
 type EventMutation struct {
-	Title           *string
-	Location        *string
-	Description     *string
-	Status          *domainvalue.EventStatus
-	ConfirmedDateID *uuid.UUID
-	GoogleEventID   *string
+	Title                  *string
+	Location               *string
+	Description            *string
+	Status                 *domainvalue.EventStatus
+	SyncStatus             *domainvalue.SyncStatus
+	ConfirmedDateID        *uuid.UUID
+	GoogleEventID          *string
+	ConfirmedGoogleEventID *string
+	LastSyncedAt           *time.Time
+	ClearLastSyncedAt      bool
+	LastSyncError          *string
+	ClearLastSyncError     bool
 }
 
 type ProposedDateMutation struct {
-	Start    *time.Time
-	End      *time.Time
-	Priority *int
+	GoogleEventID      *string
+	Start              *time.Time
+	End                *time.Time
+	Priority           *int
+	Status             *domainvalue.ProposedDateStatus
+	SyncStatus         *domainvalue.SyncStatus
+	LastSyncedAt       *time.Time
+	ClearLastSyncedAt  bool
+	LastSyncError      *string
+	ClearLastSyncError bool
 }
 
 type GoogleEventFetchResult struct {
@@ -80,5 +94,5 @@ type GoogleEventFetchResult struct {
 
 type GoogleCalendarGateway interface {
 	FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
-	UpsertEvent(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
+	UpsertEvent(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
 }

@@ -575,12 +575,9 @@ func (cq *CalendarQuery) loadPrimaryEvents(ctx context.Context, query *EventQuer
 	}
 	for _, n := range neighbors {
 		fk := n.PrimaryCalendarID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "primary_calendar_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "primary_calendar_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "primary_calendar_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

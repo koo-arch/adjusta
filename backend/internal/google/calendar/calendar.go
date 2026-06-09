@@ -91,8 +91,8 @@ func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) 
 	return eventsList, nil
 }
 
-func (c *Calendar) FetchEvent(eventID string) (*calendar.Event, error) {
-	event, err := c.Service.Events.Get("primary", eventID).Do()
+func (c *Calendar) FetchEvent(calendarID, eventID string) (*calendar.Event, error) {
+	event, err := c.Service.Events.Get(calendarID, eventID).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -100,8 +100,8 @@ func (c *Calendar) FetchEvent(eventID string) (*calendar.Event, error) {
 	return event, nil
 }
 
-func (c *Calendar) InsertEvent(event *calendar.Event) (*calendar.Event, error) {
-	event, err := c.Service.Events.Insert("primary", event).Do()
+func (c *Calendar) InsertEvent(calendarID string, event *calendar.Event) (*calendar.Event, error) {
+	event, err := c.Service.Events.Insert(calendarID, event).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +109,8 @@ func (c *Calendar) InsertEvent(event *calendar.Event) (*calendar.Event, error) {
 	return event, nil
 }
 
-func (c *Calendar) UpdateEvent(eventID string, event *calendar.Event) (*calendar.Event, error) {
-	event, err := c.Service.Events.Update("primary", eventID, event).Do()
+func (c *Calendar) UpdateEvent(calendarID, eventID string, event *calendar.Event) (*calendar.Event, error) {
+	event, err := c.Service.Events.Update(calendarID, eventID, event).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +118,8 @@ func (c *Calendar) UpdateEvent(eventID string, event *calendar.Event) (*calendar
 	return event, nil
 }
 
-func (c *Calendar) DeleteEvent(eventID string) error {
-	err := c.Service.Events.Delete("primary", eventID).Do()
+func (c *Calendar) DeleteEvent(calendarID, eventID string) error {
+	err := c.Service.Events.Delete(calendarID, eventID).Do()
 	if err != nil {
 		return err
 	}

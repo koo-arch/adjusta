@@ -163,16 +163,20 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 		for _, storedDate := range storedEvent.ProposedDates {
 			if storedEvent.ConfirmedDateID == storedDate.ID {
 				upcomingEvents = append(upcomingEvents, appmodel.UpcomingEvent{
-					ID:              storedEvent.ID,
-					Title:           storedEvent.Summary,
-					Location:        storedEvent.Location,
-					Description:     storedEvent.Description,
-					Status:          storedEvent.Status,
-					ConfirmedDateID: storedEvent.ConfirmedDateID,
-					GoogleEventID:   storedEvent.GoogleEventID,
-					Slug:            storedEvent.Slug,
-					Start:           storedDate.StartTime,
-					End:             storedDate.EndTime,
+					ID:                     storedEvent.ID,
+					Title:                  storedEvent.Title,
+					Location:               storedEvent.Location,
+					Description:            storedEvent.Description,
+					Status:                 storedEvent.Status,
+					SyncStatus:             storedEvent.SyncStatus,
+					ConfirmedDateID:        storedEvent.ConfirmedDateID,
+					GoogleEventID:          eventGoogleEventID(storedEvent),
+					ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
+					LastSyncedAt:           storedEvent.LastSyncedAt,
+					LastSyncError:          storedEvent.LastSyncError,
+					Slug:                   storedEvent.Slug,
+					Start:                  storedDate.StartTime,
+					End:                    storedDate.EndTime,
 				})
 				break
 			}
@@ -194,10 +198,10 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 
 	currentTime := time.Now()
 	startTime := currentTime.AddDate(0, 0, daysBefore)
-	pending := domainvalue.StatusPending
+	active := domainvalue.StatusActive
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
-		Status:            &pending,
+		Status:            &active,
 		StartTimeLTE:      &startTime,
 		SortBy:            "ProposedDatePriority",
 		SortOrder:         "asc",
@@ -222,7 +226,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		for _, storedDate := range storedEvent.ProposedDates {
 			needsActionDrafts = append(needsActionDrafts, appmodel.NeedsActionDraft{
 				ID:             storedEvent.ID,
-				Title:          storedEvent.Summary,
+				Title:          storedEvent.Title,
 				Location:       storedEvent.Location,
 				Description:    storedEvent.Description,
 				Status:         storedEvent.Status,

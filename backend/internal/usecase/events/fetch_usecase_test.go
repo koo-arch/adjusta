@@ -37,15 +37,15 @@ func (f *fakeEventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID,
 
 type fakeGoogleCalendarGateway struct {
 	fetchEventsFn func(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
-	upsertEventFn func(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
+	upsertEventFn func(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
 }
 
 func (f *fakeGoogleCalendarGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
 	return f.fetchEventsFn(ctx, userID, calendars, startTime, endTime)
 }
 
-func (f *fakeGoogleCalendarGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
-	return f.upsertEventFn(ctx, userID, existingGoogleEventID, title, location, description, start, end)
+func (f *fakeGoogleCalendarGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
+	return f.upsertEventFn(ctx, userID, calendarID, existingGoogleEventID, title, location, description, start, end)
 }
 
 func TestFetchAllGoogleEventsReturnsPartialContent(t *testing.T) {
@@ -95,7 +95,7 @@ func TestFetchAllGoogleEventsReturnsPartialContent(t *testing.T) {
 					FailedCalendars: []string{"Primary"},
 				}, nil
 			},
-			upsertEventFn: func(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
+			upsertEventFn: func(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
 				t.Fatalf("upsert should not be called")
 				return "", nil
 			},
@@ -151,7 +151,7 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 				return []*repositorymodel.StoredEvent{
 					{
 						ID:              eventID2,
-						Summary:         "Later",
+						Title:           "Later",
 						Status:          domainvalue.StatusConfirmed,
 						ConfirmedDateID: dateID2,
 						ProposedDates: []*repositorymodel.StoredProposedDate{
@@ -160,7 +160,7 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 					},
 					{
 						ID:              eventID1,
-						Summary:         "Sooner",
+						Title:           "Sooner",
 						Status:          domainvalue.StatusConfirmed,
 						ConfirmedDateID: dateID1,
 						ProposedDates: []*repositorymodel.StoredProposedDate{
@@ -193,5 +193,66 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 	}
 	if upcoming[0].ID != eventID1 || upcoming[1].ID != eventID2 {
 		t.Fatalf("events are not sorted by start time: %#v", upcoming)
+	}
+}
+
+func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	calendarID := uuid.New()
+	now := time.Now()
+	active := domainvalue.StatusActive
+
+	var receivedOptions EventSearchOptions
+
+	uc := NewUsecase(
+		&fakeEventReader{
+			findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
+				if gotUserID != userID {
+					t.Fatalf("unexpected user id: %s", gotUserID)
+				}
+				return &repositorymodel.StoredCalendar{ID: calendarID}, nil
+			},
+			listCalendarsByUserFn: func(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error) {
+				t.Fatalf("list calendars should not be called")
+				return nil, nil
+			},
+			searchEventsFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, opt EventSearchOptions) ([]*repositorymodel.StoredEvent, error) {
+				receivedOptions = opt
+				return []*repositorymodel.StoredEvent{
+					{
+						ID:     uuid.New(),
+						Title:  "Needs action",
+						Status: domainvalue.StatusActive,
+						Slug:   "needs-action",
+						ProposedDates: []*repositorymodel.StoredProposedDate{
+							{ID: uuid.New(), StartTime: now.Add(-1 * time.Hour), EndTime: now.Add(1 * time.Hour)},
+						},
+					},
+				}, nil
+			},
+			findEventBySlugFn: func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*repositorymodel.StoredEvent, error) {
+				t.Fatalf("find by slug should not be called")
+				return nil, nil
+			},
+		},
+		nil,
+		nil,
+	)
+
+	drafts, err := uc.FetchNeedsActionDrafts(ctx, userID, "user@example.com", 3)
+	if err != nil {
+		t.Fatalf("FetchNeedsActionDrafts returned error: %v", err)
+	}
+	if receivedOptions.Status == nil || *receivedOptions.Status != active {
+		t.Fatalf("expected active status filter, got %#v", receivedOptions.Status)
+	}
+	if len(drafts) != 1 {
+		t.Fatalf("unexpected needs action drafts length: %d", len(drafts))
+	}
+	if drafts[0].Status != domainvalue.StatusActive {
+		t.Fatalf("unexpected draft status: %s", drafts[0].Status)
 	}
 }

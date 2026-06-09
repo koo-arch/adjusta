@@ -72,12 +72,6 @@ func (eu *EventUpdate) SetNillableUserID(u *uuid.UUID) *EventUpdate {
 	return eu
 }
 
-// ClearUserID clears the value of the "user_id" field.
-func (eu *EventUpdate) ClearUserID() *EventUpdate {
-	eu.mutation.ClearUserID()
-	return eu
-}
-
 // SetPrimaryCalendarID sets the "primary_calendar_id" field.
 func (eu *EventUpdate) SetPrimaryCalendarID(u uuid.UUID) *EventUpdate {
 	eu.mutation.SetPrimaryCalendarID(u)
@@ -92,32 +86,6 @@ func (eu *EventUpdate) SetNillablePrimaryCalendarID(u *uuid.UUID) *EventUpdate {
 	return eu
 }
 
-// ClearPrimaryCalendarID clears the value of the "primary_calendar_id" field.
-func (eu *EventUpdate) ClearPrimaryCalendarID() *EventUpdate {
-	eu.mutation.ClearPrimaryCalendarID()
-	return eu
-}
-
-// SetSummary sets the "summary" field.
-func (eu *EventUpdate) SetSummary(s string) *EventUpdate {
-	eu.mutation.SetSummary(s)
-	return eu
-}
-
-// SetNillableSummary sets the "summary" field if the given value is not nil.
-func (eu *EventUpdate) SetNillableSummary(s *string) *EventUpdate {
-	if s != nil {
-		eu.SetSummary(*s)
-	}
-	return eu
-}
-
-// ClearSummary clears the value of the "summary" field.
-func (eu *EventUpdate) ClearSummary() *EventUpdate {
-	eu.mutation.ClearSummary()
-	return eu
-}
-
 // SetTitle sets the "title" field.
 func (eu *EventUpdate) SetTitle(s string) *EventUpdate {
 	eu.mutation.SetTitle(s)
@@ -129,12 +97,6 @@ func (eu *EventUpdate) SetNillableTitle(s *string) *EventUpdate {
 	if s != nil {
 		eu.SetTitle(*s)
 	}
-	return eu
-}
-
-// ClearTitle clears the value of the "title" field.
-func (eu *EventUpdate) ClearTitle() *EventUpdate {
-	eu.mutation.ClearTitle()
 	return eu
 }
 
@@ -320,25 +282,6 @@ func (eu *EventUpdate) SetNillableSlug(s *string) *EventUpdate {
 	return eu
 }
 
-// SetCalendarID sets the "calendar" edge to the Calendar entity by ID.
-func (eu *EventUpdate) SetCalendarID(id uuid.UUID) *EventUpdate {
-	eu.mutation.SetCalendarID(id)
-	return eu
-}
-
-// SetNillableCalendarID sets the "calendar" edge to the Calendar entity by ID if the given value is not nil.
-func (eu *EventUpdate) SetNillableCalendarID(id *uuid.UUID) *EventUpdate {
-	if id != nil {
-		eu = eu.SetCalendarID(*id)
-	}
-	return eu
-}
-
-// SetCalendar sets the "calendar" edge to the Calendar entity.
-func (eu *EventUpdate) SetCalendar(c *Calendar) *EventUpdate {
-	return eu.SetCalendarID(c.ID)
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (eu *EventUpdate) SetUser(u *User) *EventUpdate {
 	return eu.SetUserID(u.ID)
@@ -372,12 +315,6 @@ func (eu *EventUpdate) AddProposedDates(p ...*ProposedDate) *EventUpdate {
 // Mutation returns the EventMutation object of the builder.
 func (eu *EventUpdate) Mutation() *EventMutation {
 	return eu.mutation
-}
-
-// ClearCalendar clears the "calendar" edge to the Calendar entity.
-func (eu *EventUpdate) ClearCalendar() *EventUpdate {
-	eu.mutation.ClearCalendar()
-	return eu
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -463,6 +400,11 @@ func (eu *EventUpdate) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (eu *EventUpdate) check() error {
+	if v, ok := eu.mutation.Title(); ok {
+		if err := event.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Event.title": %w`, err)}
+		}
+	}
 	if v, ok := eu.mutation.Status(); ok {
 		if err := event.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Event.status": %w`, err)}
@@ -472,6 +414,12 @@ func (eu *EventUpdate) check() error {
 		if err := event.SyncStatusValidator(v); err != nil {
 			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "Event.sync_status": %w`, err)}
 		}
+	}
+	if eu.mutation.UserCleared() && len(eu.mutation.UserIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Event.user"`)
+	}
+	if eu.mutation.PrimaryCalendarCleared() && len(eu.mutation.PrimaryCalendarIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Event.primary_calendar"`)
 	}
 	return nil
 }
@@ -497,17 +445,8 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.DeletedAtCleared() {
 		_spec.ClearField(event.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := eu.mutation.Summary(); ok {
-		_spec.SetField(event.FieldSummary, field.TypeString, value)
-	}
-	if eu.mutation.SummaryCleared() {
-		_spec.ClearField(event.FieldSummary, field.TypeString)
-	}
 	if value, ok := eu.mutation.Title(); ok {
 		_spec.SetField(event.FieldTitle, field.TypeString, value)
-	}
-	if eu.mutation.TitleCleared() {
-		_spec.ClearField(event.FieldTitle, field.TypeString)
 	}
 	if value, ok := eu.mutation.Description(); ok {
 		_spec.SetField(event.FieldDescription, field.TypeString, value)
@@ -553,35 +492,6 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := eu.mutation.Slug(); ok {
 		_spec.SetField(event.FieldSlug, field.TypeString, value)
-	}
-	if eu.mutation.CalendarCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   event.CalendarTable,
-			Columns: []string{event.CalendarColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := eu.mutation.CalendarIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   event.CalendarTable,
-			Columns: []string{event.CalendarColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if eu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -775,12 +685,6 @@ func (euo *EventUpdateOne) SetNillableUserID(u *uuid.UUID) *EventUpdateOne {
 	return euo
 }
 
-// ClearUserID clears the value of the "user_id" field.
-func (euo *EventUpdateOne) ClearUserID() *EventUpdateOne {
-	euo.mutation.ClearUserID()
-	return euo
-}
-
 // SetPrimaryCalendarID sets the "primary_calendar_id" field.
 func (euo *EventUpdateOne) SetPrimaryCalendarID(u uuid.UUID) *EventUpdateOne {
 	euo.mutation.SetPrimaryCalendarID(u)
@@ -795,32 +699,6 @@ func (euo *EventUpdateOne) SetNillablePrimaryCalendarID(u *uuid.UUID) *EventUpda
 	return euo
 }
 
-// ClearPrimaryCalendarID clears the value of the "primary_calendar_id" field.
-func (euo *EventUpdateOne) ClearPrimaryCalendarID() *EventUpdateOne {
-	euo.mutation.ClearPrimaryCalendarID()
-	return euo
-}
-
-// SetSummary sets the "summary" field.
-func (euo *EventUpdateOne) SetSummary(s string) *EventUpdateOne {
-	euo.mutation.SetSummary(s)
-	return euo
-}
-
-// SetNillableSummary sets the "summary" field if the given value is not nil.
-func (euo *EventUpdateOne) SetNillableSummary(s *string) *EventUpdateOne {
-	if s != nil {
-		euo.SetSummary(*s)
-	}
-	return euo
-}
-
-// ClearSummary clears the value of the "summary" field.
-func (euo *EventUpdateOne) ClearSummary() *EventUpdateOne {
-	euo.mutation.ClearSummary()
-	return euo
-}
-
 // SetTitle sets the "title" field.
 func (euo *EventUpdateOne) SetTitle(s string) *EventUpdateOne {
 	euo.mutation.SetTitle(s)
@@ -832,12 +710,6 @@ func (euo *EventUpdateOne) SetNillableTitle(s *string) *EventUpdateOne {
 	if s != nil {
 		euo.SetTitle(*s)
 	}
-	return euo
-}
-
-// ClearTitle clears the value of the "title" field.
-func (euo *EventUpdateOne) ClearTitle() *EventUpdateOne {
-	euo.mutation.ClearTitle()
 	return euo
 }
 
@@ -1023,25 +895,6 @@ func (euo *EventUpdateOne) SetNillableSlug(s *string) *EventUpdateOne {
 	return euo
 }
 
-// SetCalendarID sets the "calendar" edge to the Calendar entity by ID.
-func (euo *EventUpdateOne) SetCalendarID(id uuid.UUID) *EventUpdateOne {
-	euo.mutation.SetCalendarID(id)
-	return euo
-}
-
-// SetNillableCalendarID sets the "calendar" edge to the Calendar entity by ID if the given value is not nil.
-func (euo *EventUpdateOne) SetNillableCalendarID(id *uuid.UUID) *EventUpdateOne {
-	if id != nil {
-		euo = euo.SetCalendarID(*id)
-	}
-	return euo
-}
-
-// SetCalendar sets the "calendar" edge to the Calendar entity.
-func (euo *EventUpdateOne) SetCalendar(c *Calendar) *EventUpdateOne {
-	return euo.SetCalendarID(c.ID)
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (euo *EventUpdateOne) SetUser(u *User) *EventUpdateOne {
 	return euo.SetUserID(u.ID)
@@ -1075,12 +928,6 @@ func (euo *EventUpdateOne) AddProposedDates(p ...*ProposedDate) *EventUpdateOne 
 // Mutation returns the EventMutation object of the builder.
 func (euo *EventUpdateOne) Mutation() *EventMutation {
 	return euo.mutation
-}
-
-// ClearCalendar clears the "calendar" edge to the Calendar entity.
-func (euo *EventUpdateOne) ClearCalendar() *EventUpdateOne {
-	euo.mutation.ClearCalendar()
-	return euo
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -1179,6 +1026,11 @@ func (euo *EventUpdateOne) defaults() error {
 
 // check runs all checks and user-defined validators on the builder.
 func (euo *EventUpdateOne) check() error {
+	if v, ok := euo.mutation.Title(); ok {
+		if err := event.TitleValidator(v); err != nil {
+			return &ValidationError{Name: "title", err: fmt.Errorf(`ent: validator failed for field "Event.title": %w`, err)}
+		}
+	}
 	if v, ok := euo.mutation.Status(); ok {
 		if err := event.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Event.status": %w`, err)}
@@ -1188,6 +1040,12 @@ func (euo *EventUpdateOne) check() error {
 		if err := event.SyncStatusValidator(v); err != nil {
 			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "Event.sync_status": %w`, err)}
 		}
+	}
+	if euo.mutation.UserCleared() && len(euo.mutation.UserIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Event.user"`)
+	}
+	if euo.mutation.PrimaryCalendarCleared() && len(euo.mutation.PrimaryCalendarIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Event.primary_calendar"`)
 	}
 	return nil
 }
@@ -1230,17 +1088,8 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 	if euo.mutation.DeletedAtCleared() {
 		_spec.ClearField(event.FieldDeletedAt, field.TypeTime)
 	}
-	if value, ok := euo.mutation.Summary(); ok {
-		_spec.SetField(event.FieldSummary, field.TypeString, value)
-	}
-	if euo.mutation.SummaryCleared() {
-		_spec.ClearField(event.FieldSummary, field.TypeString)
-	}
 	if value, ok := euo.mutation.Title(); ok {
 		_spec.SetField(event.FieldTitle, field.TypeString, value)
-	}
-	if euo.mutation.TitleCleared() {
-		_spec.ClearField(event.FieldTitle, field.TypeString)
 	}
 	if value, ok := euo.mutation.Description(); ok {
 		_spec.SetField(event.FieldDescription, field.TypeString, value)
@@ -1286,35 +1135,6 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 	}
 	if value, ok := euo.mutation.Slug(); ok {
 		_spec.SetField(event.FieldSlug, field.TypeString, value)
-	}
-	if euo.mutation.CalendarCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   event.CalendarTable,
-			Columns: []string{event.CalendarColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := euo.mutation.CalendarIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   event.CalendarTable,
-			Columns: []string{event.CalendarColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if euo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

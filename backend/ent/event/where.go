@@ -81,11 +81,6 @@ func PrimaryCalendarID(v uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldPrimaryCalendarID, v))
 }
 
-// Summary applies equality check predicate on the "summary" field. It's identical to SummaryEQ.
-func Summary(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldSummary, v))
-}
-
 // Title applies equality check predicate on the "title" field. It's identical to TitleEQ.
 func Title(v string) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldTitle, v))
@@ -281,16 +276,6 @@ func UserIDNotIn(vs ...uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldNotIn(FieldUserID, vs...))
 }
 
-// UserIDIsNil applies the IsNil predicate on the "user_id" field.
-func UserIDIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldUserID))
-}
-
-// UserIDNotNil applies the NotNil predicate on the "user_id" field.
-func UserIDNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldUserID))
-}
-
 // PrimaryCalendarIDEQ applies the EQ predicate on the "primary_calendar_id" field.
 func PrimaryCalendarIDEQ(v uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldPrimaryCalendarID, v))
@@ -309,91 +294,6 @@ func PrimaryCalendarIDIn(vs ...uuid.UUID) predicate.Event {
 // PrimaryCalendarIDNotIn applies the NotIn predicate on the "primary_calendar_id" field.
 func PrimaryCalendarIDNotIn(vs ...uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldNotIn(FieldPrimaryCalendarID, vs...))
-}
-
-// PrimaryCalendarIDIsNil applies the IsNil predicate on the "primary_calendar_id" field.
-func PrimaryCalendarIDIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldPrimaryCalendarID))
-}
-
-// PrimaryCalendarIDNotNil applies the NotNil predicate on the "primary_calendar_id" field.
-func PrimaryCalendarIDNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldPrimaryCalendarID))
-}
-
-// SummaryEQ applies the EQ predicate on the "summary" field.
-func SummaryEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldSummary, v))
-}
-
-// SummaryNEQ applies the NEQ predicate on the "summary" field.
-func SummaryNEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldNEQ(FieldSummary, v))
-}
-
-// SummaryIn applies the In predicate on the "summary" field.
-func SummaryIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldIn(FieldSummary, vs...))
-}
-
-// SummaryNotIn applies the NotIn predicate on the "summary" field.
-func SummaryNotIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldNotIn(FieldSummary, vs...))
-}
-
-// SummaryGT applies the GT predicate on the "summary" field.
-func SummaryGT(v string) predicate.Event {
-	return predicate.Event(sql.FieldGT(FieldSummary, v))
-}
-
-// SummaryGTE applies the GTE predicate on the "summary" field.
-func SummaryGTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldGTE(FieldSummary, v))
-}
-
-// SummaryLT applies the LT predicate on the "summary" field.
-func SummaryLT(v string) predicate.Event {
-	return predicate.Event(sql.FieldLT(FieldSummary, v))
-}
-
-// SummaryLTE applies the LTE predicate on the "summary" field.
-func SummaryLTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldLTE(FieldSummary, v))
-}
-
-// SummaryContains applies the Contains predicate on the "summary" field.
-func SummaryContains(v string) predicate.Event {
-	return predicate.Event(sql.FieldContains(FieldSummary, v))
-}
-
-// SummaryHasPrefix applies the HasPrefix predicate on the "summary" field.
-func SummaryHasPrefix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasPrefix(FieldSummary, v))
-}
-
-// SummaryHasSuffix applies the HasSuffix predicate on the "summary" field.
-func SummaryHasSuffix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasSuffix(FieldSummary, v))
-}
-
-// SummaryIsNil applies the IsNil predicate on the "summary" field.
-func SummaryIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldSummary))
-}
-
-// SummaryNotNil applies the NotNil predicate on the "summary" field.
-func SummaryNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldSummary))
-}
-
-// SummaryEqualFold applies the EqualFold predicate on the "summary" field.
-func SummaryEqualFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldEqualFold(FieldSummary, v))
-}
-
-// SummaryContainsFold applies the ContainsFold predicate on the "summary" field.
-func SummaryContainsFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldContainsFold(FieldSummary, v))
 }
 
 // TitleEQ applies the EQ predicate on the "title" field.
@@ -449,16 +349,6 @@ func TitleHasPrefix(v string) predicate.Event {
 // TitleHasSuffix applies the HasSuffix predicate on the "title" field.
 func TitleHasSuffix(v string) predicate.Event {
 	return predicate.Event(sql.FieldHasSuffix(FieldTitle, v))
-}
-
-// TitleIsNil applies the IsNil predicate on the "title" field.
-func TitleIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldTitle))
-}
-
-// TitleNotNil applies the NotNil predicate on the "title" field.
-func TitleNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldTitle))
 }
 
 // TitleEqualFold applies the EqualFold predicate on the "title" field.
@@ -1029,29 +919,6 @@ func SlugEqualFold(v string) predicate.Event {
 // SlugContainsFold applies the ContainsFold predicate on the "slug" field.
 func SlugContainsFold(v string) predicate.Event {
 	return predicate.Event(sql.FieldContainsFold(FieldSlug, v))
-}
-
-// HasCalendar applies the HasEdge predicate on the "calendar" edge.
-func HasCalendar() predicate.Event {
-	return predicate.Event(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CalendarTable, CalendarColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCalendarWith applies the HasEdge predicate on the "calendar" edge with a given conditions (other predicates).
-func HasCalendarWith(preds ...predicate.Calendar) predicate.Event {
-	return predicate.Event(func(s *sql.Selector) {
-		step := newCalendarStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

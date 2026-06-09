@@ -10,6 +10,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
@@ -69,6 +70,22 @@ func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDat
 		SetPriority(*opt.Priority).
 		SetEventID(eventID)
 
+	if opt.GoogleEventID != nil {
+		proposedDateCreate = proposedDateCreate.SetGoogleEventID(*opt.GoogleEventID)
+	}
+	if opt.Status != nil {
+		proposedDateCreate = proposedDateCreate.SetStatus(proposeddate.Status(*opt.Status))
+	}
+	if opt.SyncStatus != nil {
+		proposedDateCreate = proposedDateCreate.SetSyncStatus(proposeddate.SyncStatus(*opt.SyncStatus))
+	}
+	if opt.LastSyncedAt != nil {
+		proposedDateCreate = proposedDateCreate.SetLastSyncedAt(*opt.LastSyncedAt)
+	}
+	if opt.LastSyncError != nil {
+		proposedDateCreate = proposedDateCreate.SetLastSyncError(*opt.LastSyncError)
+	}
+
 	entity, err := proposedDateCreate.Save(ctx)
 	if err != nil {
 		return nil, err
@@ -89,6 +106,32 @@ func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, o
 
 	if opt.Priority != nil {
 		proposedDateUpdate = proposedDateUpdate.SetPriority(*opt.Priority)
+	}
+
+	if opt.GoogleEventID != nil {
+		proposedDateUpdate = proposedDateUpdate.SetGoogleEventID(*opt.GoogleEventID)
+	}
+
+	if opt.Status != nil {
+		proposedDateUpdate = proposedDateUpdate.SetStatus(proposeddate.Status(*opt.Status))
+	}
+
+	if opt.SyncStatus != nil {
+		proposedDateUpdate = proposedDateUpdate.SetSyncStatus(proposeddate.SyncStatus(*opt.SyncStatus))
+	}
+
+	if opt.ClearLastSyncedAt {
+		proposedDateUpdate = proposedDateUpdate.ClearLastSyncedAt()
+	}
+	if opt.LastSyncedAt != nil {
+		proposedDateUpdate = proposedDateUpdate.SetLastSyncedAt(*opt.LastSyncedAt)
+	}
+
+	if opt.ClearLastSyncError {
+		proposedDateUpdate = proposedDateUpdate.ClearLastSyncError()
+	}
+	if opt.LastSyncError != nil {
+		proposedDateUpdate = proposedDateUpdate.SetLastSyncError(*opt.LastSyncError)
 	}
 
 	entity, err := proposedDateUpdate.Save(ctx)
@@ -127,6 +170,7 @@ func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDat
 			SetStartTime(selectedDate.Start).
 			SetEndTime(selectedDate.End).
 			SetPriority(selectedDate.Priority).
+			SetStatus(proposeddate.Status(domainvalue.ProposedDateStatusActive)).
 			SetEventID(eventID)
 
 		proposedDateCreates = append(proposedDateCreates, proposedDateCreate)
@@ -196,11 +240,16 @@ func toStoredProposedDate(entity *ent.ProposedDate) *repositorymodel.StoredPropo
 	}
 
 	return &repositorymodel.StoredProposedDate{
-		ID:        entity.ID,
-		EventID:   entity.EventID,
-		StartTime: entity.StartTime,
-		EndTime:   entity.EndTime,
-		Priority:  entity.Priority,
+		ID:            entity.ID,
+		EventID:       entity.EventID,
+		GoogleEventID: entity.GoogleEventID,
+		StartTime:     entity.StartTime,
+		EndTime:       entity.EndTime,
+		Priority:      entity.Priority,
+		Status:        domainvalue.ProposedDateStatus(entity.Status),
+		SyncStatus:    domainvalue.SyncStatus(entity.SyncStatus),
+		LastSyncedAt:  entity.LastSyncedAt,
+		LastSyncError: entity.LastSyncError,
 	}
 }
 

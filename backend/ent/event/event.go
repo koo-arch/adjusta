@@ -27,8 +27,6 @@ const (
 	FieldUserID = "user_id"
 	// FieldPrimaryCalendarID holds the string denoting the primary_calendar_id field in the database.
 	FieldPrimaryCalendarID = "primary_calendar_id"
-	// FieldSummary holds the string denoting the summary field in the database.
-	FieldSummary = "summary"
 	// FieldTitle holds the string denoting the title field in the database.
 	FieldTitle = "title"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -51,8 +49,6 @@ const (
 	FieldLastSyncError = "last_sync_error"
 	// FieldSlug holds the string denoting the slug field in the database.
 	FieldSlug = "slug"
-	// EdgeCalendar holds the string denoting the calendar edge name in mutations.
-	EdgeCalendar = "calendar"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrimaryCalendar holds the string denoting the primary_calendar edge name in mutations.
@@ -63,13 +59,6 @@ const (
 	EdgeProposedDates = "proposed_dates"
 	// Table holds the table name of the event in the database.
 	Table = "events"
-	// CalendarTable is the table that holds the calendar relation/edge.
-	CalendarTable = "events"
-	// CalendarInverseTable is the table name for the Calendar entity.
-	// It exists in this package in order to avoid circular dependency with the "calendar" package.
-	CalendarInverseTable = "calendars"
-	// CalendarColumn is the table column denoting the calendar relation/edge.
-	CalendarColumn = "calendar_events"
 	// UserTable is the table that holds the user relation/edge.
 	UserTable = "events"
 	// UserInverseTable is the table name for the User entity.
@@ -108,7 +97,6 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldUserID,
 	FieldPrimaryCalendarID,
-	FieldSummary,
 	FieldTitle,
 	FieldDescription,
 	FieldLocation,
@@ -157,6 +145,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	TitleValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -164,14 +154,13 @@ var (
 // Status defines the type for the "status" enum field.
 type Status string
 
-// StatusPending is the default value of the Status enum.
-const DefaultStatus = StatusPending
+// StatusActive is the default value of the Status enum.
+const DefaultStatus = StatusActive
 
 // Status values.
 const (
 	StatusDraft     Status = "draft"
 	StatusActive    Status = "active"
-	StatusPending   Status = "pending"
 	StatusConfirmed Status = "confirmed"
 	StatusCancelled Status = "cancelled"
 )
@@ -183,7 +172,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusDraft, StatusActive, StatusPending, StatusConfirmed, StatusCancelled:
+	case StatusDraft, StatusActive, StatusConfirmed, StatusCancelled:
 		return nil
 	default:
 		return fmt.Errorf("event: invalid enum value for status field: %q", s)
@@ -251,11 +240,6 @@ func ByPrimaryCalendarID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrimaryCalendarID, opts...).ToFunc()
 }
 
-// BySummary orders the results by the summary field.
-func BySummary(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSummary, opts...).ToFunc()
-}
-
 // ByTitle orders the results by the title field.
 func ByTitle(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTitle, opts...).ToFunc()
@@ -311,13 +295,6 @@ func BySlug(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSlug, opts...).ToFunc()
 }
 
-// ByCalendarField orders the results by calendar field.
-func ByCalendarField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCalendarStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByUserField orders the results by user field.
 func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -351,13 +328,6 @@ func ByProposedDates(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newProposedDatesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
-}
-func newCalendarStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CalendarInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CalendarTable, CalendarColumn),
-	)
 }
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

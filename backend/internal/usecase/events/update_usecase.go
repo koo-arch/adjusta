@@ -33,7 +33,6 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			Title:       &eventReq.Title,
 			Location:    &eventReq.Location,
 			Description: &eventReq.Description,
-			Status:      &eventReq.Status,
 		}
 		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, eventOptions)
 		if err != nil {
@@ -51,6 +50,12 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 		}
 
 		if eventReq.Status == domainvalue.StatusConfirmed {
+			storedCalendar, err := store.ReadCalendar(ctx, storedEvent.PrimaryCalendarID)
+			if err != nil {
+				log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
+				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			}
+
 			confirmDate := appmodel.ConfirmDate{
 				ID:       eventReq.ProposedDates[0].ID,
 				Start:    eventReq.ProposedDates[0].Start,
@@ -61,7 +66,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 				ConfirmDate: confirmDate,
 			}
 
-			googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedEvent, &confirmEvent)
+			googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, &confirmEvent)
 			if err != nil {
 				log.Printf("failed to handle google event for account: %s, error: %v", email, err)
 				return internalErrors.NormalizeAPIError(err, "Googleカレンダー更新時にエラーが発生しました")
@@ -107,6 +112,9 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, 
 	}
 
 	for _, dateID := range changeSet.Deletes {
+		if _, err := store.UpdateProposedDate(ctx, dateID, withPendingProposedDateSync(ProposedDateMutation{})); err != nil {
+			return fmt.Errorf("failed to mark proposed date sync pending for account: %s, error: %w", dateID, err)
+		}
 		if err := store.DeleteProposedDate(ctx, dateID); err != nil {
 			return fmt.Errorf("failed to delete proposed date for account: %s, error: %w", dateID, err)
 		}

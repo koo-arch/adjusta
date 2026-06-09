@@ -6,14 +6,22 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type ProposedDateQueryOptions struct {
-	StartTime *time.Time
-	EndTime   *time.Time
-	Priority  *int
+	GoogleEventID      *string
+	StartTime          *time.Time
+	EndTime            *time.Time
+	Priority           *int
+	Status             *domainvalue.ProposedDateStatus
+	SyncStatus         *domainvalue.SyncStatus
+	LastSyncedAt       *time.Time
+	ClearLastSyncedAt  bool
+	LastSyncError      *string
+	ClearLastSyncError bool
 }
 
 type ProposedDateRepository interface {

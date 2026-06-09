@@ -58,11 +58,10 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "summary", Type: field.TypeString, Nullable: true},
-		{Name: "title", Type: field.TypeString, Nullable: true},
+		{Name: "title", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "location", Type: field.TypeString, Nullable: true},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "active", "pending", "confirmed", "cancelled"}, Default: "pending"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "active", "confirmed", "cancelled"}, Default: "active"},
 		{Name: "google_event_id", Type: field.TypeString, Nullable: true},
 		{Name: "confirmed_google_event_id", Type: field.TypeString, Nullable: true},
 		{Name: "sync_status", Type: field.TypeEnum, Enums: []string{"not_synced", "pending_sync", "synced", "sync_failed"}, Default: "not_synced"},
@@ -70,9 +69,9 @@ var (
 		{Name: "last_sync_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "slug", Type: field.TypeString, Unique: true},
 		{Name: "calendar_events", Type: field.TypeUUID, Nullable: true},
-		{Name: "primary_calendar_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "primary_calendar_id", Type: field.TypeUUID},
 		{Name: "confirmed_date_id", Type: field.TypeUUID, Nullable: true},
-		{Name: "user_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// EventsTable holds the schema information for the "events" table.
 	EventsTable = &schema.Table{
@@ -82,25 +81,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "events_calendars_events",
-				Columns:    []*schema.Column{EventsColumns[15]},
+				Columns:    []*schema.Column{EventsColumns[14]},
 				RefColumns: []*schema.Column{CalendarsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "events_calendars_primary_events",
-				Columns:    []*schema.Column{EventsColumns[16]},
+				Columns:    []*schema.Column{EventsColumns[15]},
 				RefColumns: []*schema.Column{CalendarsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "events_proposed_dates_confirmed_date",
-				Columns:    []*schema.Column{EventsColumns[17]},
+				Columns:    []*schema.Column{EventsColumns[16]},
 				RefColumns: []*schema.Column{ProposedDatesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "events_users_events",
-				Columns:    []*schema.Column{EventsColumns[18]},
+				Columns:    []*schema.Column{EventsColumns[17]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -109,27 +108,27 @@ var (
 			{
 				Name:    "event_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[18]},
+				Columns: []*schema.Column{EventsColumns[17]},
 			},
 			{
 				Name:    "event_primary_calendar_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[16]},
+				Columns: []*schema.Column{EventsColumns[15]},
 			},
 			{
 				Name:    "event_confirmed_date_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[17]},
+				Columns: []*schema.Column{EventsColumns[16]},
 			},
 			{
 				Name:    "event_status",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[8]},
+				Columns: []*schema.Column{EventsColumns[7]},
 			},
 			{
 				Name:    "event_sync_status",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[11]},
+				Columns: []*schema.Column{EventsColumns[10]},
 			},
 		},
 	}

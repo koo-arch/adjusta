@@ -31,15 +31,19 @@ type SelectedDate struct {
 }
 
 type EventDraftDetail struct {
-	ID              uuid.UUID               `json:"id" binding:"required"`
-	Title           string                  `json:"title"`
-	Location        string                  `json:"location"`
-	Description     string                  `json:"description"`
-	Status          domainvalue.EventStatus `json:"status"`
-	ConfirmedDateID *uuid.UUID              `json:"confirmed_date_id"`
-	GoogleEventID   string                  `json:"google_event_id"`
-	Slug            string                  `json:"slug"`
-	ProposedDates   []ProposedDate          `json:"proposed_dates"`
+	ID                     uuid.UUID               `json:"id" binding:"required"`
+	Title                  string                  `json:"title"`
+	Location               string                  `json:"location"`
+	Description            string                  `json:"description"`
+	Status                 domainvalue.EventStatus `json:"status"`
+	SyncStatus             domainvalue.SyncStatus  `json:"sync_status"`
+	ConfirmedDateID        *uuid.UUID              `json:"confirmed_date_id"`
+	GoogleEventID          string                  `json:"google_event_id"`
+	ConfirmedGoogleEventID *string                 `json:"confirmed_google_event_id,omitempty"`
+	LastSyncedAt           *time.Time              `json:"last_synced_at,omitempty"`
+	LastSyncError          *string                 `json:"last_sync_error,omitempty"`
+	Slug                   string                  `json:"slug"`
+	ProposedDates          []ProposedDate          `json:"proposed_dates"`
 }
 
 type EventDraftUpdate struct {
@@ -54,10 +58,15 @@ type EventDraftUpdate struct {
 }
 
 type ProposedDate struct {
-	ID       *uuid.UUID `json:"id"`
-	Start    *time.Time `json:"start"`
-	End      *time.Time `json:"end"`
-	Priority int        `json:"priority"`
+	ID            *uuid.UUID                     `json:"id"`
+	GoogleEventID *string                        `json:"google_event_id,omitempty"`
+	Start         *time.Time                     `json:"start"`
+	End           *time.Time                     `json:"end"`
+	Priority      int                            `json:"priority"`
+	Status        domainvalue.ProposedDateStatus `json:"status"`
+	SyncStatus    domainvalue.SyncStatus         `json:"sync_status"`
+	LastSyncedAt  *time.Time                     `json:"last_synced_at,omitempty"`
+	LastSyncError *string                        `json:"last_sync_error,omitempty"`
 }
 
 type ConfirmEvent struct {
@@ -83,16 +92,20 @@ type EventDraftQueryOptions struct {
 }
 
 type UpcomingEvent struct {
-	ID              uuid.UUID               `json:"id" binding:"required"`
-	Title           string                  `json:"title"`
-	Location        string                  `json:"location"`
-	Description     string                  `json:"description"`
-	Status          domainvalue.EventStatus `json:"status"`
-	ConfirmedDateID uuid.UUID               `json:"confirmed_date_id"`
-	GoogleEventID   string                  `json:"google_event_id"`
-	Slug            string                  `json:"slug"`
-	Start           time.Time               `json:"start"`
-	End             time.Time               `json:"end"`
+	ID                     uuid.UUID               `json:"id" binding:"required"`
+	Title                  string                  `json:"title"`
+	Location               string                  `json:"location"`
+	Description            string                  `json:"description"`
+	Status                 domainvalue.EventStatus `json:"status"`
+	SyncStatus             domainvalue.SyncStatus  `json:"sync_status"`
+	ConfirmedDateID        uuid.UUID               `json:"confirmed_date_id"`
+	GoogleEventID          string                  `json:"google_event_id"`
+	ConfirmedGoogleEventID *string                 `json:"confirmed_google_event_id,omitempty"`
+	LastSyncedAt           *time.Time              `json:"last_synced_at,omitempty"`
+	LastSyncError          *string                 `json:"last_sync_error,omitempty"`
+	Slug                   string                  `json:"slug"`
+	Start                  time.Time               `json:"start"`
+	End                    time.Time               `json:"end"`
 }
 
 type NeedsActionDraft struct {

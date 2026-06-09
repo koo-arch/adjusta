@@ -49,7 +49,7 @@ const EventEdit = () => {
         // statusをisConfirmedの値に応じて変更
         const updateData = {
             ...data,
-            status: isConfirmed ? "confirmed" : "pending",
+            status: isConfirmed ? "confirmed" : "active",
         }
 
         putEventUpdate(updateData)

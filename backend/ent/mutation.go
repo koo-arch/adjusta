@@ -1905,7 +1905,6 @@ type EventMutation struct {
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
-	summary                   *string
 	title                     *string
 	description               *string
 	location                  *string
@@ -1917,8 +1916,6 @@ type EventMutation struct {
 	last_sync_error           *string
 	slug                      *string
 	clearedFields             map[string]struct{}
-	calendar                  *uuid.UUID
-	clearedcalendar           bool
 	user                      *uuid.UUID
 	cleareduser               bool
 	primary_calendar          *uuid.UUID
@@ -2175,7 +2172,7 @@ func (m *EventMutation) UserID() (r uuid.UUID, exists bool) {
 // OldUserID returns the old "user_id" field's value of the Event entity.
 // If the Event object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventMutation) OldUserID(ctx context.Context) (v *uuid.UUID, err error) {
+func (m *EventMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
 	}
@@ -2189,22 +2186,9 @@ func (m *EventMutation) OldUserID(ctx context.Context) (v *uuid.UUID, err error)
 	return oldValue.UserID, nil
 }
 
-// ClearUserID clears the value of the "user_id" field.
-func (m *EventMutation) ClearUserID() {
-	m.user = nil
-	m.clearedFields[event.FieldUserID] = struct{}{}
-}
-
-// UserIDCleared returns if the "user_id" field was cleared in this mutation.
-func (m *EventMutation) UserIDCleared() bool {
-	_, ok := m.clearedFields[event.FieldUserID]
-	return ok
-}
-
 // ResetUserID resets all changes to the "user_id" field.
 func (m *EventMutation) ResetUserID() {
 	m.user = nil
-	delete(m.clearedFields, event.FieldUserID)
 }
 
 // SetPrimaryCalendarID sets the "primary_calendar_id" field.
@@ -2224,7 +2208,7 @@ func (m *EventMutation) PrimaryCalendarID() (r uuid.UUID, exists bool) {
 // OldPrimaryCalendarID returns the old "primary_calendar_id" field's value of the Event entity.
 // If the Event object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventMutation) OldPrimaryCalendarID(ctx context.Context) (v *uuid.UUID, err error) {
+func (m *EventMutation) OldPrimaryCalendarID(ctx context.Context) (v uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldPrimaryCalendarID is only allowed on UpdateOne operations")
 	}
@@ -2238,71 +2222,9 @@ func (m *EventMutation) OldPrimaryCalendarID(ctx context.Context) (v *uuid.UUID,
 	return oldValue.PrimaryCalendarID, nil
 }
 
-// ClearPrimaryCalendarID clears the value of the "primary_calendar_id" field.
-func (m *EventMutation) ClearPrimaryCalendarID() {
-	m.primary_calendar = nil
-	m.clearedFields[event.FieldPrimaryCalendarID] = struct{}{}
-}
-
-// PrimaryCalendarIDCleared returns if the "primary_calendar_id" field was cleared in this mutation.
-func (m *EventMutation) PrimaryCalendarIDCleared() bool {
-	_, ok := m.clearedFields[event.FieldPrimaryCalendarID]
-	return ok
-}
-
 // ResetPrimaryCalendarID resets all changes to the "primary_calendar_id" field.
 func (m *EventMutation) ResetPrimaryCalendarID() {
 	m.primary_calendar = nil
-	delete(m.clearedFields, event.FieldPrimaryCalendarID)
-}
-
-// SetSummary sets the "summary" field.
-func (m *EventMutation) SetSummary(s string) {
-	m.summary = &s
-}
-
-// Summary returns the value of the "summary" field in the mutation.
-func (m *EventMutation) Summary() (r string, exists bool) {
-	v := m.summary
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSummary returns the old "summary" field's value of the Event entity.
-// If the Event object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventMutation) OldSummary(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSummary is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSummary requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSummary: %w", err)
-	}
-	return oldValue.Summary, nil
-}
-
-// ClearSummary clears the value of the "summary" field.
-func (m *EventMutation) ClearSummary() {
-	m.summary = nil
-	m.clearedFields[event.FieldSummary] = struct{}{}
-}
-
-// SummaryCleared returns if the "summary" field was cleared in this mutation.
-func (m *EventMutation) SummaryCleared() bool {
-	_, ok := m.clearedFields[event.FieldSummary]
-	return ok
-}
-
-// ResetSummary resets all changes to the "summary" field.
-func (m *EventMutation) ResetSummary() {
-	m.summary = nil
-	delete(m.clearedFields, event.FieldSummary)
 }
 
 // SetTitle sets the "title" field.
@@ -2322,7 +2244,7 @@ func (m *EventMutation) Title() (r string, exists bool) {
 // OldTitle returns the old "title" field's value of the Event entity.
 // If the Event object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventMutation) OldTitle(ctx context.Context) (v *string, err error) {
+func (m *EventMutation) OldTitle(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
 	}
@@ -2336,22 +2258,9 @@ func (m *EventMutation) OldTitle(ctx context.Context) (v *string, err error) {
 	return oldValue.Title, nil
 }
 
-// ClearTitle clears the value of the "title" field.
-func (m *EventMutation) ClearTitle() {
-	m.title = nil
-	m.clearedFields[event.FieldTitle] = struct{}{}
-}
-
-// TitleCleared returns if the "title" field was cleared in this mutation.
-func (m *EventMutation) TitleCleared() bool {
-	_, ok := m.clearedFields[event.FieldTitle]
-	return ok
-}
-
 // ResetTitle resets all changes to the "title" field.
 func (m *EventMutation) ResetTitle() {
 	m.title = nil
-	delete(m.clearedFields, event.FieldTitle)
 }
 
 // SetDescription sets the "description" field.
@@ -2805,45 +2714,6 @@ func (m *EventMutation) ResetSlug() {
 	m.slug = nil
 }
 
-// SetCalendarID sets the "calendar" edge to the Calendar entity by id.
-func (m *EventMutation) SetCalendarID(id uuid.UUID) {
-	m.calendar = &id
-}
-
-// ClearCalendar clears the "calendar" edge to the Calendar entity.
-func (m *EventMutation) ClearCalendar() {
-	m.clearedcalendar = true
-}
-
-// CalendarCleared reports if the "calendar" edge to the Calendar entity was cleared.
-func (m *EventMutation) CalendarCleared() bool {
-	return m.clearedcalendar
-}
-
-// CalendarID returns the "calendar" edge ID in the mutation.
-func (m *EventMutation) CalendarID() (id uuid.UUID, exists bool) {
-	if m.calendar != nil {
-		return *m.calendar, true
-	}
-	return
-}
-
-// CalendarIDs returns the "calendar" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// CalendarID instead. It exists only for internal usage by the builders.
-func (m *EventMutation) CalendarIDs() (ids []uuid.UUID) {
-	if id := m.calendar; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetCalendar resets all changes to the "calendar" edge.
-func (m *EventMutation) ResetCalendar() {
-	m.calendar = nil
-	m.clearedcalendar = false
-}
-
 // ClearUser clears the "user" edge to the User entity.
 func (m *EventMutation) ClearUser() {
 	m.cleareduser = true
@@ -2852,7 +2722,7 @@ func (m *EventMutation) ClearUser() {
 
 // UserCleared reports if the "user" edge to the User entity was cleared.
 func (m *EventMutation) UserCleared() bool {
-	return m.UserIDCleared() || m.cleareduser
+	return m.cleareduser
 }
 
 // UserIDs returns the "user" edge IDs in the mutation.
@@ -2879,7 +2749,7 @@ func (m *EventMutation) ClearPrimaryCalendar() {
 
 // PrimaryCalendarCleared reports if the "primary_calendar" edge to the Calendar entity was cleared.
 func (m *EventMutation) PrimaryCalendarCleared() bool {
-	return m.PrimaryCalendarIDCleared() || m.clearedprimary_calendar
+	return m.clearedprimary_calendar
 }
 
 // PrimaryCalendarIDs returns the "primary_calendar" edge IDs in the mutation.
@@ -3013,7 +2883,7 @@ func (m *EventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EventMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 16)
 	if m.created_at != nil {
 		fields = append(fields, event.FieldCreatedAt)
 	}
@@ -3028,9 +2898,6 @@ func (m *EventMutation) Fields() []string {
 	}
 	if m.primary_calendar != nil {
 		fields = append(fields, event.FieldPrimaryCalendarID)
-	}
-	if m.summary != nil {
-		fields = append(fields, event.FieldSummary)
 	}
 	if m.title != nil {
 		fields = append(fields, event.FieldTitle)
@@ -3083,8 +2950,6 @@ func (m *EventMutation) Field(name string) (ent.Value, bool) {
 		return m.UserID()
 	case event.FieldPrimaryCalendarID:
 		return m.PrimaryCalendarID()
-	case event.FieldSummary:
-		return m.Summary()
 	case event.FieldTitle:
 		return m.Title()
 	case event.FieldDescription:
@@ -3126,8 +2991,6 @@ func (m *EventMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldUserID(ctx)
 	case event.FieldPrimaryCalendarID:
 		return m.OldPrimaryCalendarID(ctx)
-	case event.FieldSummary:
-		return m.OldSummary(ctx)
 	case event.FieldTitle:
 		return m.OldTitle(ctx)
 	case event.FieldDescription:
@@ -3193,13 +3056,6 @@ func (m *EventMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPrimaryCalendarID(v)
-		return nil
-	case event.FieldSummary:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSummary(v)
 		return nil
 	case event.FieldTitle:
 		v, ok := value.(string)
@@ -3311,18 +3167,6 @@ func (m *EventMutation) ClearedFields() []string {
 	if m.FieldCleared(event.FieldDeletedAt) {
 		fields = append(fields, event.FieldDeletedAt)
 	}
-	if m.FieldCleared(event.FieldUserID) {
-		fields = append(fields, event.FieldUserID)
-	}
-	if m.FieldCleared(event.FieldPrimaryCalendarID) {
-		fields = append(fields, event.FieldPrimaryCalendarID)
-	}
-	if m.FieldCleared(event.FieldSummary) {
-		fields = append(fields, event.FieldSummary)
-	}
-	if m.FieldCleared(event.FieldTitle) {
-		fields = append(fields, event.FieldTitle)
-	}
 	if m.FieldCleared(event.FieldDescription) {
 		fields = append(fields, event.FieldDescription)
 	}
@@ -3360,18 +3204,6 @@ func (m *EventMutation) ClearField(name string) error {
 	switch name {
 	case event.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case event.FieldUserID:
-		m.ClearUserID()
-		return nil
-	case event.FieldPrimaryCalendarID:
-		m.ClearPrimaryCalendarID()
-		return nil
-	case event.FieldSummary:
-		m.ClearSummary()
-		return nil
-	case event.FieldTitle:
-		m.ClearTitle()
 		return nil
 	case event.FieldDescription:
 		m.ClearDescription()
@@ -3417,9 +3249,6 @@ func (m *EventMutation) ResetField(name string) error {
 	case event.FieldPrimaryCalendarID:
 		m.ResetPrimaryCalendarID()
 		return nil
-	case event.FieldSummary:
-		m.ResetSummary()
-		return nil
 	case event.FieldTitle:
 		m.ResetTitle()
 		return nil
@@ -3459,10 +3288,7 @@ func (m *EventMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *EventMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
-	if m.calendar != nil {
-		edges = append(edges, event.EdgeCalendar)
-	}
+	edges := make([]string, 0, 4)
 	if m.user != nil {
 		edges = append(edges, event.EdgeUser)
 	}
@@ -3482,10 +3308,6 @@ func (m *EventMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *EventMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case event.EdgeCalendar:
-		if id := m.calendar; id != nil {
-			return []ent.Value{*id}
-		}
 	case event.EdgeUser:
 		if id := m.user; id != nil {
 			return []ent.Value{*id}
@@ -3510,7 +3332,7 @@ func (m *EventMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *EventMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 4)
 	if m.removedproposed_dates != nil {
 		edges = append(edges, event.EdgeProposedDates)
 	}
@@ -3533,10 +3355,7 @@ func (m *EventMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *EventMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
-	if m.clearedcalendar {
-		edges = append(edges, event.EdgeCalendar)
-	}
+	edges := make([]string, 0, 4)
 	if m.cleareduser {
 		edges = append(edges, event.EdgeUser)
 	}
@@ -3556,8 +3375,6 @@ func (m *EventMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *EventMutation) EdgeCleared(name string) bool {
 	switch name {
-	case event.EdgeCalendar:
-		return m.clearedcalendar
 	case event.EdgeUser:
 		return m.cleareduser
 	case event.EdgePrimaryCalendar:
@@ -3574,9 +3391,6 @@ func (m *EventMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *EventMutation) ClearEdge(name string) error {
 	switch name {
-	case event.EdgeCalendar:
-		m.ClearCalendar()
-		return nil
 	case event.EdgeUser:
 		m.ClearUser()
 		return nil
@@ -3594,9 +3408,6 @@ func (m *EventMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *EventMutation) ResetEdge(name string) error {
 	switch name {
-	case event.EdgeCalendar:
-		m.ResetCalendar()
-		return nil
 	case event.EdgeUser:
 		m.ResetUser()
 		return nil

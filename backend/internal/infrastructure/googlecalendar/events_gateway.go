@@ -41,7 +41,7 @@ func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calend
 	}, normalizeGoogleAPIError(err)
 }
 
-func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
+func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
 	calendarService, err := g.newCalendarService(ctx, userID)
 	if err != nil {
 		return "", err
@@ -60,7 +60,7 @@ func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, existi
 			},
 		}
 
-		insertedEvents, err := g.calendarManager.CreateGoogleEvents(calendarService, eventReq)
+		insertedEvents, err := g.calendarManager.CreateGoogleEvents(calendarService, calendarID, eventReq)
 		if err != nil {
 			return "", fmt.Errorf("failed to create google event: %w", err)
 		}
@@ -71,7 +71,7 @@ func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, existi
 	}
 
 	googleEvent := g.calendarManager.ConvertToCalendarEvent(existingGoogleEventID, title, location, description, start, end)
-	upsertedEvent, err := g.calendarManager.UpdateOrCreateGoogleEvent(calendarService, googleEvent)
+	upsertedEvent, err := g.calendarManager.UpdateOrCreateGoogleEvent(calendarService, calendarID, googleEvent)
 	if err != nil {
 		return "", fmt.Errorf("failed to upsert google event: %w", err)
 	}

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
@@ -24,7 +26,13 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, s
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedEvent, eventReq)
+		storedCalendar, err := store.ReadCalendar(ctx, storedEvent.PrimaryCalendarID)
+		if err != nil {
+			log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
+			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+		}
+
+		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, eventReq)
 		if err != nil {
 			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
 			return internalErrors.NormalizeAPIError(err, "サーバーでエラーが発生しました")
@@ -45,17 +53,24 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, s
 	return nil
 }
 
-func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, storedEvent *repositorymodel.StoredEvent, eventReq *appmodel.ConfirmEvent) (*string, error) {
+func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *repositorymodel.StoredEvent, eventReq *appmodel.ConfirmEvent) (*string, error) {
 	var existingGoogleEventID *string
-	if eventReq.ConfirmDate.ID != nil && storedEvent.GoogleEventID != "" {
-		existingGoogleEventID = &storedEvent.GoogleEventID
+	if eventReq.ConfirmDate.ID != nil {
+		if storedEvent.ConfirmedGoogleEventID != nil && *storedEvent.ConfirmedGoogleEventID != "" {
+			existingGoogleEventID = storedEvent.ConfirmedGoogleEventID
+		} else if eventReq.ConfirmDate.GoogleEventID != "" {
+			existingGoogleEventID = &eventReq.ConfirmDate.GoogleEventID
+		} else if storedEvent.GoogleEventID != "" {
+			existingGoogleEventID = &storedEvent.GoogleEventID
+		}
 	}
 
 	googleEventID, err := uc.googleCalendar.UpsertEvent(
 		ctx,
 		userID,
+		calendarID,
 		existingGoogleEventID,
-		storedEvent.Summary,
+		storedEvent.Title,
 		storedEvent.Location,
 		storedEvent.Description,
 		*eventReq.ConfirmDate.Start,

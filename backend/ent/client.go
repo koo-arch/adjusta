@@ -695,22 +695,6 @@ func (c *EventClient) GetX(ctx context.Context, id uuid.UUID) *Event {
 	return obj
 }
 
-// QueryCalendar queries the calendar edge of a Event.
-func (c *EventClient) QueryCalendar(e *Event) *CalendarQuery {
-	query := (&CalendarClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := e.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(event.Table, event.FieldID, id),
-			sqlgraph.To(calendar.Table, calendar.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, event.CalendarTable, event.CalendarColumn),
-		)
-		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryUser queries the user edge of a Event.
 func (c *EventClient) QueryUser(e *Event) *UserQuery {
 	query := (&UserClient{config: c.config}).Query()

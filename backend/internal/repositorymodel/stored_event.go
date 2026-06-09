@@ -8,21 +8,32 @@ import (
 )
 
 type StoredProposedDate struct {
-	ID        uuid.UUID
-	EventID   *uuid.UUID
-	StartTime time.Time
-	EndTime   time.Time
-	Priority  int
+	ID            uuid.UUID
+	EventID       *uuid.UUID
+	GoogleEventID *string
+	StartTime     time.Time
+	EndTime       time.Time
+	Priority      int
+	Status        domainvalue.ProposedDateStatus
+	SyncStatus    domainvalue.SyncStatus
+	LastSyncedAt  *time.Time
+	LastSyncError *string
 }
 
 type StoredEvent struct {
-	ID              uuid.UUID
-	Summary         string
-	Location        string
-	Description     string
-	Status          domainvalue.EventStatus
-	ConfirmedDateID uuid.UUID
-	GoogleEventID   string
-	Slug            string
-	ProposedDates   []*StoredProposedDate
+	UserID                 uuid.UUID
+	ID                     uuid.UUID
+	PrimaryCalendarID      uuid.UUID
+	Title                  string
+	Location               string
+	Description            string
+	Status                 domainvalue.EventStatus
+	ConfirmedDateID        uuid.UUID
+	GoogleEventID          string
+	ConfirmedGoogleEventID *string
+	SyncStatus             domainvalue.SyncStatus
+	LastSyncedAt           *time.Time
+	LastSyncError          *string
+	Slug                   string
+	ProposedDates          []*StoredProposedDate
 }

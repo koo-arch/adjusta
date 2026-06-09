@@ -18,7 +18,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			return err
 		}
 
-		storedEvent, err := store.CreateEvent(ctx, storedCalendar.ID, eventReq.Title, eventReq.Location, eventReq.Description, eventReq.SelectedDates[0].Start, eventReq.SelectedDates[0].End)
+		storedEvent, err := store.CreateEvent(ctx, userID, storedCalendar.ID, eventReq.Title, eventReq.Location, eventReq.Description, eventReq.SelectedDates[0].Start, eventReq.SelectedDates[0].End)
 		if err != nil {
 			log.Printf("failed to create event for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
@@ -32,10 +32,12 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 
 		response = &appmodel.EventDraftDetail{
 			ID:            storedEvent.ID,
-			Title:         storedEvent.Summary,
+			Title:         storedEvent.Title,
 			Location:      storedEvent.Location,
 			Description:   storedEvent.Description,
 			Status:        storedEvent.Status,
+			SyncStatus:    storedEvent.SyncStatus,
+			GoogleEventID: eventGoogleEventID(storedEvent),
 			ProposedDates: buildProposedDates(storedDates),
 		}
 

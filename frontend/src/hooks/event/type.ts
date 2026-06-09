@@ -19,7 +19,7 @@ export interface SearchParams {
     location?: string;
     startTime?: string;
     endTime?: string;
-    status?: "confirmed" | "pending" | "rejected";
+    status?: "active" | "confirmed" | "cancelled";
 }
 
 export interface UpcomingEvent extends Omit<EventDraftDetail, 'proposed_dates'> {

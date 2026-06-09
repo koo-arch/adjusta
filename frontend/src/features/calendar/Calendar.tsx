@@ -45,7 +45,7 @@ const Calendar = <T extends CalendarEvent>({
     editEvent,
 }: CalendarProps<T>) => {
     const { events, isLoading: isGoogleEventLoading, error: googleEventError } = useFetchGoogleEvent();
-    const { searchEvents, isLoading: isSearchLoading, error: searchError } = useSearchEvents({ status: "pending" });
+    const { searchEvents, isLoading: isSearchLoading, error: searchError } = useSearchEvents({ status: "active" });
     const [allEvents, setAllEvents] = useAtom(allEventsAtom);
 
     const warningToastId = 'google-calendar-warning';

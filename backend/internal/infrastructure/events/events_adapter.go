@@ -84,19 +84,29 @@ func (s *eventTxStore) FindEventBySlug(ctx context.Context, userID uuid.UUID, sl
 	})
 }
 
-func (s *eventTxStore) CreateEvent(ctx context.Context, calendarID uuid.UUID, title, location, description string, start, end time.Time) (*repositorymodel.StoredEvent, error) {
+func (s *eventTxStore) ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*repositorymodel.StoredCalendar, error) {
+	return s.repos.Calendar.Read(ctx, calendarID, repoCalendar.CalendarQueryOptions{})
+}
+
+func (s *eventTxStore) CreateEvent(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*repositorymodel.StoredEvent, error) {
 	googleEvent := s.calendarApp.ConvertToCalendarEvent(nil, title, location, description, start, end)
-	return s.repos.Event.Create(ctx, googleEvent, calendarID)
+	return s.repos.Event.Create(ctx, userID, googleEvent, primaryCalendarID)
 }
 
 func (s *eventTxStore) UpdateEvent(ctx context.Context, id uuid.UUID, opt usecaseEvents.EventMutation) (*repositorymodel.StoredEvent, error) {
 	return s.repos.Event.Update(ctx, id, repoEvent.EventQueryOptions{
-		Summary:         opt.Title,
-		Location:        opt.Location,
-		Description:     opt.Description,
-		Status:          opt.Status,
-		ConfirmedDateID: opt.ConfirmedDateID,
-		GoogleEventID:   opt.GoogleEventID,
+		Title:                  opt.Title,
+		Location:               opt.Location,
+		Description:            opt.Description,
+		Status:                 opt.Status,
+		SyncStatus:             opt.SyncStatus,
+		ConfirmedDateID:        opt.ConfirmedDateID,
+		GoogleEventID:          opt.GoogleEventID,
+		ConfirmedGoogleEventID: opt.ConfirmedGoogleEventID,
+		LastSyncedAt:           opt.LastSyncedAt,
+		ClearLastSyncedAt:      opt.ClearLastSyncedAt,
+		LastSyncError:          opt.LastSyncError,
+		ClearLastSyncError:     opt.ClearLastSyncError,
 	})
 }
 
@@ -134,7 +144,7 @@ func (s *eventTxStore) ReorderPriority(ctx context.Context, eventID uuid.UUID) e
 
 func toEventQueryOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventQueryOptions {
 	return repoEvent.EventQueryOptions{
-		Summary:              opt.Title,
+		Title:                opt.Title,
 		Location:             opt.Location,
 		Description:          opt.Description,
 		Status:               opt.Status,
@@ -150,8 +160,15 @@ func toEventQueryOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventQu
 
 func toProposedDateQueryOptions(opt usecaseEvents.ProposedDateMutation) repoProposedDate.ProposedDateQueryOptions {
 	return repoProposedDate.ProposedDateQueryOptions{
-		StartTime: opt.Start,
-		EndTime:   opt.End,
-		Priority:  opt.Priority,
+		GoogleEventID:      opt.GoogleEventID,
+		StartTime:          opt.Start,
+		EndTime:            opt.End,
+		Priority:           opt.Priority,
+		Status:             opt.Status,
+		SyncStatus:         opt.SyncStatus,
+		LastSyncedAt:       opt.LastSyncedAt,
+		ClearLastSyncedAt:  opt.ClearLastSyncedAt,
+		LastSyncError:      opt.LastSyncError,
+		ClearLastSyncError: opt.ClearLastSyncError,
 	}
 }

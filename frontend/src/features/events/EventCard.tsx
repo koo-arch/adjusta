@@ -14,11 +14,11 @@ interface EventCardProps {
 
 const statusLabel = (status: string) => {
     switch (status) {
-        case 'pending':
+        case 'active':
             return '調整中';
         case 'confirmed':
             return '確定';
-        case 'rejected':
+        case 'cancelled':
             return 'キャンセル';
         default:
             return '';
@@ -27,11 +27,11 @@ const statusLabel = (status: string) => {
 
 const statusColor = (status: string) => {
     switch (status) {
-        case 'pending':
+        case 'active':
             return 'yellow';
         case 'confirmed':
             return 'green';
-        case 'rejected':
+        case 'cancelled':
             return 'red';
         default:
             return 'gray';

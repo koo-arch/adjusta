@@ -75,8 +75,8 @@ func (qp *QueryParser) vaildateStatus(status *string) (*domainvalue.EventStatus,
 	var result domainvalue.EventStatus
 
 	switch *status {
-	case "pending":
-		result = domainvalue.StatusPending
+	case "active", "pending":
+		result = domainvalue.StatusActive
 	case "confirmed":
 		result = domainvalue.StatusConfirmed
 	case "cancelled":

@@ -5,7 +5,6 @@ type EventStatus string
 const (
 	StatusDraft     EventStatus = "draft"
 	StatusActive    EventStatus = "active"
-	StatusPending   EventStatus = "pending"
 	StatusConfirmed EventStatus = "confirmed"
 	StatusCancelled EventStatus = "cancelled"
 )
