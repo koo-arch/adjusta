@@ -29,7 +29,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		storedDates, err := store.CreateProposedDates(ctx, eventReq.SelectedDates, storedEvent.ID)
+		storedDates, err := store.CreateProposedDates(ctx, normalizeSelectedDatesPriorities(eventReq.SelectedDates), storedEvent.ID)
 		if err != nil {
 			log.Printf("failed to create proposed dates for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)

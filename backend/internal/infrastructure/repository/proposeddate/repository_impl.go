@@ -183,57 +183,6 @@ func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDat
 	return toStoredProposedDates(entities), nil
 }
 
-func (r *ProposedDateRepositoryImpl) DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error {
-	_, err := r.client.ProposedDate.Update().Where(
-		proposeddate.HasEventWith(event.IDEQ(eventID)),
-		proposeddate.IDNEQ(excludeID),
-	).
-		AddPriority(1).
-		Save(ctx)
-
-	return err
-}
-
-func (r *ProposedDateRepositoryImpl) ReorderPriority(ctx context.Context, eventID uuid.UUID) error {
-	// eventIDに紐づくProposedDateをpriority順に取得
-	proposedDates, err := r.client.ProposedDate.Query().
-		Where(proposeddate.HasEventWith(event.IDEQ(eventID))).
-		Order(ent.Asc(proposeddate.FieldPriority)).
-		All(ctx)
-	if err != nil {
-		return err
-	}
-
-	// priorityが連番でない時に振り直す
-	if !r.isSequential(proposedDates) {
-		return r.updateToSequentialPriority(ctx, proposedDates)
-	}
-
-	return nil
-}
-
-func (r *ProposedDateRepositoryImpl) isSequential(proposedDates []*ent.ProposedDate) bool {
-	for i, proposedDate := range proposedDates {
-		if proposedDate.Priority != i+1 {
-			return false
-		}
-	}
-	return true
-}
-
-func (r *ProposedDateRepositoryImpl) updateToSequentialPriority(ctx context.Context, proposedDates []*ent.ProposedDate) error {
-	for i, proposedDate := range proposedDates {
-		priority := i + 1
-		_, err := r.Update(ctx, proposedDate.ID, ProposedDateQueryOptions{
-			Priority: &priority,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func toStoredProposedDate(entity *ent.ProposedDate) *repositorymodel.StoredProposedDate {
 	if entity == nil {
 		return nil

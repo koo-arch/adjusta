@@ -37,8 +37,6 @@ type EventTxStore interface {
 	UpdateProposedDate(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*repositorymodel.StoredProposedDate, error)
 	DeleteProposedDate(ctx context.Context, id uuid.UUID) error
 	CreateProposedDate(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*repositorymodel.StoredProposedDate, error)
-	DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error
-	ReorderPriority(ctx context.Context, eventID uuid.UUID) error
 }
 
 type EventTransaction interface {

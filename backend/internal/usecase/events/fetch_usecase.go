@@ -204,7 +204,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		Status:            &active,
 		StartTimeLTE:      &startTime,
 		SortBy:            "ProposedDatePriority",
-		SortOrder:         "asc",
+		SortOrder:         "desc",
 	}
 
 	storedEvents, err := uc.reader.SearchEvents(ctx, userID, storedCalendar.ID, eventOptions)

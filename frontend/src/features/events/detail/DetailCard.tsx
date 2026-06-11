@@ -50,9 +50,9 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, slug }) => {
                                 isConfirmed={isConfirmed}
                             />
                         </div>
-                        {detail.proposed_dates?.map((date) => (
+                        {detail.proposed_dates?.map((date, index) => (
                             <p key={date.id} className="text-sm text-gray-500">
-                                <span className="font-medium">第{date.priority}候補：</span>
+                                <span className="font-medium">第{index + 1}候補：</span>
                                 {formatJaDateSpan(date.start, date.end)}
                             </p>
                         ))}

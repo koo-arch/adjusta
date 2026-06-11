@@ -249,6 +249,12 @@ func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
 	if receivedOptions.Status == nil || *receivedOptions.Status != active {
 		t.Fatalf("expected active status filter, got %#v", receivedOptions.Status)
 	}
+	if receivedOptions.SortBy != "ProposedDatePriority" {
+		t.Fatalf("expected sort by proposed date priority, got %s", receivedOptions.SortBy)
+	}
+	if receivedOptions.SortOrder != "desc" {
+		t.Fatalf("expected descending priority sort, got %s", receivedOptions.SortOrder)
+	}
 	if len(drafts) != 1 {
 		t.Fatalf("unexpected needs action drafts length: %d", len(drafts))
 	}

@@ -35,6 +35,4 @@ type ProposedDateRepository interface {
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error
 	CreateBulk(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error)
-	DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error
-	ReorderPriority(ctx context.Context, eventID uuid.UUID) error
 }

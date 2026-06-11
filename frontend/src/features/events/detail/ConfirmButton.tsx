@@ -114,8 +114,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ slug, detail, isConfirmed
                                 renderLabel={(date) => 
                                     date && (
                                         <>
-                                            {`第${date.priority}候補: 
-                                            ${formatJaDateSpan(date.start, date.end)}`}
+                                            {`${formatJaDateSpan(date.start, date.end)}`}
                                         </>
                                     )
                                 }

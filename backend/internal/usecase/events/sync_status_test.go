@@ -26,8 +26,6 @@ type fakeEventTxStore struct {
 	updateProposedDateFn       func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*repositorymodel.StoredProposedDate, error)
 	deleteProposedDateFn       func(ctx context.Context, id uuid.UUID) error
 	createProposedDateFn       func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*repositorymodel.StoredProposedDate, error)
-	decrementPriorityFn        func(ctx context.Context, eventID, excludeID uuid.UUID) error
-	reorderPriorityFn          func(ctx context.Context, eventID uuid.UUID) error
 }
 
 func (f *fakeEventTxStore) unexpected(method string) {
@@ -109,20 +107,6 @@ func (f *fakeEventTxStore) CreateProposedDate(ctx context.Context, opt ProposedD
 		f.unexpected("CreateProposedDate")
 	}
 	return f.createProposedDateFn(ctx, opt, eventID)
-}
-
-func (f *fakeEventTxStore) DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error {
-	if f.decrementPriorityFn == nil {
-		f.unexpected("DecrementPriorityExceptID")
-	}
-	return f.decrementPriorityFn(ctx, eventID, excludeID)
-}
-
-func (f *fakeEventTxStore) ReorderPriority(ctx context.Context, eventID uuid.UUID) error {
-	if f.reorderPriorityFn == nil {
-		f.unexpected("ReorderPriority")
-	}
-	return f.reorderPriorityFn(ctx, eventID)
 }
 
 type fakeEventTransaction struct {

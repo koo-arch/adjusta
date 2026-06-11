@@ -99,7 +99,12 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 		return err
 	}
 
-	plan, err := domainEvent.BuildConfirmationPlan(confirmDate)
+	existingDates, err := store.ListProposedDatesByEvent(ctx, storedEvent.ID)
+	if err != nil {
+		return fmt.Errorf("failed to list proposed dates error: %w", err)
+	}
+
+	plan, err := domainEvent.BuildConfirmationPlan(confirmDate, toDomainExistingProposedDates(existingDates))
 	if err != nil {
 		return internalErrors.NewBadRequestError("確定候補日程が不正です")
 	}
@@ -118,12 +123,6 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 			return fmt.Errorf("failed to create proposed date error: %w", err)
 		}
 		confirmDateID = &storedDate.ID
-
-		if plan.PriorityAdjustment == domainEvent.PriorityAdjustmentIncrementOthers {
-			if err := store.DecrementPriorityExceptID(ctx, storedEvent.ID, storedDate.ID); err != nil {
-				return fmt.Errorf("failed to decrement priority error: %w", err)
-			}
-		}
 	}
 
 	if eventReq.ConfirmDate.ID != nil {
@@ -135,15 +134,9 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 		if _, err := store.UpdateProposedDate(ctx, *eventReq.ConfirmDate.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date error: %w", err)
 		}
-
-		if plan.PriorityAdjustment == domainEvent.PriorityAdjustmentReorderRemaining {
-			if err := store.ReorderPriority(ctx, storedEvent.ID); err != nil {
-				return fmt.Errorf("failed to reorder priority error: %w", err)
-			}
-		}
 	}
 
-	if err := uc.markUnselectedProposedDates(ctx, store, storedEvent.ID, confirmDateID); err != nil {
+	if err := uc.markUnselectedProposedDates(ctx, store, existingDates, confirmDateID); err != nil {
 		return fmt.Errorf("failed to update proposed date statuses: %w", err)
 	}
 
@@ -162,14 +155,9 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 	return nil
 }
 
-func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, store EventTxStore, eventID uuid.UUID, confirmedDateID *uuid.UUID) error {
+func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, store EventTxStore, storedDates []*repositorymodel.StoredProposedDate, confirmedDateID *uuid.UUID) error {
 	if confirmedDateID == nil {
 		return nil
-	}
-
-	storedDates, err := store.ListProposedDatesByEvent(ctx, eventID)
-	if err != nil {
-		return err
 	}
 
 	notSelected := domainvalue.ProposedDateStatusNotSelected

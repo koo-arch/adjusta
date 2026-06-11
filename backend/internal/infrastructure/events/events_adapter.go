@@ -134,14 +134,6 @@ func (s *eventTxStore) CreateProposedDate(ctx context.Context, opt usecaseEvents
 	return s.repos.ProposedDate.Create(ctx, toProposedDateQueryOptions(opt), eventID)
 }
 
-func (s *eventTxStore) DecrementPriorityExceptID(ctx context.Context, eventID, excludeID uuid.UUID) error {
-	return s.repos.ProposedDate.DecrementPriorityExceptID(ctx, eventID, excludeID)
-}
-
-func (s *eventTxStore) ReorderPriority(ctx context.Context, eventID uuid.UUID) error {
-	return s.repos.ProposedDate.ReorderPriority(ctx, eventID)
-}
-
 func toEventQueryOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventQueryOptions {
 	return repoEvent.EventQueryOptions{
 		Title:                opt.Title,

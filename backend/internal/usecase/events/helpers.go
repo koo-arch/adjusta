@@ -44,7 +44,7 @@ func buildProposedDates(storedDates []*repositorymodel.StoredProposedDate) []app
 	}
 
 	sort.Slice(proposedDates, func(i, j int) bool {
-		return proposedDates[i].Priority < proposedDates[j].Priority
+		return proposedDates[i].Priority > proposedDates[j].Priority
 	})
 
 	return proposedDates
@@ -154,6 +154,15 @@ func toDomainConfirmationDate(date appmodel.ConfirmDate) (domainEvent.DraftPropo
 		End:      *date.End,
 		Priority: date.Priority,
 	}, nil
+}
+
+func normalizeSelectedDatesPriorities(dates []appmodel.SelectedDate) []appmodel.SelectedDate {
+	normalized := make([]appmodel.SelectedDate, 0, len(dates))
+	for i, date := range dates {
+		date.Priority = domainEvent.PriorityValueForOrder(i, len(dates))
+		normalized = append(normalized, date)
+	}
+	return normalized
 }
 
 func toDomainExistingProposedDates(dates []*repositorymodel.StoredProposedDate) []domainEvent.ExistingProposedDate {
