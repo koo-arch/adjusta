@@ -22,7 +22,7 @@ func (v *ValidationErrors) AddWithCode(field, code string) {
 	}
 }
 
-func (v *ValidationErrors) ToAPIErrors() *internalErrors.ValidationError {
+func (v *ValidationErrors) ToAPIError() *internalErrors.APIError {
 	return internalErrors.NewValidationError(v.Details)
 }
 

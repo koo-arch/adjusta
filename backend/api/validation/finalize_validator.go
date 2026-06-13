@@ -2,10 +2,9 @@ package validation
 
 import (
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func FinalizeValidation(confirmEvent *appmodel.ConfirmEvent) *internalErrors.ValidationError {
+func FinalizeValidation(confirmEvent *appmodel.ConfirmEvent) error {
 	validationErrors := NewValidationErrors()
 
 	// confirm_dateのバリデーション
@@ -18,13 +17,13 @@ func FinalizeValidation(confirmEvent *appmodel.ConfirmEvent) *internalErrors.Val
 		validationErrors.AddWithCode("confirm_date.end", "date_required")
 	}
 
-	if confirmDate.Start.After(*confirmDate.End) || confirmDate.Start.Equal(*confirmDate.End) {
+	if confirmDate.Start != nil && confirmDate.End != nil && !confirmDate.Start.Before(*confirmDate.End) {
 		validationErrors.AddWithCode("confirm_date", "dates_invalid")
 	}
 
 	// エラーがあればエラーを返す
 	if validationErrors.HasErrors() {
-		return validationErrors.ToAPIErrors()
+		return validationErrors.ToAPIError()
 	}
 
 	return nil

@@ -15,11 +15,6 @@ func Error(c *gin.Context, err error, fallbackMessage string) {
 			payload["details"] = apiErr.Details
 		}
 		AbortJSON(c, statusCodeForKind(apiErr.Kind), payload)
-	} else if validationErr, ok := err.(*internalErrors.ValidationError); ok {
-		AbortJSON(c, http.StatusBadRequest, gin.H{
-			"error":   validationErr.Error(),
-			"details": validationErr.Details,
-		})
 	} else {
 		AbortJSON(c, http.StatusInternalServerError, gin.H{"error": fallbackMessage})
 	}

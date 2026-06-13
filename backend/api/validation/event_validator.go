@@ -2,10 +2,9 @@ package validation
 
 import (
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func CreateEventValidation(eventDraft *appmodel.EventDraftCreation) *internalErrors.ValidationError {
+func CreateEventValidation(eventDraft *appmodel.EventDraftCreation) error {
 	validationErrors := NewValidationErrors()
 
 	// 基本情報のバリデーション
@@ -20,14 +19,14 @@ func CreateEventValidation(eventDraft *appmodel.EventDraftCreation) *internalErr
 
 	// 選択日時の開始時刻と終了時刻
 	for _, date := range eventDraft.SelectedDates {
-		if date.Start.After(date.End) {
+		if !date.Start.Before(date.End) {
 			validationErrors.AddWithCode("selected_dates", "dates_invalid")
 		}
 	}
 
 	// エラーが存在する場合はエラーを返す
 	if validationErrors.HasErrors() {
-		return validationErrors.ToAPIErrors()
+		return validationErrors.ToAPIError()
 	}
 
 	return nil
@@ -46,14 +45,19 @@ func UpdateEventValidation(eventDraft *appmodel.EventDraftUpdate) error {
 
 	// 選択日時の開始時刻と終了時刻
 	for _, date := range eventDraft.ProposedDates {
-		if date.Start.After(*date.End) {
+		if date.Start == nil || date.End == nil {
+			validationErrors.AddWithCode("proposed_dates", "date_required")
+			continue
+		}
+
+		if !date.Start.Before(*date.End) {
 			validationErrors.AddWithCode("proposed_dates", "dates_invalid")
 		}
 	}
 
 	// エラーが存在する場合はエラーを返す
 	if validationErrors.HasErrors() {
-		return validationErrors.ToAPIErrors()
+		return validationErrors.ToAPIError()
 	}
 
 	return nil
