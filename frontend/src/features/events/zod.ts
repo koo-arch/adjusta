@@ -32,7 +32,7 @@ const EventUpdateFormSchema = EventBasicFormSchema.merge(z.object({
     form_type: z.literal('edit'),
     id: z.string().nullable(),
     slug: z.string(),
-    status: z.string().optional(),
+    status: z.enum(['draft', 'active', 'confirmed', 'cancelled']).optional(),
     proposed_dates: z.array(SendSelectedDateSchema)
         .min(1, { message: '日程は1つ以上選択してください' })
         .max(10, { message: '日程は10個まで選択できます' }),

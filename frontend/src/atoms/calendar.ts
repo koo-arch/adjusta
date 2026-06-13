@@ -5,6 +5,7 @@ import { validateUUID } from "@/lib/validation/uuid";
 import { CalendarEvent } from "@/features/calendar/type";
 import { SendSelectedDate } from "@/features/events/zod";
 import { fetchEventDetailAtomFamily } from "./queries/event";
+import type { EventProposedDate } from "@/hooks/event/type";
 
 export interface SelectedDate {
     id: string;
@@ -58,7 +59,9 @@ export const sendSelectedDatesAtom= atom<SendSelectedDate[]>(
     }
 );
 
-export interface ProposedDate extends SelectedDate {
+type ProposedDateMetadata = Pick<EventProposedDate, "google_event_id" | "status" | "sync_status" | "last_synced_at" | "last_sync_error">;
+
+export interface ProposedDate extends SelectedDate, Partial<ProposedDateMetadata> {
     priority: number;
 }
 
@@ -66,8 +69,11 @@ export interface ProposedEvent extends SelectedEvent {
     title: string;
 }
 
-export interface SendProposedDate extends Omit<ProposedDate, "id"> {
+export interface SendProposedDate {
     id: string | null;
+    start: Date;
+    end: Date;
+    priority: number;
 }
 
 
@@ -98,8 +104,9 @@ export const sendProposedDatesAtom = atom<SendProposedDate[]>(
     (get) => {
         const proposedDates = get(proposedDatesAtom);
         return proposedDates.map((date, index) => ({
-            ...date,
             id: validateUUID(date.id) ? date.id : null,
+            start: date.start,
+            end: date.end,
             priority: index + 1,
         }));
     }

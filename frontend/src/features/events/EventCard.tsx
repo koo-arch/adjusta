@@ -3,7 +3,7 @@ import React from 'react';
 import Card from '@/components/Card';
 import StatusBadge from '@/components/StatusBadge';
 import { formatJaDateSpan } from '@/lib/date/format';
-import { EventDraftDetail } from '@/hooks/event/type';
+import { EventDraftDetail, type EventStatus } from '@/hooks/event/type';
 import { ChevronRightIcon } from '@heroicons/react/20/solid';
 import { CalendarIcon } from '@heroicons/react/20/solid';
 
@@ -12,8 +12,10 @@ interface EventCardProps {
     onClick: () => void;
 }
 
-const statusLabel = (status: string) => {
+const statusLabel = (status: EventStatus) => {
     switch (status) {
+        case 'draft':
+            return '下書き';
         case 'active':
             return '調整中';
         case 'confirmed':
@@ -25,8 +27,10 @@ const statusLabel = (status: string) => {
     }
 }
 
-const statusColor = (status: string) => {
+const statusColor = (status: EventStatus) => {
     switch (status) {
+        case 'draft':
+            return 'blue';
         case 'active':
             return 'yellow';
         case 'confirmed':
