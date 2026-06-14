@@ -7,20 +7,21 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
-	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
+	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 )
 
 type fakeSessionAuthenticator struct {
-	processUserSignInFn func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error)
-	createSessionFn     func(ctx context.Context, userID uuid.UUID) (*repositorymodel.Session, error)
+	processUserSignInFn func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error)
+	createSessionFn     func(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error)
 	deleteSessionFn     func(ctx context.Context, sessionToken string) error
 }
 
-func (f *fakeSessionAuthenticator) ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error) {
+func (f *fakeSessionAuthenticator) ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error) {
 	return f.processUserSignInFn(ctx, userInfo, oauthToken)
 }
 
-func (f *fakeSessionAuthenticator) CreateSession(ctx context.Context, userID uuid.UUID) (*repositorymodel.Session, error) {
+func (f *fakeSessionAuthenticator) CreateSession(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error) {
 	return f.createSessionFn(ctx, userID)
 }
 
@@ -53,19 +54,19 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 
 	usecase := NewSessionUsecase(
 		&fakeSessionAuthenticator{
-			processUserSignInFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error) {
+			processUserSignInFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error) {
 				signedInProfile = userInfo
 				if oauthToken != token {
 					t.Fatalf("unexpected oauth token: %#v", oauthToken)
 				}
-				return &repositorymodel.User{
+				return &repoUser.User{
 					ID:    userID,
 					Email: userInfo.Email,
 				}, nil
 			},
-			createSessionFn: func(ctx context.Context, gotUserID uuid.UUID) (*repositorymodel.Session, error) {
+			createSessionFn: func(ctx context.Context, gotUserID uuid.UUID) (*repoSession.Session, error) {
 				createdSessionUserID = gotUserID
-				return &repositorymodel.Session{
+				return &repoSession.Session{
 					ID:           uuid.New(),
 					UserID:       gotUserID,
 					SessionToken: "session-token",

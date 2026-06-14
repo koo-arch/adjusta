@@ -88,7 +88,7 @@ func main() {
 	)
 	eventUsecase := usecaseEvents.NewUsecase(
 		infraEvents.NewEventReader(repos),
-		infraEvents.NewEventTransaction(uow, calendarApp),
+		infraEvents.NewEventTransaction(uow),
 		infraGoogleCalendar.NewEventGateway(googleTokenManager, calendarApp),
 	)
 

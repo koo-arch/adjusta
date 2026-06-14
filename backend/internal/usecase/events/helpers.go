@@ -11,10 +11,9 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
-func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*repositorymodel.StoredCalendar, error) {
+func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*CalendarRecord, error) {
 	storedCalendar, err := finder.FindPrimaryCalendar(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
@@ -27,7 +26,7 @@ func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalend
 	return storedCalendar, nil
 }
 
-func buildProposedDates(storedDates []*repositorymodel.StoredProposedDate) []appmodel.ProposedDate {
+func buildProposedDates(storedDates []*ProposedDateRecord) []appmodel.ProposedDate {
 	proposedDates := make([]appmodel.ProposedDate, 0, len(storedDates))
 	for _, storedDate := range storedDates {
 		proposedDates = append(proposedDates, appmodel.ProposedDate{
@@ -50,7 +49,7 @@ func buildProposedDates(storedDates []*repositorymodel.StoredProposedDate) []app
 	return proposedDates
 }
 
-func buildEventDraftDetail(storedEvent *repositorymodel.StoredEvent) (*appmodel.EventDraftDetail, error) {
+func buildEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDetail, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
@@ -108,7 +107,7 @@ func (uc *Usecase) markEventSyncFailed(ctx context.Context, store EventTxStore, 
 	return err
 }
 
-func eventGoogleEventID(storedEvent *repositorymodel.StoredEvent) string {
+func eventGoogleEventID(storedEvent *EventRecord) string {
 	if storedEvent == nil {
 		return ""
 	}
@@ -165,7 +164,7 @@ func normalizeSelectedDatesPriorities(dates []appmodel.SelectedDate) []appmodel.
 	return normalized
 }
 
-func toDomainExistingProposedDates(dates []*repositorymodel.StoredProposedDate) []domainEvent.ExistingProposedDate {
+func toDomainExistingProposedDates(dates []*ProposedDateRecord) []domainEvent.ExistingProposedDate {
 	converted := make([]domainEvent.ExistingProposedDate, 0, len(dates))
 	for _, date := range dates {
 		converted = append(converted, domainEvent.ExistingProposedDate{

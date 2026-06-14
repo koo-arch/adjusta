@@ -9,7 +9,6 @@ import (
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 )
 
@@ -21,7 +20,7 @@ func NewCalendarSyncUserReader(userRepo repoUser.UserRepository) usecaseCalendar
 	return &calendarSyncUserReader{userRepo: userRepo}
 }
 
-func (r *calendarSyncUserReader) GetByID(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error) {
+func (r *calendarSyncUserReader) GetByID(ctx context.Context, userID uuid.UUID) (*repoUser.User, error) {
 	return r.userRepo.Read(ctx, userID, repoUser.UserQueryOptions{})
 }
 
@@ -43,31 +42,31 @@ type calendarSyncStore struct {
 	repos infraRepository.Repositories
 }
 
-func (s *calendarSyncStore) FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repositorymodel.StoredCalendar, error) {
+func (s *calendarSyncStore) FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repoCalendar.Calendar, error) {
 	return s.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		GoogleCalendarID: &googleCalendarID,
 	})
 }
 
-func (s *calendarSyncStore) FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.StoredCalendar, error) {
+func (s *calendarSyncStore) FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error) {
 	return s.repos.Calendar.FindByGoogleCalendarID(ctx, googleCalendarID)
 }
 
-func (s *calendarSyncStore) CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error) {
+func (s *calendarSyncStore) CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 	return s.repos.Calendar.Create(ctx, repoCalendar.CalendarMutationOptions{
 		GoogleCalendarID: &googleCalendarID,
 		Summary:          &summary,
 	})
 }
 
-func (s *calendarSyncStore) UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error) {
+func (s *calendarSyncStore) UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 	return s.repos.Calendar.Update(ctx, id, repoCalendar.CalendarMutationOptions{
 		GoogleCalendarID: &googleCalendarID,
 		Summary:          &summary,
 	})
 }
 
-func (s *calendarSyncStore) EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repositorymodel.UserCalendar, error) {
+func (s *calendarSyncStore) EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
 	isVisible := true
 	syncProposedDates := role == domainvalue.UserCalendarRoleAdjustaCandidate
 	return s.repos.UserCalendar.Ensure(ctx, userID, calendarID, repoUserCalendar.UserCalendarQueryOptions{
@@ -77,7 +76,7 @@ func (s *calendarSyncStore) EnsureUserCalendar(ctx context.Context, userID, cale
 	})
 }
 
-func (s *calendarSyncStore) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error) {
+func (s *calendarSyncStore) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
 	return s.repos.Calendar.FilterByUserID(ctx, userID)
 }
 

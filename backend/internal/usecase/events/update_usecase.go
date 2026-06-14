@@ -11,7 +11,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.EventDraftUpdate) error {
@@ -106,7 +105,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 	return nil
 }
 
-func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *repositorymodel.StoredEvent, existingDates []*repositorymodel.StoredProposedDate) error {
+func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *EventRecord, existingDates []*ProposedDateRecord) error {
 	requestedDates, err := toDomainDraftProposedDates(eventReq.ProposedDates)
 	if err != nil {
 		return err

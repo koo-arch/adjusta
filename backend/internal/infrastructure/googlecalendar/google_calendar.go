@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/googleapi"
 )
@@ -25,7 +25,7 @@ func NewGoogleCalendarManager() *GoogleCalendarManager {
 	return &GoogleCalendarManager{}
 }
 
-func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*FetchResult, error) {
+func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*repoCalendar.Calendar, startTime, endTime time.Time) (*FetchResult, error) {
 	var events []*appmodel.GoogleEvent
 	var failedCalendars []string
 	var wg sync.WaitGroup
@@ -34,7 +34,7 @@ func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *cust
 
 	for _, cal := range calendars {
 		wg.Add(1)
-		go func(cal *repositorymodel.StoredCalendar) {
+		go func(cal *repoCalendar.Calendar) {
 			defer wg.Done()
 
 			calEvents, err := calendarService.FetchEvents(cal.GoogleCalendarID, startTime, endTime)

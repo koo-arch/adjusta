@@ -12,7 +12,6 @@ import (
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -33,35 +32,35 @@ func (r *ProposedDateRepositoryImpl) WithTx(tx transaction.Tx) ProposedDateRepos
 	return &ProposedDateRepositoryImpl{client: tx.Client()}
 }
 
-func (r *ProposedDateRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repositorymodel.StoredProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repoProposedDate.ProposedDate, error) {
 	entity, err := r.client.ProposedDate.Get(ctx, id)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredProposedDate(entity), nil
+	return toProposedDate(entity), nil
 }
 
-func (r *ProposedDateRepositoryImpl) FilterByEventID(ctx context.Context, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) FilterByEventID(ctx context.Context, eventID uuid.UUID) ([]*repoProposedDate.ProposedDate, error) {
 	entities, err := r.client.ProposedDate.Query().
 		Where(proposeddate.HasEventWith(event.IDEQ(eventID))).
 		All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toStoredProposedDates(entities), nil
+	return toProposedDates(entities), nil
 }
 
-func (r *ProposedDateRepositoryImpl) ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*repoProposedDate.ProposedDate, error) {
 	entities, err := r.client.ProposedDate.Query().
 		Where(proposeddate.Not(proposeddate.HasEventWith(event.IDEQ(eventID)))).
 		All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toStoredProposedDates(entities), nil
+	return toProposedDates(entities), nil
 }
 
-func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDateQueryOptions, eventID uuid.UUID) (*repositorymodel.StoredProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDateQueryOptions, eventID uuid.UUID) (*repoProposedDate.ProposedDate, error) {
 	proposedDateCreate := r.client.ProposedDate.Create()
 
 	proposedDateCreate = proposedDateCreate.
@@ -90,10 +89,10 @@ func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDat
 	if err != nil {
 		return nil, err
 	}
-	return toStoredProposedDate(entity), nil
+	return toProposedDate(entity), nil
 }
 
-func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt ProposedDateQueryOptions) (*repositorymodel.StoredProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt ProposedDateQueryOptions) (*repoProposedDate.ProposedDate, error) {
 	proposedDateUpdate := r.client.ProposedDate.UpdateOneID(id)
 
 	if opt.StartTime != nil {
@@ -138,7 +137,7 @@ func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, o
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredProposedDate(entity), nil
+	return toProposedDate(entity), nil
 }
 
 func (r *ProposedDateRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
@@ -160,7 +159,7 @@ func (r *ProposedDateRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) 
 	return infraerr.MapNotFound(err)
 }
 
-func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*repositorymodel.StoredProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*repoProposedDate.ProposedDate, error) {
 	var proposedDateCreates []*ent.ProposedDateCreate
 
 	for _, selectedDate := range selectedDates {
@@ -180,15 +179,15 @@ func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDat
 	if err != nil {
 		return nil, err
 	}
-	return toStoredProposedDates(entities), nil
+	return toProposedDates(entities), nil
 }
 
-func toStoredProposedDate(entity *ent.ProposedDate) *repositorymodel.StoredProposedDate {
+func toProposedDate(entity *ent.ProposedDate) *repoProposedDate.ProposedDate {
 	if entity == nil {
 		return nil
 	}
 
-	return &repositorymodel.StoredProposedDate{
+	return &repoProposedDate.ProposedDate{
 		ID:            entity.ID,
 		EventID:       entity.EventID,
 		GoogleEventID: entity.GoogleEventID,
@@ -202,10 +201,10 @@ func toStoredProposedDate(entity *ent.ProposedDate) *repositorymodel.StoredPropo
 	}
 }
 
-func toStoredProposedDates(entities []*ent.ProposedDate) []*repositorymodel.StoredProposedDate {
-	storedDates := make([]*repositorymodel.StoredProposedDate, 0, len(entities))
+func toProposedDates(entities []*ent.ProposedDate) []*repoProposedDate.ProposedDate {
+	dates := make([]*repoProposedDate.ProposedDate, 0, len(entities))
 	for _, entity := range entities {
-		storedDates = append(storedDates, toStoredProposedDate(entity))
+		dates = append(dates, toProposedDate(entity))
 	}
-	return storedDates
+	return dates
 }

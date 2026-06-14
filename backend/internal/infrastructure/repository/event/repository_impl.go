@@ -9,14 +9,14 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
-	"google.golang.org/api/calendar/v3"
 )
 
 type EventRepository = repoEvent.EventRepository
+type EventCreateOptions = repoEvent.EventCreateOptions
 type EventQueryOptions = repoEvent.EventQueryOptions
 
 type EventRepositoryImpl struct {
@@ -33,7 +33,7 @@ func (r *EventRepositoryImpl) WithTx(tx transaction.Tx) EventRepository {
 	return &EventRepositoryImpl{client: tx.Client()}
 }
 
-func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	if opt.WithProposedDates {
@@ -44,10 +44,10 @@ func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQ
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredEvent(entity), nil
+	return toEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*repoEvent.Event, error) {
 	filterEvent := r.client.Event.Query()
 
 	filterEvent = filterEvent.Where(event.PrimaryCalendarIDEQ(calendarID))
@@ -76,10 +76,10 @@ func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID
 	if err != nil {
 		return nil, err
 	}
-	return toStoredEvents(entities), nil
+	return toEvents(entities), nil
 }
 
-func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	if opt.WithProposedDates {
@@ -95,31 +95,31 @@ func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredEvent(entity), nil
+	return toEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, googleEvent *calendar.Event, primaryCalendarID uuid.UUID) (*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, opt EventCreateOptions, primaryCalendarID uuid.UUID) (*repoEvent.Event, error) {
 	eventCreate := r.client.Event.Create()
 
-	if googleEvent.Id != "" {
-		eventCreate = eventCreate.SetGoogleEventID(googleEvent.Id)
+	if opt.GoogleEventID != nil && *opt.GoogleEventID != "" {
+		eventCreate = eventCreate.SetGoogleEventID(*opt.GoogleEventID)
 	}
 
 	eventCreate = eventCreate.
 		SetUserID(userID).
 		SetPrimaryCalendarID(primaryCalendarID).
-		SetTitle(googleEvent.Summary).
-		SetDescription(googleEvent.Description).
-		SetLocation(googleEvent.Location)
+		SetTitle(opt.Title).
+		SetDescription(opt.Description).
+		SetLocation(opt.Location)
 
 	entity, err := eventCreate.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toStoredEvent(entity), nil
+	return toEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {
 	eventUpdate := r.client.Event.UpdateOneID(id)
 
 	if opt.Title != nil {
@@ -174,7 +174,7 @@ func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt Even
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredEvent(entity), nil
+	return toEvent(entity), nil
 }
 
 func (r *EventRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
@@ -196,7 +196,7 @@ func (r *EventRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
 	return infraerr.MapNotFound(err)
 }
 
-func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error) {
+func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventQueryOptions) ([]*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	query = query.Where(
@@ -302,15 +302,15 @@ func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendar
 	if err != nil {
 		return nil, err
 	}
-	return toStoredEvents(entities), nil
+	return toEvents(entities), nil
 }
 
-func toStoredEvent(entity *ent.Event) *repositorymodel.StoredEvent {
+func toEvent(entity *ent.Event) *repoEvent.Event {
 	if entity == nil {
 		return nil
 	}
 
-	return &repositorymodel.StoredEvent{
+	return &repoEvent.Event{
 		UserID:                 entity.UserID,
 		ID:                     entity.ID,
 		PrimaryCalendarID:      entity.PrimaryCalendarID,
@@ -325,22 +325,22 @@ func toStoredEvent(entity *ent.Event) *repositorymodel.StoredEvent {
 		LastSyncedAt:           entity.LastSyncedAt,
 		LastSyncError:          entity.LastSyncError,
 		Slug:                   entity.Slug,
-		ProposedDates:          toStoredEventProposedDates(entity.Edges.ProposedDates),
+		ProposedDates:          toEventProposedDates(entity.Edges.ProposedDates),
 	}
 }
 
-func toStoredEvents(entities []*ent.Event) []*repositorymodel.StoredEvent {
-	storedEvents := make([]*repositorymodel.StoredEvent, 0, len(entities))
+func toEvents(entities []*ent.Event) []*repoEvent.Event {
+	events := make([]*repoEvent.Event, 0, len(entities))
 	for _, entity := range entities {
-		storedEvents = append(storedEvents, toStoredEvent(entity))
+		events = append(events, toEvent(entity))
 	}
-	return storedEvents
+	return events
 }
 
-func toStoredEventProposedDates(entities []*ent.ProposedDate) []*repositorymodel.StoredProposedDate {
-	storedDates := make([]*repositorymodel.StoredProposedDate, 0, len(entities))
+func toEventProposedDates(entities []*ent.ProposedDate) []*repoProposedDate.ProposedDate {
+	dates := make([]*repoProposedDate.ProposedDate, 0, len(entities))
 	for _, entity := range entities {
-		storedDates = append(storedDates, &repositorymodel.StoredProposedDate{
+		dates = append(dates, &repoProposedDate.ProposedDate{
 			ID:            entity.ID,
 			EventID:       entity.EventID,
 			GoogleEventID: entity.GoogleEventID,
@@ -353,5 +353,5 @@ func toStoredEventProposedDates(entities []*ent.ProposedDate) []*repositorymodel
 			LastSyncError: entity.LastSyncError,
 		})
 	}
-	return storedDates
+	return dates
 }

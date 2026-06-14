@@ -10,7 +10,6 @@ import (
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"golang.org/x/oauth2"
 )
 
@@ -84,7 +83,7 @@ func buildGoogleAuthToken(token *oauth2.Token) *appmodel.GoogleAuthToken {
 	}
 }
 
-func buildAccountTokenRefreshOptions(account *repositorymodel.Account, oauthToken *oauth2.Token) repoAccount.AccountMutationOptions {
+func buildAccountTokenRefreshOptions(account *repoAccount.Account, oauthToken *oauth2.Token) repoAccount.AccountMutationOptions {
 	refreshToken := account.RefreshToken
 	if oauthToken.RefreshToken != "" {
 		refreshToken = &oauthToken.RefreshToken
@@ -105,7 +104,7 @@ func buildAccountTokenRefreshOptions(account *repositorymodel.Account, oauthToke
 	return opt
 }
 
-func shouldPersistRefreshedToken(account *repositorymodel.Account, oauthToken *oauth2.Token) bool {
+func shouldPersistRefreshedToken(account *repoAccount.Account, oauthToken *oauth2.Token) bool {
 	if account.AccessToken == nil || *account.AccessToken != oauthToken.AccessToken {
 		return true
 	}

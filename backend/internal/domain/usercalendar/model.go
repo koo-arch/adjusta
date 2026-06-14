@@ -1,4 +1,4 @@
-package repositorymodel
+package usercalendar
 
 import (
 	"github.com/google/uuid"

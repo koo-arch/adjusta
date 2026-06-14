@@ -11,7 +11,6 @@ import (
 	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -33,26 +32,26 @@ func (r *CalendarRepositoryImpl) WithTx(tx transaction.Tx) CalendarRepository {
 	return &CalendarRepositoryImpl{client: tx.Client()}
 }
 
-func (r *CalendarRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*repoCalendar.Calendar, error) {
 	findCalendar := r.client.Calendar.Query()
 	entity, err := findCalendar.Where(calendar.IDEQ(id)).Only(ctx)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredCalendar(entity), nil
+	return toCalendar(entity), nil
 }
 
-func (r *CalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
 	entities, err := r.client.Calendar.Query().
 		Where(calendar.HasUserCalendarsWith(dbUserCalendar.UserIDEQ(userID))).
 		All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toStoredCalendars(entities), nil
+	return toCalendars(entities), nil
 }
 
-func (r *CalendarRepositoryImpl) FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*repoCalendar.Calendar, error) {
 	if !opt.WithEvents && opt.WithProposedDates {
 		return nil, fmt.Errorf("WithDates is only available when withEvents is true")
 	}
@@ -63,20 +62,20 @@ func (r *CalendarRepositoryImpl) FindByFields(ctx context.Context, userID uuid.U
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredCalendar(entity), nil
+	return toCalendar(entity), nil
 }
 
-func (r *CalendarRepositoryImpl) FindByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) FindByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error) {
 	entity, err := r.client.Calendar.Query().
 		Where(calendar.GoogleCalendarIDEQ(googleCalendarID)).
 		Only(ctx)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredCalendar(entity), nil
+	return toCalendar(entity), nil
 }
 
-func (r *CalendarRepositoryImpl) FilterByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) ([]*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) FilterByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) ([]*repoCalendar.Calendar, error) {
 	filterCalendar := r.client.Calendar.Query()
 
 	if !opt.WithEvents && opt.WithProposedDates {
@@ -87,27 +86,27 @@ func (r *CalendarRepositoryImpl) FilterByFields(ctx context.Context, userID uuid
 	if err != nil {
 		return nil, err
 	}
-	return toStoredCalendars(entities), nil
+	return toCalendars(entities), nil
 }
 
-func (r *CalendarRepositoryImpl) Create(ctx context.Context, opt CalendarMutationOptions) (*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) Create(ctx context.Context, opt CalendarMutationOptions) (*repoCalendar.Calendar, error) {
 	createCalendar := r.client.Calendar.Create()
 	applyCalendarCreateOptions(createCalendar, opt)
 	entity, err := createCalendar.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return toStoredCalendar(entity), nil
+	return toCalendar(entity), nil
 }
 
-func (r *CalendarRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt CalendarMutationOptions) (*repositorymodel.StoredCalendar, error) {
+func (r *CalendarRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt CalendarMutationOptions) (*repoCalendar.Calendar, error) {
 	updateCalendar := r.client.Calendar.UpdateOneID(id)
 	applyCalendarUpdateOptions(updateCalendar, opt)
 	entity, err := updateCalendar.Save(ctx)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}
-	return toStoredCalendar(entity), nil
+	return toCalendar(entity), nil
 }
 
 func (r *CalendarRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
@@ -162,12 +161,12 @@ func applyCalendarUpdateOptions(update *ent.CalendarUpdateOne, opt CalendarMutat
 	update.SetNillableTimezone(opt.Timezone)
 }
 
-func toStoredCalendar(entity *ent.Calendar) *repositorymodel.StoredCalendar {
+func toCalendar(entity *ent.Calendar) *repoCalendar.Calendar {
 	if entity == nil {
 		return nil
 	}
 
-	return &repositorymodel.StoredCalendar{
+	return &repoCalendar.Calendar{
 		ID:               entity.ID,
 		GoogleCalendarID: valueOrEmpty(entity.GoogleCalendarID),
 		Summary:          valueOrEmpty(entity.Summary),
@@ -176,12 +175,12 @@ func toStoredCalendar(entity *ent.Calendar) *repositorymodel.StoredCalendar {
 	}
 }
 
-func toStoredCalendars(entities []*ent.Calendar) []*repositorymodel.StoredCalendar {
-	storedCalendars := make([]*repositorymodel.StoredCalendar, 0, len(entities))
+func toCalendars(entities []*ent.Calendar) []*repoCalendar.Calendar {
+	calendars := make([]*repoCalendar.Calendar, 0, len(entities))
 	for _, entity := range entities {
-		storedCalendars = append(storedCalendars, toStoredCalendar(entity))
+		calendars = append(calendars, toCalendar(entity))
 	}
-	return storedCalendars
+	return calendars
 }
 
 func valueOrEmpty(value *string) string {

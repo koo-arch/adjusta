@@ -6,15 +6,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/cache"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
 type SessionAuthenticator interface {
-	AuthenticateSession(ctx context.Context, sessionToken string) (*repositorymodel.User, error)
+	AuthenticateSession(ctx context.Context, sessionToken string) (*repoUser.User, error)
 }
 
 type AccountProfileService interface {

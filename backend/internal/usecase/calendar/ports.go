@@ -5,18 +5,20 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
+	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type UserReader interface {
-	GetByID(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error)
+	GetByID(ctx context.Context, userID uuid.UUID) (*repoUser.User, error)
 }
 
-type UserReaderFunc func(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error)
+type UserReaderFunc func(ctx context.Context, userID uuid.UUID) (*repoUser.User, error)
 
-func (f UserReaderFunc) GetByID(ctx context.Context, userID uuid.UUID) (*repositorymodel.User, error) {
+func (f UserReaderFunc) GetByID(ctx context.Context, userID uuid.UUID) (*repoUser.User, error) {
 	return f(ctx, userID)
 }
 
@@ -39,12 +41,12 @@ func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *appmodel.Goo
 }
 
 type SyncStore interface {
-	FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repositorymodel.StoredCalendar, error)
-	FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repositorymodel.StoredCalendar, error)
-	CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error)
-	UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repositorymodel.StoredCalendar, error)
-	EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repositorymodel.UserCalendar, error)
-	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.StoredCalendar, error)
+	FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repoCalendar.Calendar, error)
+	FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error)
+	CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
+	UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
+	EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error)
+	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error)
 	SoftDeleteUserCalendar(ctx context.Context, userID, calendarID uuid.UUID) error
 }
 

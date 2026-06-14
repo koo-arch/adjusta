@@ -6,8 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type GoogleSignInResult struct {
@@ -16,8 +17,8 @@ type GoogleSignInResult struct {
 }
 
 type SessionAuthenticator interface {
-	ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repositorymodel.User, error)
-	CreateSession(ctx context.Context, userID uuid.UUID) (*repositorymodel.Session, error)
+	ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error)
+	CreateSession(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error)
 	DeleteSession(ctx context.Context, sessionToken string) error
 }
 

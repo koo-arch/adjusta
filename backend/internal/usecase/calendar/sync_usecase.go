@@ -6,11 +6,11 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 type SyncUsecase struct {
@@ -70,7 +70,7 @@ func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID
 	return calendars, nil
 }
 
-func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCalendar.CalendarList, entUser *repositorymodel.User) error {
+func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCalendar.CalendarList, entUser *repoUser.User) error {
 	return uc.tx.Do(ctx, func(store SyncStore) error {
 		incoming := make(map[string]struct{}, len(calendars))
 		for _, cal := range calendars {

@@ -6,10 +6,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
-	"google.golang.org/api/calendar/v3"
 )
+
+type EventCreateOptions struct {
+	Title         string
+	Location      string
+	Description   string
+	GoogleEventID *string
+}
 
 type EventQueryOptions struct {
 	Title                  *string
@@ -40,13 +45,13 @@ type EventQueryOptions struct {
 
 type EventRepository interface {
 	WithTx(tx transaction.Tx) EventRepository
-	Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repositorymodel.StoredEvent, error)
-	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error)
-	FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*repositorymodel.StoredEvent, error)
-	Create(ctx context.Context, userID uuid.UUID, googleEvent *calendar.Event, primaryCalendarID uuid.UUID) (*repositorymodel.StoredEvent, error)
-	Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repositorymodel.StoredEvent, error)
+	Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
+	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*Event, error)
+	FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*Event, error)
+	Create(ctx context.Context, userID uuid.UUID, opt EventCreateOptions, primaryCalendarID uuid.UUID) (*Event, error)
+	Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error
-	SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventQueryOptions) ([]*repositorymodel.StoredEvent, error)
+	SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventQueryOptions) ([]*Event, error)
 }

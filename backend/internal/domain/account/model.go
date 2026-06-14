@@ -1,4 +1,4 @@
-package repositorymodel
+package account
 
 import (
 	"time"

@@ -1,4 +1,4 @@
-package repositorymodel
+package user
 
 import "github.com/google/uuid"
 

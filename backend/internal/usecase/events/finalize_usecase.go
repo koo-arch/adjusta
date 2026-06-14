@@ -12,7 +12,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 )
 
 func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.ConfirmEvent) error {
@@ -63,7 +62,7 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, s
 	return nil
 }
 
-func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *repositorymodel.StoredEvent, eventReq *appmodel.ConfirmEvent) (*string, error) {
+func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *EventRecord, eventReq *appmodel.ConfirmEvent) (*string, error) {
 	var existingGoogleEventID *string
 	if eventReq.ConfirmDate.ID != nil {
 		if storedEvent.ConfirmedGoogleEventID != nil && *storedEvent.ConfirmedGoogleEventID != "" {
@@ -93,7 +92,7 @@ func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, cale
 	return &googleEventID, nil
 }
 
-func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, googleEventID *string, eventReq *appmodel.ConfirmEvent, storedEvent *repositorymodel.StoredEvent) error {
+func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, googleEventID *string, eventReq *appmodel.ConfirmEvent, storedEvent *EventRecord) error {
 	confirmDate, err := toDomainConfirmationDate(eventReq.ConfirmDate)
 	if err != nil {
 		return err
@@ -155,7 +154,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 	return nil
 }
 
-func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, store EventTxStore, storedDates []*repositorymodel.StoredProposedDate, confirmedDateID *uuid.UUID) error {
+func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, store EventTxStore, storedDates []*ProposedDateRecord, confirmedDateID *uuid.UUID) error {
 	if confirmedDateID == nil {
 		return nil
 	}

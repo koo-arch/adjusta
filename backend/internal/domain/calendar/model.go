@@ -1,8 +1,8 @@
-package repositorymodel
+package calendar
 
 import "github.com/google/uuid"
 
-type StoredCalendar struct {
+type Calendar struct {
 	ID               uuid.UUID
 	GoogleCalendarID string
 	Summary          string

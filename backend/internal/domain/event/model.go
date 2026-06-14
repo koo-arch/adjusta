@@ -1,26 +1,14 @@
-package repositorymodel
+package event
 
 import (
 	"time"
 
 	"github.com/google/uuid"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 )
 
-type StoredProposedDate struct {
-	ID            uuid.UUID
-	EventID       *uuid.UUID
-	GoogleEventID *string
-	StartTime     time.Time
-	EndTime       time.Time
-	Priority      int
-	Status        domainvalue.ProposedDateStatus
-	SyncStatus    domainvalue.SyncStatus
-	LastSyncedAt  *time.Time
-	LastSyncError *string
-}
-
-type StoredEvent struct {
+type Event struct {
 	UserID                 uuid.UUID
 	ID                     uuid.UUID
 	PrimaryCalendarID      uuid.UUID
@@ -35,5 +23,5 @@ type StoredEvent struct {
 	LastSyncedAt           *time.Time
 	LastSyncError          *string
 	Slug                   string
-	ProposedDates          []*StoredProposedDate
+	ProposedDates          []*repoProposedDate.ProposedDate
 }

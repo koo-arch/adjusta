@@ -11,7 +11,6 @@ import (
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -30,7 +29,7 @@ func (r *UserCalendarRepositoryImpl) WithTx(tx transaction.Tx) UserCalendarRepos
 	return &UserCalendarRepositoryImpl{client: tx.Client()}
 }
 
-func (r *UserCalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repositorymodel.UserCalendar, error) {
+func (r *UserCalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoUserCalendar.UserCalendar, error) {
 	entities, err := r.client.UserCalendar.Query().
 		Where(dbUserCalendar.UserIDEQ(userID)).
 		All(ctx)
@@ -38,14 +37,14 @@ func (r *UserCalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID 
 		return nil, err
 	}
 
-	userCalendars := make([]*repositorymodel.UserCalendar, 0, len(entities))
+	userCalendars := make([]*repoUserCalendar.UserCalendar, 0, len(entities))
 	for _, entity := range entities {
 		userCalendars = append(userCalendars, toModelUserCalendar(entity))
 	}
 	return userCalendars, nil
 }
 
-func (r *UserCalendarRepositoryImpl) Ensure(ctx context.Context, userID, calendarID uuid.UUID, opt UserCalendarQueryOptions) (*repositorymodel.UserCalendar, error) {
+func (r *UserCalendarRepositoryImpl) Ensure(ctx context.Context, userID, calendarID uuid.UUID, opt UserCalendarQueryOptions) (*repoUserCalendar.UserCalendar, error) {
 	entity, err := r.client.UserCalendar.Query().
 		Where(
 			dbUserCalendar.UserIDEQ(userID),
@@ -125,12 +124,12 @@ func applyUserCalendarUpdateOptions(update *ent.UserCalendarUpdateOne, opt UserC
 	}
 }
 
-func toModelUserCalendar(entity *ent.UserCalendar) *repositorymodel.UserCalendar {
+func toModelUserCalendar(entity *ent.UserCalendar) *repoUserCalendar.UserCalendar {
 	if entity == nil {
 		return nil
 	}
 
-	return &repositorymodel.UserCalendar{
+	return &repoUserCalendar.UserCalendar{
 		ID:                entity.ID,
 		UserID:            entity.UserID,
 		CalendarID:        entity.CalendarID,

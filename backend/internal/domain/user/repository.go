@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
@@ -17,10 +16,10 @@ type UserMutationOptions struct {
 
 type UserRepository interface {
 	WithTx(tx transaction.Tx) UserRepository
-	Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*repositorymodel.User, error)
-	FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*repositorymodel.User, error)
-	Create(ctx context.Context, email string, opt UserMutationOptions) (*repositorymodel.User, error)
-	Update(ctx context.Context, id uuid.UUID, opt UserMutationOptions) (*repositorymodel.User, error)
+	Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*User, error)
+	FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*User, error)
+	Create(ctx context.Context, email string, opt UserMutationOptions) (*User, error)
+	Update(ctx context.Context, id uuid.UUID, opt UserMutationOptions) (*User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error

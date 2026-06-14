@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
-	repositorymodel "github.com/koo-arch/adjusta-backend/internal/repositorymodel"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -24,13 +24,13 @@ func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, cale
 	}
 }
 
-func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*repositorymodel.StoredCalendar, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
+func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*usecaseEvents.CalendarRecord, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
 	calendarService, err := g.newCalendarService(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := g.calendarManager.FetchEventsFromCalendars(calendarService, calendars, startTime, endTime)
+	result, err := g.calendarManager.FetchEventsFromCalendars(calendarService, toCalendars(calendars), startTime, endTime)
 	if result == nil {
 		return nil, normalizeGoogleAPIError(err)
 	}
@@ -39,6 +39,23 @@ func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calend
 		Events:          result.Events,
 		FailedCalendars: result.FailedCalendars,
 	}, normalizeGoogleAPIError(err)
+}
+
+func toCalendars(calendars []*usecaseEvents.CalendarRecord) []*repoCalendar.Calendar {
+	domainCalendars := make([]*repoCalendar.Calendar, 0, len(calendars))
+	for _, calendar := range calendars {
+		if calendar == nil {
+			continue
+		}
+		domainCalendars = append(domainCalendars, &repoCalendar.Calendar{
+			ID:               calendar.ID,
+			GoogleCalendarID: calendar.GoogleCalendarID,
+			Summary:          calendar.Summary,
+			Description:      calendar.Description,
+			Timezone:         calendar.Timezone,
+		})
+	}
+	return domainCalendars
 }
 
 func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {

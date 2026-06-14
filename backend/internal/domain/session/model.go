@@ -1,9 +1,10 @@
-package repositorymodel
+package session
 
 import (
 	"time"
 
 	"github.com/google/uuid"
+	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 )
 
 type Session struct {
@@ -11,5 +12,5 @@ type Session struct {
 	UserID       uuid.UUID
 	SessionToken string
 	ExpiresAt    time.Time
-	User         *User
+	User         *repoUser.User
 }
