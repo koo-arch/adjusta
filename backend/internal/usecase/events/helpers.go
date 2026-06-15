@@ -8,12 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*CalendarRecord, error) {
+func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, finder PrimaryCalendarFinder, userID uuid.UUID, email string) (*CalendarRecord, error) {
 	storedCalendar, err := finder.FindPrimaryCalendar(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
@@ -26,7 +25,7 @@ func (uc *Usecase) findPrimaryCalendar(ctx context.Context, finder PrimaryCalend
 	return storedCalendar, nil
 }
 
-func buildProposedDates(storedDates []*ProposedDateRecord) []appmodel.ProposedDate {
+func buildAppProposedDates(storedDates []*ProposedDateRecord) []appmodel.ProposedDate {
 	proposedDates := make([]appmodel.ProposedDate, 0, len(storedDates))
 	for _, storedDate := range storedDates {
 		proposedDates = append(proposedDates, appmodel.ProposedDate{
@@ -49,7 +48,7 @@ func buildProposedDates(storedDates []*ProposedDateRecord) []appmodel.ProposedDa
 	return proposedDates
 }
 
-func buildEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDetail, error) {
+func buildAppEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDetail, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
@@ -62,62 +61,61 @@ func buildEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDetail
 		Status:                 storedEvent.Status,
 		SyncStatus:             storedEvent.SyncStatus,
 		ConfirmedDateID:        &storedEvent.ConfirmedDateID,
-		GoogleEventID:          eventGoogleEventID(storedEvent),
+		GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID, storedEvent.GoogleEventID),
 		ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 		LastSyncedAt:           storedEvent.LastSyncedAt,
 		LastSyncError:          storedEvent.LastSyncError,
 		Slug:                   storedEvent.Slug,
-		ProposedDates:          buildProposedDates(storedEvent.ProposedDates),
+		ProposedDates:          buildAppProposedDates(storedEvent.ProposedDates),
 	}, nil
 }
 
-func normalizeUsecaseError(err error, fallbackMessage string) error {
+func mapUsecaseError(err error, fallbackMessage string) error {
 	return internalErrors.NormalizeAPIError(err, fallbackMessage)
 }
 
-func withPendingEventSync(mutation EventMutation) EventMutation {
-	syncStatus := domainvalue.SyncStatusPending
-	mutation.SyncStatus = &syncStatus
-	return mutation
-}
-
-func withSyncedEventSync(mutation EventMutation) EventMutation {
-	syncStatus := domainvalue.SyncStatusSynced
-	mutation.SyncStatus = &syncStatus
-	mutation.ClearLastSyncError = true
-	return mutation
-}
-
-func withFailedEventSync(mutation EventMutation, syncErr error) EventMutation {
-	syncStatus := domainvalue.SyncStatusFailed
-	lastSyncError := syncErr.Error()
-	mutation.SyncStatus = &syncStatus
-	mutation.LastSyncError = &lastSyncError
-	return mutation
-}
-
-func withPendingProposedDateSync(mutation ProposedDateMutation) ProposedDateMutation {
-	syncStatus := domainvalue.SyncStatusPending
-	mutation.SyncStatus = &syncStatus
-	return mutation
-}
-
-func (uc *Usecase) markEventSyncFailed(ctx context.Context, store EventTxStore, eventID uuid.UUID, syncErr error) error {
-	_, err := store.UpdateEvent(ctx, eventID, withFailedEventSync(EventMutation{}, syncErr))
+func (uc *Usecase) recordEventSyncFailure(ctx context.Context, store EventTxStore, eventID uuid.UUID, syncErr error) error {
+	_, err := store.UpdateEvent(ctx, eventID, mergeEventChange(EventMutation{}, domainEvent.NewFailedEventChange(syncErr)))
 	return err
 }
 
-func eventGoogleEventID(storedEvent *EventRecord) string {
-	if storedEvent == nil {
-		return ""
+func mergeEventChange(mutation EventMutation, change domainEvent.EventChange) EventMutation {
+	mutation.Status = change.Status
+	mutation.ConfirmedDateID = change.ConfirmedDateID
+	mutation.GoogleEventID = change.GoogleEventID
+	mutation.ConfirmedGoogleEventID = change.ConfirmedGoogleEventID
+	if change.Sync.Status != "" {
+		syncStatus := change.Sync.Status
+		mutation.SyncStatus = &syncStatus
 	}
-	if storedEvent.ConfirmedGoogleEventID != nil && *storedEvent.ConfirmedGoogleEventID != "" {
-		return *storedEvent.ConfirmedGoogleEventID
-	}
-	return storedEvent.GoogleEventID
+	mutation.LastSyncedAt = change.Sync.LastSyncedAt
+	mutation.ClearLastSyncedAt = change.Sync.ClearLastSyncedAt
+	mutation.LastSyncError = change.Sync.LastSyncError
+	mutation.ClearLastSyncError = change.Sync.ClearLastSyncError
+
+	return mutation
 }
 
-func toDomainDraftProposedDate(date appmodel.ProposedDate) (domainEvent.DraftProposedDate, error) {
+func buildProposedDateMutation(change domainEvent.ProposedDateChange) ProposedDateMutation {
+	mutation := ProposedDateMutation{
+		Start:              change.Start,
+		End:                change.End,
+		Priority:           change.Priority,
+		Status:             change.Status,
+		LastSyncedAt:       change.Sync.LastSyncedAt,
+		ClearLastSyncedAt:  change.Sync.ClearLastSyncedAt,
+		LastSyncError:      change.Sync.LastSyncError,
+		ClearLastSyncError: change.Sync.ClearLastSyncError,
+	}
+	if change.Sync.Status != "" {
+		syncStatus := change.Sync.Status
+		mutation.SyncStatus = &syncStatus
+	}
+
+	return mutation
+}
+
+func toDomainDraftDate(date appmodel.ProposedDate) (domainEvent.DraftProposedDate, error) {
 	if date.Start == nil || date.End == nil {
 		return domainEvent.DraftProposedDate{}, internalErrors.NewBadRequestError("候補日程が不正です")
 	}
@@ -130,10 +128,10 @@ func toDomainDraftProposedDate(date appmodel.ProposedDate) (domainEvent.DraftPro
 	}, nil
 }
 
-func toDomainDraftProposedDates(dates []appmodel.ProposedDate) ([]domainEvent.DraftProposedDate, error) {
+func toDomainDraftDateList(dates []appmodel.ProposedDate) ([]domainEvent.DraftProposedDate, error) {
 	converted := make([]domainEvent.DraftProposedDate, 0, len(dates))
 	for _, date := range dates {
-		convertedDate, err := toDomainDraftProposedDate(date)
+		convertedDate, err := toDomainDraftDate(date)
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +140,7 @@ func toDomainDraftProposedDates(dates []appmodel.ProposedDate) ([]domainEvent.Dr
 	return converted, nil
 }
 
-func toDomainConfirmationDate(date appmodel.ConfirmDate) (domainEvent.DraftProposedDate, error) {
+func toDomainConfirmationDraftDate(date appmodel.ConfirmDate) (domainEvent.DraftProposedDate, error) {
 	if date.Start == nil || date.End == nil {
 		return domainEvent.DraftProposedDate{}, internalErrors.NewBadRequestError("確定候補日程が不正です")
 	}
@@ -155,16 +153,16 @@ func toDomainConfirmationDate(date appmodel.ConfirmDate) (domainEvent.DraftPropo
 	}, nil
 }
 
-func normalizeSelectedDatesPriorities(dates []appmodel.SelectedDate) []appmodel.SelectedDate {
-	normalized := make([]appmodel.SelectedDate, 0, len(dates))
+func assignSelectedDatePriorities(dates []appmodel.SelectedDate) []appmodel.SelectedDate {
+	assigned := make([]appmodel.SelectedDate, 0, len(dates))
 	for i, date := range dates {
-		date.Priority = domainEvent.PriorityValueForOrder(i, len(dates))
-		normalized = append(normalized, date)
+		date.Priority = domainEvent.PriorityForOrder(i, len(dates))
+		assigned = append(assigned, date)
 	}
-	return normalized
+	return assigned
 }
 
-func toDomainExistingProposedDates(dates []*ProposedDateRecord) []domainEvent.ExistingProposedDate {
+func toDomainExistingDateList(dates []*ProposedDateRecord) []domainEvent.ExistingProposedDate {
 	converted := make([]domainEvent.ExistingProposedDate, 0, len(dates))
 	for _, date := range dates {
 		converted = append(converted, domainEvent.ExistingProposedDate{

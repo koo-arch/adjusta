@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -51,7 +52,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 }
 
 func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.EventDraftDetail, error) {
-	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 
 	draftedEvents := make([]*appmodel.EventDraftDetail, 0, len(storedEvents))
 	for _, storedEvent := range storedEvents {
-		draft, err := buildEventDraftDetail(storedEvent)
+		draft, err := buildAppEventDraftDetail(storedEvent)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +82,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 }
 
 func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*appmodel.EventDraftDetail, error) {
-	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 
 	searchResult := make([]*appmodel.EventDraftDetail, 0, len(storedEvents))
 	for _, storedEvent := range storedEvents {
-		draft, err := buildEventDraftDetail(storedEvent)
+		draft, err := buildAppEventDraftDetail(storedEvent)
 		if err != nil {
 			return nil, err
 		}
@@ -128,11 +129,11 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return buildEventDraftDetail(storedEvent)
+	return buildAppEventDraftDetail(storedEvent)
 }
 
 func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error) {
-	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +171,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 					Status:                 storedEvent.Status,
 					SyncStatus:             storedEvent.SyncStatus,
 					ConfirmedDateID:        storedEvent.ConfirmedDateID,
-					GoogleEventID:          eventGoogleEventID(storedEvent),
+					GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID, storedEvent.GoogleEventID),
 					ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 					LastSyncedAt:           storedEvent.LastSyncedAt,
 					LastSyncError:          storedEvent.LastSyncError,
@@ -191,7 +192,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 }
 
 func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error) {
-	storedCalendar, err := uc.findPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
 	}

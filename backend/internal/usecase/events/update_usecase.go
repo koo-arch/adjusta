@@ -17,7 +17,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 	var committedErr error
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
-		if _, err := uc.findPrimaryCalendar(ctx, store, userID, email); err != nil {
+		if _, err := uc.loadPrimaryCalendar(ctx, store, userID, email); err != nil {
 			return err
 		}
 
@@ -36,8 +36,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			Description: &eventReq.Description,
 		}
 		if eventReq.Status != domainvalue.StatusConfirmed {
-			eventOptions.Status = &eventReq.Status
-			eventOptions = withPendingEventSync(eventOptions)
+			eventOptions = mergeEventChange(eventOptions, domainEvent.NewPendingEventChange(&eventReq.Status))
 		}
 		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, eventOptions)
 		if err != nil {
@@ -74,7 +73,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, &confirmEvent)
 			if err != nil {
 				log.Printf("failed to handle google event for account: %s, error: %v", email, err)
-				if syncErr := uc.markEventSyncFailed(ctx, store, storedEvent.ID, err); syncErr != nil {
+				if syncErr := uc.recordEventSyncFailure(ctx, store, storedEvent.ID, err); syncErr != nil {
 					log.Printf("failed to mark sync failure for account: %s, error: %v", email, syncErr)
 					return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 				}
@@ -84,19 +83,19 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 
 			if err := uc.confirmEventDate(ctx, store, googleEventID, &confirmEvent, storedEvent); err != nil {
 				log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
-				return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
+				return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 			}
 		}
 
 		if err := uc.updateProposedDates(ctx, store, eventReq, storedEvent, existingDates); err != nil {
-			return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
+			return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 		}
 
 		return nil
 	})
 	if err != nil {
 		log.Printf("failed running update drafted event transaction: %v", err)
-		return normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
+		return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
 	if committedErr != nil {
 		return committedErr
@@ -106,26 +105,22 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 }
 
 func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *EventRecord, existingDates []*ProposedDateRecord) error {
-	requestedDates, err := toDomainDraftProposedDates(eventReq.ProposedDates)
+	requestedDates, err := toDomainDraftDateList(eventReq.ProposedDates)
 	if err != nil {
 		return err
 	}
 
-	changeSet := domainEvent.BuildProposedDateChangeSet(requestedDates, toDomainExistingProposedDates(existingDates))
+	changeSet := domainEvent.PlanProposedDateChanges(requestedDates, toDomainExistingDateList(existingDates))
 
 	for _, date := range changeSet.Updates {
-		dateOptions := withPendingProposedDateSync(ProposedDateMutation{
-			Start:    &date.Start,
-			End:      &date.End,
-			Priority: &date.Priority,
-		})
+		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(&date.Start, &date.End, &date.Priority, nil))
 		if _, err := store.UpdateProposedDate(ctx, date.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date for account: %s, error: %w", date.ID, err)
 		}
 	}
 
 	for _, dateID := range changeSet.Deletes {
-		if _, err := store.UpdateProposedDate(ctx, dateID, withPendingProposedDateSync(ProposedDateMutation{})); err != nil {
+		if _, err := store.UpdateProposedDate(ctx, dateID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, nil))); err != nil {
 			return fmt.Errorf("failed to mark proposed date sync pending for account: %s, error: %w", dateID, err)
 		}
 		if err := store.DeleteProposedDate(ctx, dateID); err != nil {
@@ -134,11 +129,7 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, 
 	}
 
 	for _, date := range changeSet.Creates {
-		dateOptions := withPendingProposedDateSync(ProposedDateMutation{
-			Start:    &date.Start,
-			End:      &date.End,
-			Priority: &date.Priority,
-		})
+		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(&date.Start, &date.End, &date.Priority, nil))
 		if _, err := store.CreateProposedDate(ctx, dateOptions, storedEvent.ID); err != nil {
 			return fmt.Errorf("failed to create proposed date for event: %s, error: %w", storedEvent.ID, err)
 		}

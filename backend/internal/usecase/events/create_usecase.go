@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
@@ -13,7 +14,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 	var response *appmodel.EventDraftDetail
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
-		storedCalendar, err := uc.findPrimaryCalendar(ctx, store, userID, email)
+		storedCalendar, err := uc.loadPrimaryCalendar(ctx, store, userID, email)
 		if err != nil {
 			return err
 		}
@@ -23,19 +24,19 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			log.Printf("failed to create event for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
-		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, withPendingEventSync(EventMutation{}))
+		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventChange(nil)))
 		if err != nil {
 			log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		storedDates, err := store.CreateProposedDates(ctx, normalizeSelectedDatesPriorities(eventReq.SelectedDates), storedEvent.ID)
+		storedDates, err := store.CreateProposedDates(ctx, assignSelectedDatePriorities(eventReq.SelectedDates), storedEvent.ID)
 		if err != nil {
 			log.Printf("failed to create proposed dates for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 		for i, storedDate := range storedDates {
-			storedDates[i], err = store.UpdateProposedDate(ctx, storedDate.ID, withPendingProposedDateSync(ProposedDateMutation{}))
+			storedDates[i], err = store.UpdateProposedDate(ctx, storedDate.ID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, nil)))
 			if err != nil {
 				log.Printf("failed to mark proposed date sync pending for account: %s, error: %v", email, err)
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
@@ -49,15 +50,15 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			Description:   storedEvent.Description,
 			Status:        storedEvent.Status,
 			SyncStatus:    storedEvent.SyncStatus,
-			GoogleEventID: eventGoogleEventID(storedEvent),
-			ProposedDates: buildProposedDates(storedDates),
+			GoogleEventID: domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID, storedEvent.GoogleEventID),
+			ProposedDates: buildAppProposedDates(storedDates),
 		}
 
 		return nil
 	})
 	if err != nil {
 		log.Printf("failed running create drafted event transaction: %v", err)
-		return nil, normalizeUsecaseError(err, internalErrors.InternalErrorMessage)
+		return nil, mapUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
 
 	return response, nil
