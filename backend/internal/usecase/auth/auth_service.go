@@ -142,19 +142,19 @@ func (am *AuthService) UpdateUserAndAccount(ctx context.Context, userID, account
 
 func (am *AuthService) CreateSession(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error) {
 	sessionToken := uuid.NewString()
-	expiresAt := buildSessionExpiry()
+	expiresAt := repoSession.ExpiresAtFrom(time.Now(), sessionLifetime())
 
-	entSession, err := am.sessions.CreateSession(ctx, userID, sessionToken, expiresAt)
+	storedSession, err := am.sessions.CreateSession(ctx, userID, sessionToken, expiresAt)
 	if err != nil {
 		log.Printf("failed to create session: %v", err)
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return entSession, nil
+	return storedSession, nil
 }
 
 func (am *AuthService) AuthenticateSession(ctx context.Context, sessionToken string) (*repoUser.User, error) {
-	entSession, err := am.sessions.FindSessionByToken(ctx, sessionToken, true)
+	storedSession, err := am.sessions.FindSessionByToken(ctx, sessionToken, true)
 	if err != nil {
 		log.Printf("failed to find session by token: %v", err)
 		if repoerr.IsNotFound(err) {
@@ -163,23 +163,24 @@ func (am *AuthService) AuthenticateSession(ctx context.Context, sessionToken str
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	if entSession.ExpiresAt.Before(time.Now()) {
+	now := time.Now()
+	if storedSession.IsExpiredAt(now) {
 		if deleteErr := am.sessions.DeleteSessionByToken(ctx, sessionToken); deleteErr != nil {
 			log.Printf("failed to delete expired session: %v", deleteErr)
 		}
 		return nil, internalErrors.NewUnauthorizedError("セッションの有効期限が切れています")
 	}
 
-	if _, err := am.sessions.UpdateSessionExpiry(ctx, entSession.ID, buildSessionExpiry()); err != nil {
+	if _, err := am.sessions.UpdateSessionExpiry(ctx, storedSession.ID, repoSession.ExpiresAtFrom(now, sessionLifetime())); err != nil {
 		log.Printf("failed to update session expiry: %v", err)
 	}
 
-	if entSession.User == nil {
+	if storedSession.User == nil {
 		log.Printf("failed to load user from session: user edge is nil")
 		return nil, internalErrors.NewUnauthorizedError("ユーザー情報が取得できませんでした")
 	}
 
-	return entSession.User, nil
+	return storedSession.User, nil
 }
 
 func (am *AuthService) DeleteSession(ctx context.Context, sessionToken string) error {
@@ -202,8 +203,8 @@ func buildUserMutationOptions(userInfo *appmodel.GoogleUserProfile) UserMutation
 	}
 }
 
-func buildSessionExpiry() time.Time {
-	return time.Now().Add(time.Duration(opCookie.DefaultCookieOptions().MaxAge) * time.Second)
+func sessionLifetime() time.Duration {
+	return time.Duration(opCookie.DefaultCookieOptions().MaxAge) * time.Second
 }
 
 func buildAccountMutationOptions(userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) AccountMutation {
