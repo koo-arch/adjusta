@@ -53,7 +53,7 @@ type SyncStore interface {
 	FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error)
 	CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
 	UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
-	EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error)
+	EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) (*repoUserCalendar.UserCalendar, error)
 	ListUserCalendarRelations(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error)
 	SoftDeleteUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID) error
 }

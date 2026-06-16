@@ -109,7 +109,7 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService Calenda
 			}
 
 			role := domainUserCalendar.ExternalSyncRole(cal.Primary)
-			if _, err := store.EnsureUserCalendarRelation(ctx, entUser.ID, storedCalendar.ID, role); err != nil {
+			if _, err := store.EnsureUserCalendarRelation(ctx, entUser.ID, storedCalendar.ID, role, nil); err != nil {
 				return fmt.Errorf("failed to ensure user calendar relation: %w", err)
 			}
 		}
@@ -149,6 +149,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 	relations []*UserCalendarRelationRecord,
 ) (*customCalendar.CalendarList, error) {
 	existingRelation := findRelationByRole(relations, domainvalue.UserCalendarRoleAdjustaCandidate)
+	syncProposedDates := resolveAdjustaCandidateSyncProposedDates(existingRelation)
 
 	if existingRelation != nil {
 		current := findIncomingCalendarByID(calendars, existingRelation.GoogleCalendarID)
@@ -156,7 +157,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 			if _, err := store.UpdateCalendar(ctx, existingRelation.CalendarID, current.CalendarID, current.Summary); err != nil {
 				return nil, fmt.Errorf("failed to update adjusta candidate calendar: %w", err)
 			}
-			if _, err := store.EnsureUserCalendarRelation(ctx, userID, existingRelation.CalendarID, domainvalue.UserCalendarRoleAdjustaCandidate); err != nil {
+			if _, err := store.EnsureUserCalendarRelation(ctx, userID, existingRelation.CalendarID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
 				return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
 			}
 			return current, nil
@@ -183,7 +184,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 		}
 	}
 
-	if _, err := store.EnsureUserCalendarRelation(ctx, userID, storedCalendar.ID, domainvalue.UserCalendarRoleAdjustaCandidate); err != nil {
+	if _, err := store.EnsureUserCalendarRelation(ctx, userID, storedCalendar.ID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
 		return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
 	}
 
@@ -251,4 +252,13 @@ func findAdjustaCandidateCalendar(calendars []*customCalendar.CalendarList) *cus
 		}
 	}
 	return nil
+}
+
+func resolveAdjustaCandidateSyncProposedDates(relation *UserCalendarRelationRecord) *bool {
+	if relation == nil {
+		return nil
+	}
+
+	syncProposedDates := relation.SyncProposedDates
+	return &syncProposedDates
 }

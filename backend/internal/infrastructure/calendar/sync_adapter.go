@@ -66,13 +66,12 @@ func (s *calendarSyncStore) UpdateCalendar(ctx context.Context, id uuid.UUID, go
 	})
 }
 
-func (s *calendarSyncStore) EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
+func (s *calendarSyncStore) EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) (*repoUserCalendar.UserCalendar, error) {
 	isVisible := true
-	syncProposedDates := role == domainvalue.UserCalendarRoleAdjustaCandidate
 	return s.repos.UserCalendar.Ensure(ctx, userID, calendarID, repoUserCalendar.UserCalendarQueryOptions{
 		Role:              &role,
 		IsVisible:         &isVisible,
-		SyncProposedDates: &syncProposedDates,
+		SyncProposedDates: syncProposedDates,
 	})
 }
 
