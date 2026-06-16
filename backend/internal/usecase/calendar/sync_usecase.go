@@ -6,8 +6,10 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	domainUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -62,7 +64,8 @@ func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID
 		return nil, internalErrors.NormalizeAPIError(err, "Googleカレンダー情報の取得に失敗しました")
 	}
 
-	if err := uc.syncCalendar(ctx, calendars, entUser); err != nil {
+	calendars, err = uc.syncCalendar(ctx, calendarService, calendars, entUser)
+	if err != nil {
 		log.Printf("failed to sync calendars for account: %s, error: %v", entUser.Email, err)
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
@@ -70,34 +73,39 @@ func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID
 	return calendars, nil
 }
 
-func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCalendar.CalendarList, entUser *repoUser.User) error {
-	return uc.tx.Do(ctx, func(store SyncStore) error {
+func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService CalendarService, calendars []*customCalendar.CalendarList, entUser *repoUser.User) ([]*customCalendar.CalendarList, error) {
+	syncedCalendars := calendars
+
+	err := uc.tx.Do(ctx, func(store SyncStore) error {
+		relations, err := store.ListUserCalendarRelations(ctx, entUser.ID)
+		if err != nil {
+			return fmt.Errorf("failed to list user calendar relations: %w", err)
+		}
+
+		adjustaCandidate, err := uc.ensureAdjustaCandidateCalendar(ctx, calendarService, store, entUser.ID, calendars, relations)
+		if err != nil {
+			return err
+		}
+
+		adjustaCandidateID := ""
+		if adjustaCandidate != nil {
+			adjustaCandidateID = adjustaCandidate.CalendarID
+			if findIncomingCalendarByID(calendars, adjustaCandidateID) == nil {
+				syncedCalendars = append(append([]*customCalendar.CalendarList{}, calendars...), adjustaCandidate)
+			}
+		}
+
 		incoming := make(map[string]struct{}, len(calendars))
 		for _, cal := range calendars {
-			incoming[cal.CalendarID] = struct{}{}
-
-			storedCalendar, err := store.FindCalendarByGoogleCalendarID(ctx, entUser.ID, cal.CalendarID)
-			if err != nil {
-				if !repoerr.IsNotFound(err) {
-					return fmt.Errorf("failed to find calendar: %w", err)
-				}
-
-				storedCalendar, err = store.FindAnyCalendarByGoogleCalendarID(ctx, cal.CalendarID)
-				if err != nil {
-					if !repoerr.IsNotFound(err) {
-						return fmt.Errorf("failed to find global calendar: %w", err)
-					}
-
-					storedCalendar, err = store.CreateCalendar(ctx, cal.CalendarID, cal.Summary)
-					if err != nil {
-						return fmt.Errorf("failed to create calendar: %w", err)
-					}
-				}
+			if cal.CalendarID == adjustaCandidateID {
+				continue
 			}
 
-			_, err = store.UpdateCalendar(ctx, storedCalendar.ID, cal.CalendarID, cal.Summary)
+			incoming[cal.CalendarID] = struct{}{}
+
+			storedCalendar, err := uc.ensureStoredCalendar(ctx, store, entUser.ID, cal.CalendarID, cal.Summary)
 			if err != nil {
-				return fmt.Errorf("failed to update calendar: %w", err)
+				return err
 			}
 
 			role := domainUserCalendar.ExternalSyncRole(cal.Primary)
@@ -106,7 +114,7 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCale
 			}
 		}
 
-		relations, err := store.ListUserCalendarRelations(ctx, entUser.ID)
+		relations, err = store.ListUserCalendarRelations(ctx, entUser.ID)
 		if err != nil {
 			return fmt.Errorf("failed to list user calendar relations: %w", err)
 		}
@@ -124,4 +132,123 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCale
 
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return syncedCalendars, nil
+}
+
+func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
+	ctx context.Context,
+	calendarService CalendarService,
+	store SyncStore,
+	userID uuid.UUID,
+	calendars []*customCalendar.CalendarList,
+	relations []*UserCalendarRelationRecord,
+) (*customCalendar.CalendarList, error) {
+	existingRelation := findRelationByRole(relations, domainvalue.UserCalendarRoleAdjustaCandidate)
+
+	if existingRelation != nil {
+		current := findIncomingCalendarByID(calendars, existingRelation.GoogleCalendarID)
+		if current != nil {
+			if _, err := store.UpdateCalendar(ctx, existingRelation.CalendarID, current.CalendarID, current.Summary); err != nil {
+				return nil, fmt.Errorf("failed to update adjusta candidate calendar: %w", err)
+			}
+			if _, err := store.EnsureUserCalendarRelation(ctx, userID, existingRelation.CalendarID, domainvalue.UserCalendarRoleAdjustaCandidate); err != nil {
+				return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
+			}
+			return current, nil
+		}
+	}
+
+	desired := findAdjustaCandidateCalendar(calendars)
+	if desired == nil {
+		var err error
+		desired, err = calendarService.CreateCalendar(domainUserCalendar.AdjustaCandidateCalendarSummary)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create adjusta candidate calendar: %w", err)
+		}
+	}
+
+	storedCalendar, err := uc.ensureStoredCalendar(ctx, store, userID, desired.CalendarID, desired.Summary)
+	if err != nil {
+		return nil, err
+	}
+
+	if existingRelation != nil && existingRelation.CalendarID != storedCalendar.ID {
+		if err := store.SoftDeleteUserCalendarRelation(ctx, userID, existingRelation.CalendarID); err != nil {
+			return nil, fmt.Errorf("failed to replace adjusta candidate relation: %w", err)
+		}
+	}
+
+	if _, err := store.EnsureUserCalendarRelation(ctx, userID, storedCalendar.ID, domainvalue.UserCalendarRoleAdjustaCandidate); err != nil {
+		return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
+	}
+
+	return desired, nil
+}
+
+func (uc *SyncUsecase) ensureStoredCalendar(
+	ctx context.Context,
+	store SyncStore,
+	userID uuid.UUID,
+	googleCalendarID, summary string,
+) (*repoCalendar.Calendar, error) {
+	storedCalendar, err := store.FindCalendarByGoogleCalendarID(ctx, userID, googleCalendarID)
+	if err != nil {
+		if !repoerr.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to find calendar: %w", err)
+		}
+
+		storedCalendar, err = store.FindAnyCalendarByGoogleCalendarID(ctx, googleCalendarID)
+		if err != nil {
+			if !repoerr.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to find global calendar: %w", err)
+			}
+
+			storedCalendar, err = store.CreateCalendar(ctx, googleCalendarID, summary)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create calendar: %w", err)
+			}
+		}
+	}
+
+	storedCalendar, err = store.UpdateCalendar(ctx, storedCalendar.ID, googleCalendarID, summary)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update calendar: %w", err)
+	}
+
+	return storedCalendar, nil
+}
+
+func findRelationByRole(relations []*UserCalendarRelationRecord, role domainvalue.UserCalendarRole) *UserCalendarRelationRecord {
+	for _, relation := range relations {
+		if relation.Role == role {
+			return relation
+		}
+	}
+	return nil
+}
+
+func findIncomingCalendarByID(calendars []*customCalendar.CalendarList, calendarID string) *customCalendar.CalendarList {
+	for _, cal := range calendars {
+		if cal.CalendarID == calendarID {
+			return cal
+		}
+	}
+	return nil
+}
+
+func findAdjustaCandidateCalendar(calendars []*customCalendar.CalendarList) *customCalendar.CalendarList {
+	for _, cal := range calendars {
+		if cal.Primary {
+			continue
+		}
+		if domainUserCalendar.IsAdjustaCandidateCalendarSummary(cal.Summary) {
+			return cal
+		}
+	}
+	return nil
 }

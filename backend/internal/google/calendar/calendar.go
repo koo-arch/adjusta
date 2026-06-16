@@ -49,6 +49,21 @@ func (c *Calendar) FetchCalendarList() ([]*CalendarList, error) {
 	return calendars, nil
 }
 
+func (c *Calendar) CreateCalendar(summary string) (*CalendarList, error) {
+	created, err := c.Service.Calendars.Insert(&calendar.Calendar{
+		Summary: summary,
+	}).Do()
+	if err != nil {
+		return nil, err
+	}
+
+	return &CalendarList{
+		CalendarID: created.Id,
+		Summary:    created.Summary,
+		Primary:    false,
+	}, nil
+}
+
 func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*appmodel.GoogleEvent, error) {
 	events, err := c.Service.Events.List(calendarID).
 		TimeMin(startTime.Format(time.RFC3339)).

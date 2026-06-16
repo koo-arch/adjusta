@@ -30,3 +30,14 @@ func TestIsExternalSyncRole(t *testing.T) {
 		t.Fatal("expected adjusta candidate to be excluded from external sync")
 	}
 }
+
+func TestIsAdjustaCandidateCalendarSummary(t *testing.T) {
+	t.Parallel()
+
+	if !IsAdjustaCandidateCalendarSummary(AdjustaCandidateCalendarSummary) {
+		t.Fatal("expected adjusta candidate summary to be recognized")
+	}
+	if IsAdjustaCandidateCalendarSummary("Primary") {
+		t.Fatal("did not expect unrelated summary to be recognized")
+	}
+}

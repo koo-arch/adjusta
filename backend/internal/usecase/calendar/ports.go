@@ -28,6 +28,7 @@ type GoogleTokenProvider interface {
 
 type CalendarService interface {
 	FetchCalendarList() ([]*customCalendar.CalendarList, error)
+	CreateCalendar(summary string) (*customCalendar.CalendarList, error)
 }
 
 type CalendarServiceFactory interface {

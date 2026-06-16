@@ -35,3 +35,12 @@ func (s *calendarService) FetchCalendarList() ([]*customCalendar.CalendarList, e
 
 	return calendars, nil
 }
+
+func (s *calendarService) CreateCalendar(summary string) (*customCalendar.CalendarList, error) {
+	calendar, err := s.service.CreateCalendar(summary)
+	if err != nil {
+		return nil, normalizeGoogleAPIError(err)
+	}
+
+	return calendar, nil
+}
