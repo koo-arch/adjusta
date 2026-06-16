@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	domainUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -100,23 +100,23 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendars []*customCale
 				return fmt.Errorf("failed to update calendar: %w", err)
 			}
 
-			role := domainvalue.UserCalendarRoleReference
-			if cal.Primary {
-				role = domainvalue.UserCalendarRolePrimary
-			}
-			if _, err := store.EnsureUserCalendar(ctx, entUser.ID, storedCalendar.ID, role); err != nil {
+			role := domainUserCalendar.ExternalSyncRole(cal.Primary)
+			if _, err := store.EnsureUserCalendarRelation(ctx, entUser.ID, storedCalendar.ID, role); err != nil {
 				return fmt.Errorf("failed to ensure user calendar relation: %w", err)
 			}
 		}
 
-		dbCalendars, err := store.ListCalendarsByUser(ctx, entUser.ID)
+		relations, err := store.ListUserCalendarRelations(ctx, entUser.ID)
 		if err != nil {
-			return fmt.Errorf("failed to list calendars: %w", err)
+			return fmt.Errorf("failed to list user calendar relations: %w", err)
 		}
 
-		for _, dbCalendar := range dbCalendars {
-			if _, ok := incoming[dbCalendar.GoogleCalendarID]; !ok {
-				if err := store.SoftDeleteUserCalendar(ctx, entUser.ID, dbCalendar.ID); err != nil {
+		for _, relation := range relations {
+			if !domainUserCalendar.IsExternalSyncRole(relation.Role) {
+				continue
+			}
+			if _, ok := incoming[relation.GoogleCalendarID]; !ok {
+				if err := store.SoftDeleteUserCalendarRelation(ctx, entUser.ID, relation.CalendarID); err != nil {
 					return fmt.Errorf("failed to soft delete user calendar relation: %w", err)
 				}
 			}

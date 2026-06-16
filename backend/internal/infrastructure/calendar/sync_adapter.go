@@ -66,7 +66,7 @@ func (s *calendarSyncStore) UpdateCalendar(ctx context.Context, id uuid.UUID, go
 	})
 }
 
-func (s *calendarSyncStore) EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
+func (s *calendarSyncStore) EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
 	isVisible := true
 	syncProposedDates := role == domainvalue.UserCalendarRoleAdjustaCandidate
 	return s.repos.UserCalendar.Ensure(ctx, userID, calendarID, repoUserCalendar.UserCalendarQueryOptions{
@@ -76,10 +76,30 @@ func (s *calendarSyncStore) EnsureUserCalendar(ctx context.Context, userID, cale
 	})
 }
 
-func (s *calendarSyncStore) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
-	return s.repos.Calendar.FilterByUserID(ctx, userID)
+func (s *calendarSyncStore) ListUserCalendarRelations(ctx context.Context, userID uuid.UUID) ([]*usecaseCalendar.UserCalendarRelationRecord, error) {
+	userCalendars, err := s.repos.UserCalendar.FilterByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	relations := make([]*usecaseCalendar.UserCalendarRelationRecord, 0, len(userCalendars))
+	for _, userCalendar := range userCalendars {
+		calendar, err := s.repos.Calendar.Read(ctx, userCalendar.CalendarID, repoCalendar.CalendarQueryOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		relations = append(relations, &usecaseCalendar.UserCalendarRelationRecord{
+			CalendarID:        userCalendar.CalendarID,
+			GoogleCalendarID:  calendar.GoogleCalendarID,
+			Role:              userCalendar.Role,
+			SyncProposedDates: userCalendar.SyncProposedDates,
+		})
+	}
+
+	return relations, nil
 }
 
-func (s *calendarSyncStore) SoftDeleteUserCalendar(ctx context.Context, userID, calendarID uuid.UUID) error {
+func (s *calendarSyncStore) SoftDeleteUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID) error {
 	return s.repos.UserCalendar.SoftDeleteByUserAndCalendar(ctx, userID, calendarID)
 }

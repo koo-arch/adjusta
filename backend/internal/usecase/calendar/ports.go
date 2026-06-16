@@ -40,14 +40,21 @@ func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *appmodel.Goo
 	return f(ctx, token)
 }
 
+type UserCalendarRelationRecord struct {
+	CalendarID        uuid.UUID
+	GoogleCalendarID  string
+	Role              domainvalue.UserCalendarRole
+	SyncProposedDates bool
+}
+
 type SyncStore interface {
 	FindCalendarByGoogleCalendarID(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repoCalendar.Calendar, error)
 	FindAnyCalendarByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error)
 	CreateCalendar(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
 	UpdateCalendar(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
-	EnsureUserCalendar(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error)
-	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error)
-	SoftDeleteUserCalendar(ctx context.Context, userID, calendarID uuid.UUID) error
+	EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole) (*repoUserCalendar.UserCalendar, error)
+	ListUserCalendarRelations(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error)
+	SoftDeleteUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID) error
 }
 
 type SyncTransaction interface {
