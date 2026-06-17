@@ -27,7 +27,7 @@ func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, finder Adju
 	if err != nil {
 		log.Printf("failed to get adjusta candidate calendar for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
-			return nil, internalErrors.NewNotFoundError("カレンダーが見つかりませんでした")
+			return &CalendarRecord{SyncProposedDates: false}, nil
 		}
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}

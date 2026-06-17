@@ -83,7 +83,7 @@ func (s *fakeSyncStore) SoftDeleteUserCalendarRelation(ctx context.Context, user
 	return s.softDeleteUserCalendarRelationFn(ctx, userID, calendarID)
 }
 
-func TestSyncCalendarAssignsExternalRoles(t *testing.T) {
+func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -133,14 +133,8 @@ func TestSyncCalendarAssignsExternalRoles(t *testing.T) {
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
 		createCalendarFn: func(summary string) (*customCalendar.CalendarList, error) {
-			if summary != domainUserCalendar.AdjustaCandidateCalendarSummary {
-				t.Fatalf("unexpected candidate calendar summary: %s", summary)
-			}
-			return &customCalendar.CalendarList{
-				CalendarID: "adjusta-candidate-cal",
-				Summary:    summary,
-				Primary:    false,
-			}, nil
+			t.Fatalf("create calendar should not be called")
+			return nil, nil
 		},
 	}, []*customCalendar.CalendarList{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
@@ -150,17 +144,14 @@ func TestSyncCalendarAssignsExternalRoles(t *testing.T) {
 		t.Fatalf("syncCalendar returned error: %v", err)
 	}
 
-	if len(ensuredRoles) != 3 {
-		t.Fatalf("expected 3 ensured roles, got %d", len(ensuredRoles))
+	if len(ensuredRoles) != 2 {
+		t.Fatalf("expected 2 ensured roles, got %d", len(ensuredRoles))
 	}
-	if ensuredRoles[0] != domainvalue.UserCalendarRoleAdjustaCandidate {
-		t.Fatalf("expected adjusta candidate role, got %s", ensuredRoles[0])
+	if ensuredRoles[0] != domainvalue.UserCalendarRolePrimary {
+		t.Fatalf("expected primary role, got %s", ensuredRoles[0])
 	}
-	if ensuredRoles[1] != domainvalue.UserCalendarRolePrimary {
-		t.Fatalf("expected primary role, got %s", ensuredRoles[1])
-	}
-	if ensuredRoles[2] != domainvalue.UserCalendarRoleReference {
-		t.Fatalf("expected reference role, got %s", ensuredRoles[2])
+	if ensuredRoles[1] != domainvalue.UserCalendarRoleReference {
+		t.Fatalf("expected reference role, got %s", ensuredRoles[1])
 	}
 }
 
@@ -289,50 +280,55 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 	}
 }
 
-func TestSyncCalendarCreatesAdjustaCandidateRelation(t *testing.T) {
+func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	userID := uuid.New()
 	primaryCalendarID := uuid.New()
-	referenceCalendarID := uuid.New()
 	candidateCalendarID := uuid.New()
 
 	var ensuredRoles []domainvalue.UserCalendarRole
+	var deletedCalendarIDs []uuid.UUID
 
 	uc := NewSyncUsecase(nil, nil, nil, &fakeSyncTransaction{
 		store: &fakeSyncStore{
 			findCalendarByGoogleCalendarIDFn: func(ctx context.Context, userID uuid.UUID, googleCalendarID string) (*repoCalendar.Calendar, error) {
-				return nil, repoerr.ErrNotFound
+				if googleCalendarID != "primary-cal" {
+					t.Fatalf("unexpected google calendar id: %s", googleCalendarID)
+				}
+				return &repoCalendar.Calendar{ID: primaryCalendarID, GoogleCalendarID: googleCalendarID, Summary: "Primary"}, nil
 			},
 			findAnyCalendarByGoogleCalendarIDFn: func(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error) {
-				return nil, repoerr.ErrNotFound
+				t.Fatalf("find any calendar should not be called")
+				return nil, nil
 			},
 			createCalendarFn: func(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
-				id := referenceCalendarID
-				switch googleCalendarID {
-				case "primary-cal":
-					id = primaryCalendarID
-				case "adjusta-candidate-cal":
-					id = candidateCalendarID
-				}
-				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
+				t.Fatalf("create calendar should not be called")
+				return nil, nil
 			},
 			updateCalendarFn: func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
 			},
 			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error {
 				ensuredRoles = append(ensuredRoles, role)
-				if role == domainvalue.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
-					t.Fatalf("expected newly created adjusta candidate relation to use default sync setting")
+				if role == domainvalue.UserCalendarRoleAdjustaCandidate {
+					t.Fatalf("adjusta candidate relation should not be recreated while sync is disabled")
 				}
 				return nil
 			},
 			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
-				return nil, nil
+				return []*UserCalendarRelationRecord{
+					{
+						CalendarID:        candidateCalendarID,
+						GoogleCalendarID:  "missing-adjusta-candidate",
+						Role:              domainvalue.UserCalendarRoleAdjustaCandidate,
+						SyncProposedDates: false,
+					},
+				}, nil
 			},
 			softDeleteUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID) error {
-				t.Fatalf("soft delete should not be called")
+				deletedCalendarIDs = append(deletedCalendarIDs, calendarID)
 				return nil
 			},
 		},
@@ -340,41 +336,27 @@ func TestSyncCalendarCreatesAdjustaCandidateRelation(t *testing.T) {
 
 	calendars, err := uc.syncCalendar(ctx, &fakeCalendarService{
 		createCalendarFn: func(summary string) (*customCalendar.CalendarList, error) {
-			if summary != domainUserCalendar.AdjustaCandidateCalendarSummary {
-				t.Fatalf("unexpected candidate calendar summary: %s", summary)
-			}
-			return &customCalendar.CalendarList{
-				CalendarID: "adjusta-candidate-cal",
-				Summary:    summary,
-				Primary:    false,
-			}, nil
+			t.Fatalf("create calendar should not be called")
+			return nil, nil
 		},
 	}, []*customCalendar.CalendarList{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
-		{CalendarID: "reference-cal", Summary: "Reference", Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {
 		t.Fatalf("syncCalendar returned error: %v", err)
 	}
 
-	if len(calendars) != 3 {
-		t.Fatalf("expected returned calendars to include adjusta candidate, got %d", len(calendars))
+	if len(calendars) != 1 {
+		t.Fatalf("expected returned calendars length to remain unchanged, got %d", len(calendars))
 	}
-	if calendars[2].CalendarID != "adjusta-candidate-cal" {
-		t.Fatalf("expected adjusta candidate calendar to be appended, got %s", calendars[2].CalendarID)
+	if len(ensuredRoles) != 1 {
+		t.Fatalf("expected only primary role to be ensured, got %d", len(ensuredRoles))
 	}
-
-	if len(ensuredRoles) != 3 {
-		t.Fatalf("expected 3 ensured roles, got %d", len(ensuredRoles))
+	if ensuredRoles[0] != domainvalue.UserCalendarRolePrimary {
+		t.Fatalf("expected primary role, got %s", ensuredRoles[0])
 	}
-	if ensuredRoles[0] != domainvalue.UserCalendarRoleAdjustaCandidate {
-		t.Fatalf("expected first ensured role to be adjusta candidate, got %s", ensuredRoles[0])
-	}
-	if ensuredRoles[1] != domainvalue.UserCalendarRolePrimary {
-		t.Fatalf("expected primary role, got %s", ensuredRoles[1])
-	}
-	if ensuredRoles[2] != domainvalue.UserCalendarRoleReference {
-		t.Fatalf("expected reference role, got %s", ensuredRoles[2])
+	if len(deletedCalendarIDs) != 0 {
+		t.Fatalf("expected no deleted relations, got %d", len(deletedCalendarIDs))
 	}
 }
 

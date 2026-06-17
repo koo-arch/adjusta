@@ -10,6 +10,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
 type fakeEventTxStore struct {
@@ -332,6 +333,80 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	}
 }
 
+func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	calendarID := uuid.New()
+	eventID := uuid.New()
+	dateID := uuid.New()
+	start := time.Now().UTC().Add(time.Hour)
+	end := start.Add(time.Hour)
+
+	uc := NewUsecase(
+		nil,
+		&fakeEventTransaction{
+			store: &fakeEventTxStore{
+				t: t,
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					return &CalendarRecord{ID: calendarID}, nil
+				},
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					return nil, repoerr.ErrNotFound
+				},
+				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*EventRecord, error) {
+					return &EventRecord{
+						ID:          eventID,
+						Title:       title,
+						Location:    location,
+						Description: description,
+						Status:      domainvalue.StatusActive,
+						SyncStatus:  domainvalue.SyncStatusNotSynced,
+					}, nil
+				},
+				createProposedDatesFn: func(ctx context.Context, selectedDates []appmodel.SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+					return []*ProposedDateRecord{
+						{
+							ID:         dateID,
+							StartTime:  selectedDates[0].Start,
+							EndTime:    selectedDates[0].End,
+							Priority:   selectedDates[0].Priority,
+							Status:     domainvalue.ProposedDateStatusActive,
+							SyncStatus: domainvalue.SyncStatusNotSynced,
+						},
+					}, nil
+				},
+			},
+		},
+		nil,
+	)
+
+	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", &appmodel.EventDraftCreation{
+		Title:       "Draft",
+		Location:    "Tokyo",
+		Description: "desc",
+		SelectedDates: []appmodel.SelectedDate{
+			{Start: start, End: end, Priority: 10},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateDraftedEvents returned error: %v", err)
+	}
+	if response.SyncStatus != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected event sync status: %s", response.SyncStatus)
+	}
+	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected proposed dates: %#v", response.ProposedDates)
+	}
+}
+
 func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 	t.Parallel()
 
@@ -594,6 +669,107 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	}
 	if !createdMutation.ClearLastSyncError {
 		t.Fatalf("expected created proposed date last sync error to be cleared")
+	}
+}
+
+func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	calendarID := uuid.New()
+	eventID := uuid.New()
+	dateID := uuid.New()
+	start := time.Now().UTC().Add(2 * time.Hour)
+	end := start.Add(time.Hour)
+
+	var eventMutation EventMutation
+	var dateMutation ProposedDateMutation
+
+	uc := NewUsecase(
+		nil,
+		&fakeEventTransaction{
+			store: &fakeEventTxStore{
+				t: t,
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					return &CalendarRecord{ID: calendarID}, nil
+				},
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					return nil, repoerr.ErrNotFound
+				},
+				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+					return &EventRecord{
+						ID:                eventID,
+						PrimaryCalendarID: calendarID,
+						Status:            domainvalue.StatusActive,
+					}, nil
+				},
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+					eventMutation = opt
+					return &EventRecord{
+						ID:                eventID,
+						PrimaryCalendarID: calendarID,
+						Status:            domainvalue.StatusActive,
+						SyncStatus:        domainvalue.SyncStatusNotSynced,
+					}, nil
+				},
+				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+					return []*ProposedDateRecord{
+						{
+							ID:         dateID,
+							StartTime:  start.Add(-time.Hour),
+							EndTime:    end.Add(-time.Hour),
+							Priority:   10,
+							Status:     domainvalue.ProposedDateStatusActive,
+							SyncStatus: domainvalue.SyncStatusSynced,
+						},
+					}, nil
+				},
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+					dateMutation = opt
+					return &ProposedDateRecord{ID: id}, nil
+				},
+				deleteProposedDateFn: func(ctx context.Context, id uuid.UUID) error {
+					t.Fatalf("DeleteProposedDate should not be called")
+					return nil
+				},
+				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error) {
+					t.Fatalf("CreateProposedDate should not be called")
+					return nil, nil
+				},
+			},
+		},
+		nil,
+	)
+
+	err := uc.UpdateDraftedEvents(ctx, userID, "draft-event", "user@example.com", &appmodel.EventDraftUpdate{
+		Title:       "Updated title",
+		Location:    "Osaka",
+		Description: "updated desc",
+		Status:      domainvalue.StatusActive,
+		ProposedDates: []appmodel.ProposedDate{
+			{
+				ID:       &dateID,
+				Start:    &start,
+				End:      &end,
+				Priority: 20,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("UpdateDraftedEvents returned error: %v", err)
+	}
+	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected event sync mutation: %#v", eventMutation.SyncStatus)
+	}
+	if dateMutation.SyncStatus == nil || *dateMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected proposed date sync mutation: %#v", dateMutation.SyncStatus)
 	}
 }
 

@@ -166,6 +166,10 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 
 	desired := findAdjustaCandidateCalendar(calendars)
 	if desired == nil {
+		if !shouldCreateAdjustaCandidateCalendar(existingRelation) {
+			return nil, nil
+		}
+
 		var err error
 		desired, err = calendarService.CreateCalendar(domainUserCalendar.AdjustaCandidateCalendarSummary)
 		if err != nil {
@@ -261,4 +265,8 @@ func resolveAdjustaCandidateSyncProposedDates(relation *UserCalendarRelationReco
 
 	syncProposedDates := relation.SyncProposedDates
 	return &syncProposedDates
+}
+
+func shouldCreateAdjustaCandidateCalendar(relation *UserCalendarRelationRecord) bool {
+	return relation != nil && relation.SyncProposedDates
 }
