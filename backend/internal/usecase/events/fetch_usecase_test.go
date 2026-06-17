@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -53,6 +54,82 @@ func (f *fakeGoogleCalendarGateway) FetchEvents(ctx context.Context, userID uuid
 
 func (f *fakeGoogleCalendarGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
 	return f.upsertEventFn(ctx, userID, calendarID, existingGoogleEventID, title, location, description, start, end)
+}
+
+func applyEventMutation(record *EventRecord, opt EventMutation) {
+	if opt.Title != nil {
+		record.Title = *opt.Title
+	}
+	if opt.Location != nil {
+		record.Location = *opt.Location
+	}
+	if opt.Description != nil {
+		record.Description = *opt.Description
+	}
+	if opt.Status != nil {
+		record.Status = *opt.Status
+	}
+	if opt.SyncStatus != nil {
+		record.SyncStatus = *opt.SyncStatus
+	}
+	if opt.ConfirmedDateID != nil {
+		record.ConfirmedDateID = *opt.ConfirmedDateID
+	}
+	if opt.GoogleEventID != nil {
+		record.GoogleEventID = *opt.GoogleEventID
+	}
+	if opt.ConfirmedGoogleEventID != nil {
+		confirmedGoogleEventID := *opt.ConfirmedGoogleEventID
+		record.ConfirmedGoogleEventID = &confirmedGoogleEventID
+	}
+	if opt.LastSyncedAt != nil {
+		record.LastSyncedAt = opt.LastSyncedAt
+	}
+	if opt.ClearLastSyncedAt {
+		record.LastSyncedAt = nil
+	}
+	if opt.LastSyncError != nil {
+		lastSyncError := *opt.LastSyncError
+		record.LastSyncError = &lastSyncError
+	}
+	if opt.ClearLastSyncError {
+		record.LastSyncError = nil
+	}
+}
+
+func applyProposedDateMutation(record *ProposedDateRecord, opt ProposedDateMutation) {
+	if opt.GoogleEventID != nil {
+		googleEventID := *opt.GoogleEventID
+		record.GoogleEventID = &googleEventID
+	}
+	if opt.Start != nil {
+		record.StartTime = *opt.Start
+	}
+	if opt.End != nil {
+		record.EndTime = *opt.End
+	}
+	if opt.Priority != nil {
+		record.Priority = *opt.Priority
+	}
+	if opt.Status != nil {
+		record.Status = *opt.Status
+	}
+	if opt.SyncStatus != nil {
+		record.SyncStatus = *opt.SyncStatus
+	}
+	if opt.LastSyncedAt != nil {
+		record.LastSyncedAt = opt.LastSyncedAt
+	}
+	if opt.ClearLastSyncedAt {
+		record.LastSyncedAt = nil
+	}
+	if opt.LastSyncError != nil {
+		lastSyncError := *opt.LastSyncError
+		record.LastSyncError = &lastSyncError
+	}
+	if opt.ClearLastSyncError {
+		record.LastSyncError = nil
+	}
 }
 
 func TestFetchAllGoogleEventsReturnsPartialContent(t *testing.T) {
@@ -267,5 +344,355 @@ func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
 	}
 	if drafts[0].Status != domainvalue.StatusActive {
 		t.Fatalf("unexpected draft status: %s", drafts[0].Status)
+	}
+}
+
+func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	eventID := uuid.New()
+	dateID1 := uuid.New()
+	dateID2 := uuid.New()
+	start1 := time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC)
+	end1 := start1.Add(time.Hour)
+	start2 := start1.Add(24 * time.Hour)
+	end2 := start2.Add(time.Hour)
+	existingGoogleEventID := "google-existing-2"
+	upsertedEventIDs := []string{"google-created-1", "google-updated-2"}
+	upsertCallCount := 0
+
+	storedEvent := &EventRecord{
+		ID:          eventID,
+		Title:       "Draft",
+		Location:    "Tokyo",
+		Description: "Discuss roadmap",
+		Status:      domainvalue.StatusActive,
+		SyncStatus:  domainvalue.SyncStatusPending,
+		Slug:        "draft-event",
+		ProposedDates: []*ProposedDateRecord{
+			{
+				ID:         dateID1,
+				StartTime:  start1,
+				EndTime:    end1,
+				Priority:   20,
+				Status:     domainvalue.ProposedDateStatusActive,
+				SyncStatus: domainvalue.SyncStatusPending,
+			},
+			{
+				ID:            dateID2,
+				GoogleEventID: &existingGoogleEventID,
+				StartTime:     start2,
+				EndTime:       end2,
+				Priority:      10,
+				Status:        domainvalue.ProposedDateStatusActive,
+				SyncStatus:    domainvalue.SyncStatusPending,
+			},
+		},
+	}
+
+	uc := NewUsecase(
+		nil,
+		&fakeEventTransaction{
+			store: &fakeEventTxStore{
+				t: t,
+				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					if slug != "draft-event" {
+						t.Fatalf("unexpected slug: %s", slug)
+					}
+					if !withProposedDates {
+						t.Fatal("expected proposed dates to be loaded")
+					}
+					return storedEvent, nil
+				},
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					return &CalendarRecord{
+						ID:                uuid.New(),
+						GoogleCalendarID:  "adjusta-candidate",
+						SyncProposedDates: true,
+					}, nil
+				},
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+					for _, proposedDate := range storedEvent.ProposedDates {
+						if proposedDate.ID != id {
+							continue
+						}
+						applyProposedDateMutation(proposedDate, opt)
+						return proposedDate, nil
+					}
+					t.Fatalf("unexpected proposed date id: %s", id)
+					return nil, nil
+				},
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+					if id != eventID {
+						t.Fatalf("unexpected event id: %s", id)
+					}
+					applyEventMutation(storedEvent, opt)
+					return storedEvent, nil
+				},
+			},
+		},
+		&fakeGoogleCalendarGateway{
+			upsertEventFn: func(ctx context.Context, gotUserID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
+				if gotUserID != userID {
+					t.Fatalf("unexpected user id: %s", gotUserID)
+				}
+				if calendarID != "adjusta-candidate" {
+					t.Fatalf("unexpected calendar id: %s", calendarID)
+				}
+				if title != "Draft" || location != "Tokyo" || description != "Discuss roadmap" {
+					t.Fatalf("unexpected event payload: %s %s %s", title, location, description)
+				}
+				if upsertCallCount == 0 && existingGoogleEventID != nil {
+					t.Fatalf("expected first upsert to create new event, got %#v", existingGoogleEventID)
+				}
+				if upsertCallCount == 1 && (existingGoogleEventID == nil || *existingGoogleEventID != "google-existing-2") {
+					t.Fatalf("unexpected existing google event id: %#v", existingGoogleEventID)
+				}
+				id := upsertedEventIDs[upsertCallCount]
+				upsertCallCount++
+				return id, nil
+			},
+			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*CalendarRecord, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
+				t.Fatalf("fetch events should not be called")
+				return nil, nil
+			},
+		},
+	)
+
+	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", "draft-event")
+	if err != nil {
+		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
+	}
+	if upsertCallCount != 2 {
+		t.Fatalf("expected two upsert calls, got %d", upsertCallCount)
+	}
+	if detail.SyncStatus != domainvalue.SyncStatusSynced {
+		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
+	}
+	if detail.LastSyncedAt == nil {
+		t.Fatal("expected event last synced at to be set")
+	}
+	if detail.LastSyncError != nil {
+		t.Fatalf("expected event last sync error to be cleared, got %#v", detail.LastSyncError)
+	}
+
+	datesByID := make(map[uuid.UUID]appmodel.ProposedDate, len(detail.ProposedDates))
+	for _, proposedDate := range detail.ProposedDates {
+		if proposedDate.ID == nil {
+			t.Fatalf("expected proposed date id, got %#v", proposedDate)
+		}
+		datesByID[*proposedDate.ID] = proposedDate
+	}
+
+	for id, expectedGoogleEventID := range map[uuid.UUID]string{
+		dateID1: upsertedEventIDs[0],
+		dateID2: upsertedEventIDs[1],
+	} {
+		proposedDate, ok := datesByID[id]
+		if !ok {
+			t.Fatalf("missing proposed date: %s", id)
+		}
+		if proposedDate.GoogleEventID == nil || *proposedDate.GoogleEventID != expectedGoogleEventID {
+			t.Fatalf("unexpected google event id for %s: %#v", id, proposedDate.GoogleEventID)
+		}
+		if proposedDate.SyncStatus != domainvalue.SyncStatusSynced {
+			t.Fatalf("unexpected sync status for %s: %s", id, proposedDate.SyncStatus)
+		}
+		if proposedDate.LastSyncedAt == nil {
+			t.Fatalf("expected last synced at for %s", id)
+		}
+		if proposedDate.LastSyncError != nil {
+			t.Fatalf("expected last sync error to be cleared for %s, got %#v", id, proposedDate.LastSyncError)
+		}
+	}
+}
+
+func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	eventID := uuid.New()
+	dateID := uuid.New()
+	start := time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	upsertCallCount := 0
+
+	storedEvent := &EventRecord{
+		ID:          eventID,
+		Title:       "Draft",
+		Location:    "Tokyo",
+		Description: "Discuss roadmap",
+		Status:      domainvalue.StatusActive,
+		SyncStatus:  domainvalue.SyncStatusPending,
+		Slug:        "draft-event",
+		ProposedDates: []*ProposedDateRecord{
+			{
+				ID:         dateID,
+				StartTime:  start,
+				EndTime:    end,
+				Priority:   10,
+				Status:     domainvalue.ProposedDateStatusActive,
+				SyncStatus: domainvalue.SyncStatusPending,
+			},
+		},
+	}
+
+	uc := NewUsecase(
+		nil,
+		&fakeEventTransaction{
+			store: &fakeEventTxStore{
+				t: t,
+				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+					if gotUserID != userID {
+						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					return storedEvent, nil
+				},
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					return &CalendarRecord{
+						ID:                uuid.New(),
+						GoogleCalendarID:  "adjusta-candidate",
+						SyncProposedDates: true,
+					}, nil
+				},
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+					if id != dateID {
+						t.Fatalf("unexpected proposed date id: %s", id)
+					}
+					applyProposedDateMutation(storedEvent.ProposedDates[0], opt)
+					return storedEvent.ProposedDates[0], nil
+				},
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+					if id != eventID {
+						t.Fatalf("unexpected event id: %s", id)
+					}
+					applyEventMutation(storedEvent, opt)
+					return storedEvent, nil
+				},
+			},
+		},
+		&fakeGoogleCalendarGateway{
+			upsertEventFn: func(ctx context.Context, gotUserID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
+				upsertCallCount++
+				return "", errors.New("google unavailable")
+			},
+			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*CalendarRecord, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
+				t.Fatalf("fetch events should not be called")
+				return nil, nil
+			},
+		},
+	)
+
+	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", "draft-event")
+	if err != nil {
+		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
+	}
+	if upsertCallCount != 1 {
+		t.Fatalf("expected one upsert call, got %d", upsertCallCount)
+	}
+	if detail.SyncStatus != domainvalue.SyncStatusFailed {
+		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
+	}
+	if detail.LastSyncError == nil || *detail.LastSyncError != "google unavailable" {
+		t.Fatalf("unexpected event last sync error: %#v", detail.LastSyncError)
+	}
+	if len(detail.ProposedDates) != 1 {
+		t.Fatalf("unexpected proposed dates: %#v", detail.ProposedDates)
+	}
+	if detail.ProposedDates[0].SyncStatus != domainvalue.SyncStatusFailed {
+		t.Fatalf("unexpected proposed date sync status: %s", detail.ProposedDates[0].SyncStatus)
+	}
+	if detail.ProposedDates[0].LastSyncError == nil || *detail.ProposedDates[0].LastSyncError != "google unavailable" {
+		t.Fatalf("unexpected proposed date last sync error: %#v", detail.ProposedDates[0].LastSyncError)
+	}
+}
+
+func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	eventID := uuid.New()
+	dateID := uuid.New()
+	start := time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	googleEventID := "google-event-id"
+
+	storedEvent := &EventRecord{
+		ID:          eventID,
+		Title:       "Draft",
+		Location:    "Tokyo",
+		Description: "Discuss roadmap",
+		Status:      domainvalue.StatusActive,
+		SyncStatus:  domainvalue.SyncStatusNotSynced,
+		Slug:        "draft-event",
+		ProposedDates: []*ProposedDateRecord{
+			{
+				ID:            dateID,
+				GoogleEventID: &googleEventID,
+				StartTime:     start,
+				EndTime:       end,
+				Priority:      10,
+				Status:        domainvalue.ProposedDateStatusActive,
+				SyncStatus:    domainvalue.SyncStatusNotSynced,
+			},
+		},
+	}
+
+	uc := NewUsecase(
+		nil,
+		&fakeEventTransaction{
+			store: &fakeEventTxStore{
+				t: t,
+				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+					return storedEvent, nil
+				},
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+					return &CalendarRecord{
+						ID:                uuid.New(),
+						GoogleCalendarID:  "adjusta-candidate",
+						SyncProposedDates: false,
+					}, nil
+				},
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+					t.Fatal("UpdateProposedDate should not be called when candidate sync is disabled")
+					return nil, nil
+				},
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+					t.Fatal("UpdateEvent should not be called when candidate sync is disabled")
+					return nil, nil
+				},
+			},
+		},
+		&fakeGoogleCalendarGateway{
+			upsertEventFn: func(ctx context.Context, gotUserID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
+				t.Fatal("UpsertEvent should not be called when candidate sync is disabled")
+				return "", nil
+			},
+			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*CalendarRecord, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
+				t.Fatalf("fetch events should not be called")
+				return nil, nil
+			},
+		},
+	)
+
+	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", "draft-event")
+	if err != nil {
+		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
+	}
+	if detail.SyncStatus != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
+	}
+	if len(detail.ProposedDates) != 1 || detail.ProposedDates[0].SyncStatus != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected proposed dates: %#v", detail.ProposedDates)
 	}
 }

@@ -78,6 +78,25 @@ func TestNewFailedEventChange(t *testing.T) {
 	}
 }
 
+func TestNewSyncedEventSyncChange(t *testing.T) {
+	syncedAt := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
+
+	change := NewSyncedEventSyncChange(syncedAt)
+
+	if change.Status != nil {
+		t.Fatalf("expected status to remain unchanged, got %#v", change.Status)
+	}
+	if change.Sync.Status != domainvalue.SyncStatusSynced {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+	if change.Sync.LastSyncedAt == nil || !change.Sync.LastSyncedAt.Equal(syncedAt) {
+		t.Fatalf("unexpected synced at: %#v", change.Sync.LastSyncedAt)
+	}
+	if !change.Sync.ClearLastSyncError {
+		t.Fatal("expected clear last sync error flag")
+	}
+}
+
 func TestNewPendingProposedDateChange(t *testing.T) {
 	start := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
 	end := start.Add(time.Hour)
@@ -128,6 +147,36 @@ func TestNewNotSyncedProposedDateChange(t *testing.T) {
 	}
 	if !change.Sync.ClearLastSyncError {
 		t.Fatal("expected clear last sync error flag")
+	}
+}
+
+func TestNewSyncedProposedDateChange(t *testing.T) {
+	syncedAt := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
+
+	change := NewSyncedProposedDateChange("google-event-id", syncedAt)
+
+	if change.GoogleEventID == nil || *change.GoogleEventID != "google-event-id" {
+		t.Fatalf("unexpected google event id: %#v", change.GoogleEventID)
+	}
+	if change.Sync.Status != domainvalue.SyncStatusSynced {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+	if change.Sync.LastSyncedAt == nil || !change.Sync.LastSyncedAt.Equal(syncedAt) {
+		t.Fatalf("unexpected synced at: %#v", change.Sync.LastSyncedAt)
+	}
+	if !change.Sync.ClearLastSyncError {
+		t.Fatal("expected clear last sync error flag")
+	}
+}
+
+func TestNewFailedProposedDateChange(t *testing.T) {
+	change := NewFailedProposedDateChange(errors.New("calendar unavailable"))
+
+	if change.Sync.Status != domainvalue.SyncStatusFailed {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+	if change.Sync.LastSyncError == nil || *change.Sync.LastSyncError != "calendar unavailable" {
+		t.Fatalf("unexpected last sync error: %#v", change.Sync.LastSyncError)
 	}
 }
 

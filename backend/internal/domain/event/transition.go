@@ -24,11 +24,12 @@ type EventChange struct {
 }
 
 type ProposedDateChange struct {
-	Start    *time.Time
-	End      *time.Time
-	Priority *int
-	Status   *domainvalue.ProposedDateStatus
-	Sync     SyncChange
+	GoogleEventID *string
+	Start         *time.Time
+	End           *time.Time
+	Priority      *int
+	Status        *domainvalue.ProposedDateStatus
+	Sync          SyncChange
 }
 
 func NewPendingEventChange(status *domainvalue.EventStatus) EventChange {
@@ -95,6 +96,38 @@ func NewNotSyncedProposedDateChange(start, end *time.Time, priority *int, status
 		Status:   status,
 		Sync: SyncChange{
 			Status:             domainvalue.SyncStatusNotSynced,
+			ClearLastSyncError: true,
+		},
+	}
+}
+
+func NewSyncedProposedDateChange(googleEventID string, syncedAt time.Time) ProposedDateChange {
+	return ProposedDateChange{
+		GoogleEventID: &googleEventID,
+		Sync: SyncChange{
+			Status:             domainvalue.SyncStatusSynced,
+			LastSyncedAt:       &syncedAt,
+			ClearLastSyncError: true,
+		},
+	}
+}
+
+func NewFailedProposedDateChange(syncErr error) ProposedDateChange {
+	lastSyncError := syncErr.Error()
+
+	return ProposedDateChange{
+		Sync: SyncChange{
+			Status:        domainvalue.SyncStatusFailed,
+			LastSyncError: &lastSyncError,
+		},
+	}
+}
+
+func NewSyncedEventSyncChange(syncedAt time.Time) EventChange {
+	return EventChange{
+		Sync: SyncChange{
+			Status:             domainvalue.SyncStatusSynced,
+			LastSyncedAt:       &syncedAt,
 			ClearLastSyncError: true,
 		},
 	}

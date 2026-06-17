@@ -120,16 +120,31 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 }
 
 func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, slug string) (*appmodel.EventDraftDetail, error) {
-	storedEvent, err := uc.reader.FindEventBySlug(ctx, userID, slug, true)
-	if err != nil {
-		log.Printf("failed to get event detail for account: %s, error: %v", email, err)
-		if repoerr.IsNotFound(err) {
-			return nil, internalErrors.NewNotFoundError("イベントが見つかりませんでした")
+	if uc.tx == nil {
+		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.reader, userID, email, slug)
+		if err != nil {
+			return nil, err
 		}
-		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+		return buildAppEventDraftDetail(storedEvent)
 	}
 
-	return buildAppEventDraftDetail(storedEvent)
+	var response *appmodel.EventDraftDetail
+
+	err := uc.tx.Do(ctx, func(store EventTxStore) error {
+		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, store, userID, email, slug)
+		if err != nil {
+			return err
+		}
+
+		response, err = buildAppEventDraftDetail(storedEvent)
+		return err
+	})
+	if err != nil {
+		log.Printf("failed running fetch drafted event detail transaction: %v", err)
+		return nil, mapUsecaseError(err, internalErrors.InternalErrorMessage)
+	}
+
+	return response, nil
 }
 
 func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error) {
