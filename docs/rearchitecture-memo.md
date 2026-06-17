@@ -32,13 +32,13 @@
 | OAuth トークン管理 | Google Calendar API 用トークンを安全に保存する | `OAuthToken` テーブルと `users.refresh_token` が併存している | `accounts` に集約する前提でトークン保存先の正規化が必要 |
 | カレンダーの関係 | `users` と `calendars` は `user_calendars` を介した多対多 | `user_calendars` を導入し、`users` と `calendars` の関係は docs に沿った多対多へ移行済み | この差分は概ね解消済み。今後は `user_calendars.role` を前提に用途別ロジックを整理する |
 | カレンダー属性の置き場所 | `calendars` が `google_calendar_id`、`summary`、`description`、`timezone` を持つ | `calendars` に Google Calendar 情報を集約し、`google_calendar_infos` は廃止済み | この差分は解消済み。以後 `googlecalendarinfo` を正本として扱わない |
-| Event 所有者と登録先 | `events` は `user_id`、`primary_calendar_id`、`confirmed_date_id` を持つ | 現行は `calendar` エッジ中心で、`user_id` と `primary_calendar_id` を直接持たない | イベントの所有権、登録先カレンダー、認可判定が曖昧 |
-| 確定予定の Google Event ID | 要件書では `Event.confirmed_google_event_id` の保持を想定している | 現行 `events.google_event_id` の意味が候補予定か確定予定か曖昧 | Google Calendar との同期対象が曖昧になりやすい |
-| ProposedDate の状態 | `proposed_dates` は `google_event_id`、`status`、`priority` を持ち、`status` は `active` / `confirmed` / `not_selected` / `cancelled` を取る | 現行は `start_time`、`end_time`、`priority` のみで、`status` と `google_event_id` がない | 候補、確定、非選択、取り下げなどの状態管理ができない |
-| 日程確定ロジック | 確定日程を明示的に状態遷移させ、非選択候補も識別する | 現行実装は主に `priority` の振り直しで確定を表現している | 状態遷移が DB で表現されず、UI や同期で不整合が起こりやすい |
-| 同期状態管理 | Event / ProposedDate に `sync_status`、`last_synced_at`、`last_sync_error` を持たせる | 現行スキーマに同期状態系のカラムがない | Google Calendar 連携失敗時の再試行や表示が難しい |
-| バックエンドの層構成 | DDD を意識し、domain は ent に依存しない。repository interface は domain 側に置く | repository interface や usecase 相当が `ent` 型や `*ent.Client` に直接依存している | 再設計時に handler/usecase/repository/infrastructure の分離が必要 |
-| フロントエンド連携前提 | API 型の重複を避け、server data と draft state を分離する | 現状は API 契約が現行 backend モデルに強く引っ張られている | backend 再設計後に API 契約と状態責務の整理が必要 |
+| Event 所有者と登録先 | `events` は `user_id`、`primary_calendar_id`、`confirmed_date_id` を持つ | `events` は docs に沿って `user_id` / `primary_calendar_id` / `confirmed_date_id` を直接保持する形へ移行済み | この差分は概ね解消済み。認可、登録先、同期時の前提が明確になった |
+| 確定予定の Google Event ID | 要件書では `Event.confirmed_google_event_id` の保持を想定している | `events.confirmed_google_event_id` を正本に統一し、backend 内部と ent schema から legacy `events.google_event_id` は除去済み。API の `google_event_id` は互換用の派生値として一時的に残る | DB 正本の曖昧さは解消済み。レスポンス契約の簡素化は後続で進める |
+| ProposedDate の状態 | `proposed_dates` は `google_event_id`、`status`、`priority` を持ち、`status` は `active` / `confirmed` / `not_selected` / `cancelled` を取る | `proposed_dates` は docs に沿った状態語彙、`google_event_id`、priority を持つ形へ移行済み | この差分は概ね解消済み。状態遷移のさらなる domain 集約は継続課題 |
+| 日程確定ロジック | 確定日程を明示的に状態遷移させ、非選択候補も識別する | 確定候補を `confirmed`、非選択候補を `not_selected` として扱う流れへ寄ってきている | docs にかなり近づいたが、状態遷移ルールの domain 集約は継続課題 |
+| 同期状態管理 | Event / ProposedDate に `sync_status`、`last_synced_at`、`last_sync_error` を持たせる | `events` / `proposed_dates` の両方に同期状態系カラムを導入済みで、create / update / finalize / detail access sync で更新している | 同期失敗の保持と再同期前提は整ってきた。再試行ポリシーや運用ルールは継続課題 |
+| バックエンドの層構成 | DDD を意識し、domain は ent に依存しない。repository interface は domain 側に置く | repository interface の domain 側移設、repository 実装の infrastructure 側集約、usecase ごとの port 分離は進んでいる | `WithTx(transaction.Tx)` や shared model の残りなど、domain の純化は継続課題 |
+| フロントエンド連携前提 | API 型の重複を避け、server data と draft state を分離する | event API 型は `status` / `sync_status` / `confirmed_google_event_id` 前提へ追従済み | server data と draft state の責務分離、互換項目の整理は継続課題 |
 
 ---
 
@@ -209,6 +209,56 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - `operation_logs`
 - `sync_jobs` または同等の補助テーブル
 
+### 5.4 現在の到達度（2026-06-17 時点）
+
+現時点では、バックエンドの層構成は docs の目標形に概ね近づいており、`events` / `proposed_dates` の schema と同期語彙もかなり docs に寄ってきている。一方で、auth の session 主体化、domain の純化、shared model の整理は継続課題である。
+
+#### 5.4.1 バックエンド層ごとの到達度
+
+| 層 | 現在の主な配置 | 到達度の目安 | できていること | 主な残課題 |
+|---|---|---:|---|---|
+| interface | `backend/api/handlers` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 85% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている | `api/server.go` は interface と composition root の境界にある。所有者チェックの責務位置は docs の記述と実装でまだ解釈余地がある |
+| application | `backend/internal/usecase` `backend/internal/appmodel` `backend/internal/errors` | 80% 前後 | usecase ごとの port 分離、transaction orchestration、Google Calendar 連携の orchestration、イベント詳細アクセス時の候補予定再同期が進んでいる | usecase が shared model にまだ依存しており、usecase 専用 DTO / domain model への分離は未完 |
+| domain | `backend/internal/domain` `backend/internal/domainvalue` | 70% 前後 | repository interface の移動、priority / confirm ルール抽出、`events.confirmed_google_event_id` 正本化が進んでいる | `WithTx(transaction.Tx)` のような技術寄り要素が残る。状態遷移や同期方針の一部はまだ usecase 側にある |
+| infrastructure | `backend/internal/infrastructure` `backend/ent` | 85% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる | ローカル DB で旧列・旧 index をどう落とすか、migration / drop 方針の整理が残る |
+
+#### 5.4.2 現在の補助的な位置づけ
+
+- `backend/main.go` は 4 層のいずれかというより composition root として扱う
+- `backend/api/server.go` は interface 層が usecase 群へ依存するための依存束ねとして扱う
+- `backend/internal/repositorymodel` は application / infrastructure 間の暫定 shared model として機能している
+- `backend/internal/google/*` は実質 infrastructure であり、将来的には `internal/infrastructure` 配下へ寄せる余地がある
+- `backend/cookie` `backend/cache` `backend/configs` `backend/internal/transaction` は技術依存の補助モジュールとして infrastructure 寄りに扱う
+
+#### 5.4.3 この時点で解消できた差分
+
+- repository interface を `internal/domain/*` 側へ移し、repository 実装を `internal/infrastructure/repository/*` へ集約した
+- `ent` 依存は repository 実装と composition root へかなり閉じ込められた
+- usecase ごとの port 分離を進め、events / auth / calendar の orchestration は usecase に寄せた
+- `respond.Error` と application error の境界を整理し、validation error も `APIError` に統一した
+- `events` schema は `user_id` / `primary_calendar_id` / `confirmed_google_event_id` / sync 系カラムを持つ docs 寄りの形へ移行した
+- backend 内部と ent schema から legacy `events.google_event_id` を除去し、確定予定の Google Event ID は `confirmed_google_event_id` を正本にした
+- イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
+- frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
+- frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた
+
+#### 5.4.4 主な残課題
+
+- ローカル DB / migration で、削除済み schema 要素に対応する旧列・旧 index をどう落とすか整理する
+- auth の Phase 2 として、session 主体の認証基盤へ寄せる
+- frontend middleware と protected data fetch は session 主体に寄ってきたが、backend の auth usecase / callback / logout 全体の整理は継続課題
+- `backend/internal/repositorymodel` への依存を薄くし、usecase ごとの入出力定義へ寄せる
+- proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる
+- `internal/google` `cookie` `cache` `configs` `internal/transaction` の物理配置を、最終的な infrastructure 方針に合わせて整理する
+- frontend では API server data と draft state の責務分離をさらに進める
+
+#### 5.4.5 次の作業候補
+
+1. ローカル DB で旧列・旧 index の drop 方針を確認する
+2. auth の Phase 2 を進め、session 主体の認証基盤へ寄せる
+3. `repositorymodel` 依存を usecase 単位で薄くする
+4. domain rule と usecase orchestration の境界を再確認する
+
 ---
 
 ## 6. 推奨する実装着手順
@@ -248,6 +298,11 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - 更新済み ent schema
 - migration 方針メモ
 
+補足:
+
+- `events` / `proposed_dates` を中心に ent schema の docs 寄せはかなり進んでいる
+- 残りは、削除した schema 要素を既存 DB からどう落とすかという migration / drop 方針の整理である
+
 ### Phase 2: 認証基盤の是正
 
 目的:
@@ -286,6 +341,11 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - 再編成された backend ディレクトリ構成
 - usecase 単位の API 入出力定義
 
+補足:
+
+- repository 実装の infrastructure 側集約、port 分離、adapter 整理はかなり進んでいる
+- 今後は shared model 依存の削減と domain 純化が中心課題になる
+
 ### Phase 4: イベント・候補日程ユースケースの再構築
 
 目的:
@@ -304,6 +364,11 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - イベント系 API の再実装
 - usecase / repository テスト
 
+補足:
+
+- create / update / finalize / detail access sync はかなり docs に寄ってきている
+- 候補予定削除時の Google 側方針や、残る edge case の整理は継続課題である
+
 ### Phase 5: frontend の追従
 
 目的:
@@ -321,6 +386,11 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 - 更新済み frontend 画面
 - 主要導線の動作確認
+
+補足:
+
+- event API 型の追従と、`confirmed_google_event_id` 前提の調整は進んでいる
+- server data と draft state の責務分離はまだ途中である
 
 ### Phase 6: 同期失敗と移行対応
 
@@ -354,11 +424,14 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 ### backend
 
 - `backend/ent/schema/*`
-- `backend/internal/repo/*`
-- `backend/internal/apps/*` または後継 usecase 層
+- `backend/ent/*`
+- `backend/internal/domain/*`
+- `backend/internal/usecase/*`
+- `backend/internal/infrastructure/*`
 - `backend/api/handlers/*`
 - `backend/api/middlewares/*`
-- `backend/internal/auth/*`
+- `backend/api/respond/*`
+- `backend/main.go`
 
 ### frontend
 
@@ -384,9 +457,9 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 次に着手する候補は以下の順とする。
 
-1. `JWTManager` / `KeyManager` / `JWTKey` / `OAuthToken` / `users.refresh_token*` の依存箇所を洗い出す
-2. session 作成 / 検証 / logout を担う auth usecase と repository interface を決める
+1. ローカル DB で旧 `events.google_event_id` や旧 edge 由来の要素をどう drop するか確認する
+2. auth の Phase 2 として、session 作成 / 検証 / logout を担う auth usecase と repository interface をさらに整理する
 3. OAuth callback / auth middleware / logout を session 主体へ差し替える
-4. その前提で backend の usecase 分離と frontend の認証判定更新に入る
+4. その前提で shared model 依存の削減と frontend の server data / draft state 整理へ進む
 
-以上を起点に、認証は Phase 2 を優先して実装へ着手する。
+以上を起点に、Phase 1 の後始末を軽く済ませつつ、次の主戦場は auth の Phase 2 とする。
