@@ -1,28 +1,20 @@
 'use client'
 import useSWR from 'swr';
 import axios from '@/lib/axios/public';
-import { authAtom } from '@/atoms/auth';
-import { useAtom } from 'jotai';
-
-interface Account {
-    sub: string;
-    name: string;
-    email: string;
-    picture: string;
-}
+import { AuthUser, useAuth } from './useAuth';
 
 const fetcher = async (url: string) => await axios.get(url).then(res => res.data);
 
 export const useAccounts = () => {
-    const [isAuthenticated] = useAtom(authAtom);
-    const { data, isLoading, error } = useSWR<Account>(
+    const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
+    const { data, isLoading, error } = useSWR<AuthUser>(
         isAuthenticated ? '/api/account/list' : null,
         fetcher
     );
 
     return {
         account: data,
-        isLoading,
-        error
+        isLoading: isAuthLoading || isLoading,
+        error: authError ?? error
     }
 }

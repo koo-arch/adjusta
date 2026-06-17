@@ -3,7 +3,6 @@ import { atomFamily } from 'jotai/utils';
 import { atomWithQuery } from 'jotai-tanstack-query';
 import axios from '@/lib/axios/public';
 import { EventDraftDetail } from '@/hooks/event/type';
-import { authAtom } from '../auth';
 
 export const eventDetailIdAtom = atom<string | null>(null);
 
@@ -14,6 +13,6 @@ export const fetchEventDetailAtomFamily = atomFamily((eventID?: string) =>
             const { data } = await axios.get<EventDraftDetail>(`/api/calendar/event/draft/${eventID}`);
             return data;
         },
-        enabled: !!eventID && get(authAtom),
+        enabled: !!eventID,
     }))
 );

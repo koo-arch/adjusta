@@ -1,14 +1,13 @@
 'use client'
 import useSWR from 'swr';
 import axios from '@/lib/axios/public';
-import { authAtom } from '@/atoms/auth';
-import { useAtomValue } from 'jotai';
 import { NeedsActionDraft } from './type';
+import { useAuth } from '../auth/useAuth';
 
 const fetcher = (url: string) => axios.get(url).then((res) => res.data);
 
 export const useFetchNeedsActionDrafts = () => {
-    const isAuthenticated = useAtomValue(authAtom);
+    const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
     const { data, isLoading, error } = useSWR<NeedsActionDraft[]>(
         isAuthenticated ? '/api/event/draft/needs-action' : null,
         fetcher
@@ -16,7 +15,7 @@ export const useFetchNeedsActionDrafts = () => {
 
     return {
         needsActionDrafts: data,
-        isLoading,
-        error
+        isLoading: isAuthLoading || isLoading,
+        error: authError ?? error
     };
 }

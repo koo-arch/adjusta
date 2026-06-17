@@ -1,9 +1,8 @@
 'use client'
 import useSWR from 'swr';
 import axios from '@/lib/axios/public';
-import { authAtom } from '@/atoms/auth';
-import { useAtomValue } from 'jotai';
 import type { EventDraftDetail, SearchParams } from './type';
+import { useAuth } from '../auth/useAuth';
 
 const fetcher = async<T, U = undefined>(
     url: string,
@@ -14,7 +13,7 @@ const fetcher = async<T, U = undefined>(
 }
 
 export const useSearchEvents = (params: SearchParams) => {
-    const isAuthenticated = useAtomValue(authAtom);
+    const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
 
     const { data, isLoading, error } = useSWR<EventDraftDetail[]>(
         isAuthenticated? ['/api/event/draft/search',  params]: null,
@@ -23,7 +22,7 @@ export const useSearchEvents = (params: SearchParams) => {
 
     return {
         searchEvents: data,
-        isLoading,
-        error
+        isLoading: isAuthLoading || isLoading,
+        error: authError ?? error
     };
 };

@@ -1,14 +1,13 @@
 'use client'
 import useSWR from 'swr';
 import axios from '@/lib/axios/public';
-import { authAtom } from '@/atoms/auth';
-import { useAtomValue } from 'jotai';
 import { UpcomingEvent } from './type';
+import { useAuth } from '../auth/useAuth';
 
 const fetcher = (url: string) => axios.get(url).then((res) => res.data);
 
 export const useFetchUpcomingEvents = () => {
-    const isAuthenticated = useAtomValue(authAtom);
+    const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
     const { data, isLoading, error } = useSWR<UpcomingEvent[]>(
         isAuthenticated ? '/api/event/confirmed/upcoming' : null,
         fetcher
@@ -16,7 +15,7 @@ export const useFetchUpcomingEvents = () => {
    
     return {
         upcomingEvents: data,
-        isLoading,
-        error
+        isLoading: isAuthLoading || isLoading,
+        error: authError ?? error
     };
 }

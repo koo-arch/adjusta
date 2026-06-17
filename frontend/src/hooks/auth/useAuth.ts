@@ -1,33 +1,37 @@
 'use client'
-import { useEffect } from "react";
 import axios from "@/lib/axios/public";
 import useSWR from "swr";
-import { useAtom } from "jotai";
-import { authAtom } from "@/atoms/auth";
-import { useExistToken } from "./useExistToken";
 
-const fetcher = async (url: string) => await axios.get(url).then(res => res.data);
+export interface AuthUser {
+    sub: string;
+    name: string;
+    email: string;
+    picture: string;
+}
+
+export const currentUserKey = '/api/users/me';
+
+const fetcher = async (url: string): Promise<AuthUser | null> => {
+    const response = await axios.get<AuthUser>(url, {
+        validateStatus: (status) => status === 200 || status === 401,
+    });
+
+    if (response.status === 401) {
+        return null;
+    }
+
+    return response.data;
+};
 
 export const useAuth = () => {
-    const { isExistToken } = useExistToken();
-    const [isAuthenticated, setIsAuthenticated] = useAtom(authAtom);
-
-    const { data, isLoading, error } = useSWR(
-        isExistToken ? '/api/users/me' : null,
+    const { data, isLoading, error } = useSWR<AuthUser | null>(
+        currentUserKey,
         fetcher
     );
 
-    useEffect(() => {
-        if (data) {
-            setIsAuthenticated(true);
-        } else if (error) {
-            setIsAuthenticated(false);
-        }
-    }, [data, error, setIsAuthenticated]);
-
     return {
-        isAuthenticated,
-        user: data,
+        isAuthenticated: !!data,
+        user: data ?? null,
         isLoading,
         error
     }

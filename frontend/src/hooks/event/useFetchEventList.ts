@@ -1,14 +1,13 @@
 'use client'
 import useSWR from 'swr';
 import axios from '@/lib/axios/public';
-import { useAtomValue } from 'jotai';
-import { authAtom } from '@/atoms/auth';
 import { EventDraftDetail } from './type'
+import { useAuth } from '../auth/useAuth';
 
 const fetcher = async (url: string) => axios.get<EventDraftDetail[]>(url).then((res) => res.data);
 
 export const useFetchEventList = () => {
-    const isAuthenticated = useAtomValue(authAtom);
+    const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
     const { data, isLoading, error } = useSWR<EventDraftDetail[]>(
         isAuthenticated ? '/api/calendar/event/draft/list' : null,
         fetcher
@@ -16,7 +15,7 @@ export const useFetchEventList = () => {
 
     return {
         eventList: data,
-        isLoading,
-        error
+        isLoading: isAuthLoading || isLoading,
+        error: authError ?? error
     };
 };
