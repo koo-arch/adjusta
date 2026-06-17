@@ -21,6 +21,7 @@ const EventForm: React.FC<EventFormProps> = ({ eventDetail }) => {
                 <div className="md:col-span-4 space-y-6">
                     <section>
                         <EventBasicForm
+                            title={eventDetail?.title}
                             description={eventDetail?.description}
                             location={eventDetail?.location}
                         />

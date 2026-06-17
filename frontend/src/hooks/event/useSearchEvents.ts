@@ -1,24 +1,24 @@
 'use client'
-import useSWR from 'swr';
-import axios from '@/lib/axios/public';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import type { EventDraftDetail, SearchParams } from './type';
 import { useAuth } from '../auth/useAuth';
 
-const fetcher = async<T, U = undefined>(
-    url: string,
-    params: U,
-): Promise<T> => {
-    const { data } = await axios.get(url, { params });
-    return data;
-}
+const fetchSearchEvents = async (params: SearchParams): Promise<EventDraftDetail[]> => {
+    const response = await apiClient.get<EventDraftDetail[]>('/api/event/draft/search', {
+        query: params,
+    });
+    return response.data;
+};
 
 export const useSearchEvents = (params: SearchParams) => {
     const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
 
-    const { data, isLoading, error } = useSWR<EventDraftDetail[]>(
-        isAuthenticated? ['/api/event/draft/search',  params]: null,
-        async ([url, params]) => fetcher(url, params)
-    );
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['draftEventSearch', params],
+        queryFn: () => fetchSearchEvents(params),
+        enabled: isAuthenticated,
+    });
 
     return {
         searchEvents: data,

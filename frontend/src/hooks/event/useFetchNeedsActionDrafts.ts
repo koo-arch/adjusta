@@ -1,17 +1,21 @@
 'use client'
-import useSWR from 'swr';
-import axios from '@/lib/axios/public';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import { NeedsActionDraft } from './type';
 import { useAuth } from '../auth/useAuth';
 
-const fetcher = (url: string) => axios.get(url).then((res) => res.data);
+const fetchNeedsActionDrafts = async () => {
+    const response = await apiClient.get<NeedsActionDraft[]>('/api/event/draft/needs-action');
+    return response.data;
+};
 
 export const useFetchNeedsActionDrafts = () => {
     const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
-    const { data, isLoading, error } = useSWR<NeedsActionDraft[]>(
-        isAuthenticated ? '/api/event/draft/needs-action' : null,
-        fetcher
-    );
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['needsActionDrafts'],
+        queryFn: fetchNeedsActionDrafts,
+        enabled: isAuthenticated,
+    });
 
     return {
         needsActionDrafts: data,

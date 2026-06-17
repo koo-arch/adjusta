@@ -1,17 +1,21 @@
 'use client'
-import useSWR from 'swr';
-import axios from '@/lib/axios/public';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import { EventDraftDetail } from './type'
 import { useAuth } from '../auth/useAuth';
 
-const fetcher = async (url: string) => axios.get<EventDraftDetail[]>(url).then((res) => res.data);
+const fetchEventList = async () => {
+    const response = await apiClient.get<EventDraftDetail[]>('/api/calendar/event/draft/list');
+    return response.data;
+};
 
 export const useFetchEventList = () => {
     const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
-    const { data, isLoading, error } = useSWR<EventDraftDetail[]>(
-        isAuthenticated ? '/api/calendar/event/draft/list' : null,
-        fetcher
-    );
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['draftEventList'],
+        queryFn: fetchEventList,
+        enabled: isAuthenticated,
+    });
 
     return {
         eventList: data,

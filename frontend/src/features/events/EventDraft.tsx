@@ -1,11 +1,11 @@
 'use client'
 import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import axios from '@/lib/axios/public';
 import { toast } from 'react-toastify';
 import { selectedDatesAtom, sendSelectedDatesAtom, titleAtomFamily } from '@/atoms/calendar';
 import { useAtom } from 'jotai';
 import { useForm, type SubmitHandler, FormProvider } from 'react-hook-form';
+import { apiClient } from '@/lib/api/client';
 import { type DiscriminatedEventForm, DiscriminatedEventFormResolver } from './zod';
 import EventForm from './EventForm';
 
@@ -28,7 +28,7 @@ const EventDraft: React.FC = () => {
     }, [selectedDates, setValue, sendSelectedDate]);
 
     const postEventDraft = async (data: DiscriminatedEventForm) => {
-        return await axios.post('api/calendar/event/draft', data);
+        return apiClient.post<{ id: string }, DiscriminatedEventForm>('/api/calendar/event/draft', data);
     }
 
     const onSubmit: SubmitHandler<DiscriminatedEventForm> = (data) => {

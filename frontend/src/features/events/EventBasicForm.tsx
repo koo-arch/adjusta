@@ -1,5 +1,5 @@
 'use client'
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { titleAtomFamily } from '@/atoms/calendar';
@@ -10,14 +10,25 @@ import TextArea from '@/components/TextArea';
 import type { DiscriminatedEventForm } from './zod';
 
 interface EventBasicFormProps {
+    title?: string;
     description?: string;
     location?: string;
 }
 
-const EventBasicForm: React.FC<EventBasicFormProps> =({ description, location }) => {
+const EventBasicForm: React.FC<EventBasicFormProps> =({ title: initialTitle, description, location }) => {
     const { id } = useParams<{ id?: string }>();
     const { register, formState: { errors } } = useFormContext<DiscriminatedEventForm>();
     const [title, setUpdateTitle] = useAtom(titleAtomFamily(id));
+    const initializedTitleRef = useRef(false);
+
+    useEffect(() => {
+        if (initializedTitleRef.current || !initialTitle) {
+            return;
+        }
+
+        setUpdateTitle(initialTitle);
+        initializedTitleRef.current = true;
+    }, [initialTitle, setUpdateTitle]);
 
     return (
         <Card variant="outlined" background="inherit" className="w-full">

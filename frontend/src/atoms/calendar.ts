@@ -1,10 +1,8 @@
 import { atomFamily, atomWithStorage } from "jotai/utils";
 import { atom } from "jotai";
-import { atomWithDefault } from "jotai/utils";
 import { validateUUID } from "@/lib/validation/uuid";
 import { CalendarEvent } from "@/features/calendar/type";
 import { SendSelectedDate } from "@/features/events/zod";
-import { fetchEventDetailAtomFamily } from "./queries/event";
 import type { EventProposedDate } from "@/hooks/event/type";
 
 export interface SelectedDate {
@@ -21,12 +19,7 @@ export interface SelectedEvent extends SelectedDate {
 // 既存の日付データを保存するatom
 export const selectedDatesAtom = atomWithStorage<SelectedDate[]>("selectedDates", []);
 
-export const titleAtomFamily = atomFamily((eventID?: string) => {
-    return atomWithDefault((get) => {
-        const { data } = get(fetchEventDetailAtomFamily(eventID));
-        return data?.title || "";
-    })
-})
+export const titleAtomFamily = atomFamily((eventID?: string) => atom(""));
 
 // 日付に基づいてイベントを生成するatom
 export const selectedEventsAtomFamily = atomFamily((eventID?: string) => {

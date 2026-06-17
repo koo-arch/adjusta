@@ -1,6 +1,5 @@
 'use client'
 import React, { useState } from 'react';
-import axios from '@/lib/axios/public';
 import { toast } from 'react-toastify';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import Button from '@/components/Button';
@@ -13,6 +12,7 @@ import DateTimePicker from '@/components/DateTimePicker';
 import type { EventDraftDetail } from '@/hooks/event/type';
 import { MdEditCalendar } from 'react-icons/md';
 import { FaRegCalendarCheck } from 'react-icons/fa6';
+import { apiClient } from '@/lib/api/client';
 import { type ConfirmForm, ConfirmFormResolver } from './zod';
 
 interface ConfirmButtonProps {
@@ -45,7 +45,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
     }
 
     const patchConfirmDate = async (data: ConfirmForm) => {
-        return await axios.patch(`api/calendar/event/confirm/${eventID}`, data);
+        return apiClient.patch<void, ConfirmForm>(`/api/calendar/event/confirm/${eventID}`, data);
     }
 
 

@@ -1,17 +1,21 @@
 'use client'
-import useSWR from 'swr';
-import axios from '@/lib/axios/public';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import type {  GoogleCalendarResponse } from './type';
 import { useAuth } from '../auth/useAuth';
 
-const fetcher = async (url: string) => await axios.get(url).then(res => res.data);
+const fetchGoogleEvents = async () => {
+    const response = await apiClient.get<GoogleCalendarResponse>('/api/calendar/list');
+    return response.data;
+};
 
 export const useFetchGoogleEvent = () => {
     const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
-    const { data, isLoading, error } = useSWR<GoogleCalendarResponse>(
-        isAuthenticated ? '/api/calendar/list' : null,
-        fetcher
-    );
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['googleCalendarEvents'],
+        queryFn: fetchGoogleEvents,
+        enabled: isAuthenticated,
+    });
 
     return {
         events: data,

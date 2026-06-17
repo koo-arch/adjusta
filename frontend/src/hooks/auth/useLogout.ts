@@ -1,23 +1,18 @@
 'use client'
-import axios from '@/lib/axios/public';
-import { mutate } from 'swr';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api/client';
 import { currentUserKey } from './useAuth';
 
-const fetcher = async (url: string) => await axios.get(url);
-
 export const useLogout = () => {
+    const queryClient = useQueryClient();
     const router = useRouter();
 
     const logout = () => {
-        fetcher('api/auth/logout')
+        apiClient.get('/api/auth/logout')
             .then(() => {
-                mutate(currentUserKey, null, false);
-                mutate(
-                    (key) => typeof key === 'string' && key.startsWith('/api/'),
-                    undefined,
-                    { revalidate: false }
-                );
+                queryClient.clear();
+                queryClient.setQueryData(currentUserKey, null);
                 router.push('/login');
             })
             .catch(err => console.error(err));

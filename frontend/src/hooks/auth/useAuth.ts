@@ -1,6 +1,6 @@
 'use client'
-import axios from "@/lib/axios/public";
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/client";
 
 export interface AuthUser {
     sub: string;
@@ -9,25 +9,25 @@ export interface AuthUser {
     picture: string;
 }
 
-export const currentUserKey = '/api/users/me';
+export const currentUserKey = ['currentUser'] as const;
 
-const fetcher = async (url: string): Promise<AuthUser | null> => {
-    const response = await axios.get<AuthUser>(url, {
-        validateStatus: (status) => status === 200 || status === 401,
+const fetchCurrentUser = async (): Promise<AuthUser | null> => {
+    const response = await apiClient.get<AuthUser>('/api/users/me', {
+        allowStatuses: [401],
     });
 
     if (response.status === 401) {
         return null;
     }
 
-    return response.data;
+    return response.data ?? null;
 };
 
 export const useAuth = () => {
-    const { data, isLoading, error } = useSWR<AuthUser | null>(
-        currentUserKey,
-        fetcher
-    );
+    const { data, isLoading, error } = useQuery({
+        queryKey: currentUserKey,
+        queryFn: fetchCurrentUser,
+    });
 
     return {
         isAuthenticated: !!data,

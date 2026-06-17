@@ -1,17 +1,21 @@
 'use client'
-import useSWR from 'swr';
-import axios from '@/lib/axios/public';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 import { UpcomingEvent } from './type';
 import { useAuth } from '../auth/useAuth';
 
-const fetcher = (url: string) => axios.get(url).then((res) => res.data);
+const fetchUpcomingEvents = async () => {
+    const response = await apiClient.get<UpcomingEvent[]>('/api/event/confirmed/upcoming');
+    return response.data;
+};
 
 export const useFetchUpcomingEvents = () => {
     const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
-    const { data, isLoading, error } = useSWR<UpcomingEvent[]>(
-        isAuthenticated ? '/api/event/confirmed/upcoming' : null,
-        fetcher
-    );
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['upcomingEvents'],
+        queryFn: fetchUpcomingEvents,
+        enabled: isAuthenticated,
+    });
    
     return {
         upcomingEvents: data,

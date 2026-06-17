@@ -1,11 +1,11 @@
 'use client'
 import React, { useState } from 'react';
-import axios from '@/lib/axios/public';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import { TrashIcon } from '@heroicons/react/20/solid';
+import { apiClient } from '@/lib/api/client';
 
 interface EventDeleteProps {
     eventID: string;
@@ -16,7 +16,7 @@ const DeleteButton: React.FC<EventDeleteProps> = ({ eventID }) => {
     const router = useRouter();
 
     const deleteEvent = async () => {
-        return await axios.delete(`api/calendar/event/draft/${eventID}`);
+        return apiClient.delete<void>(`/api/calendar/event/draft/${eventID}`);
     }
 
     const onSubmit = () => {
