@@ -65,8 +65,6 @@ func init() {
 	// calendar.DefaultID holds the default value on creation for the id field.
 	calendar.DefaultID = calendarDescID.Default.(func() uuid.UUID)
 	eventMixin := schema.Event{}.Mixin()
-	eventHooks := schema.Event{}.Hooks()
-	event.Hooks[0] = eventHooks[0]
 	eventMixinInters1 := eventMixin[1].Interceptors()
 	event.Interceptors[0] = eventMixinInters1[0]
 	eventMixinFields0 := eventMixin[0].Fields()

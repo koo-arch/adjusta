@@ -28,7 +28,6 @@ export interface EventDraftDetail {
     google_event_id?: string;
     last_synced_at?: string;
     last_sync_error?: string;
-    slug: string;
     proposed_dates: EventProposedDate[];
 }
 
@@ -51,7 +50,6 @@ export interface NeedsActionDraft {
     location: string;
     description: string;
     status: EventStatus;
-    slug: string;
     start: Date;
     end: Date;
     needs_attention: boolean;

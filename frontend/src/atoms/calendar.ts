@@ -21,18 +21,18 @@ export interface SelectedEvent extends SelectedDate {
 // 既存の日付データを保存するatom
 export const selectedDatesAtom = atomWithStorage<SelectedDate[]>("selectedDates", []);
 
-export const titleAtomFamily = atomFamily((slug?: string) => {
+export const titleAtomFamily = atomFamily((eventID?: string) => {
     return atomWithDefault((get) => {
-        const { data } = get(fetchEventDetailAtomFamily(slug));
+        const { data } = get(fetchEventDetailAtomFamily(eventID));
         return data?.title || "";
     })
 })
 
 // 日付に基づいてイベントを生成するatom
-export const selectedEventsAtomFamily = atomFamily((slug?: string) => {
+export const selectedEventsAtomFamily = atomFamily((eventID?: string) => {
     return atom<SelectedEvent[]>((get) => {
         const selectedDates = get(selectedDatesAtom);
-        let title = get(titleAtomFamily(slug));
+        let title = get(titleAtomFamily(eventID));
 
         if (!title) {
             title = "新しいイベント";
@@ -81,10 +81,10 @@ export interface SendProposedDate {
 export const proposedDatesAtom = atom<ProposedDate[]>([]);
 
 // proposedDatesAtomに基づいてイベントを生成するatom
-export const proposedEventsAtomFamily = atomFamily((slug?: string) => {
+export const proposedEventsAtomFamily = atomFamily((eventID?: string) => {
     return atom<ProposedEvent[]>((get) => {
         const proposedDates = get(proposedDatesAtom);
-        let title = get(titleAtomFamily(slug));
+        let title = get(titleAtomFamily(eventID));
 
         if (!title) {
             title = "新しいイベント";

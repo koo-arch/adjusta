@@ -1830,7 +1830,6 @@ type EventMutation struct {
 	sync_status               *event.SyncStatus
 	last_synced_at            *time.Time
 	last_sync_error           *string
-	slug                      *string
 	clearedFields             map[string]struct{}
 	user                      *uuid.UUID
 	cleareduser               bool
@@ -2545,42 +2544,6 @@ func (m *EventMutation) ResetLastSyncError() {
 	delete(m.clearedFields, event.FieldLastSyncError)
 }
 
-// SetSlug sets the "slug" field.
-func (m *EventMutation) SetSlug(s string) {
-	m.slug = &s
-}
-
-// Slug returns the value of the "slug" field in the mutation.
-func (m *EventMutation) Slug() (r string, exists bool) {
-	v := m.slug
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSlug returns the old "slug" field's value of the Event entity.
-// If the Event object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventMutation) OldSlug(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSlug is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSlug requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
-	}
-	return oldValue.Slug, nil
-}
-
-// ResetSlug resets all changes to the "slug" field.
-func (m *EventMutation) ResetSlug() {
-	m.slug = nil
-}
-
 // ClearUser clears the "user" edge to the User entity.
 func (m *EventMutation) ClearUser() {
 	m.cleareduser = true
@@ -2750,7 +2713,7 @@ func (m *EventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EventMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, event.FieldCreatedAt)
 	}
@@ -2793,9 +2756,6 @@ func (m *EventMutation) Fields() []string {
 	if m.last_sync_error != nil {
 		fields = append(fields, event.FieldLastSyncError)
 	}
-	if m.slug != nil {
-		fields = append(fields, event.FieldSlug)
-	}
 	return fields
 }
 
@@ -2832,8 +2792,6 @@ func (m *EventMutation) Field(name string) (ent.Value, bool) {
 		return m.LastSyncedAt()
 	case event.FieldLastSyncError:
 		return m.LastSyncError()
-	case event.FieldSlug:
-		return m.Slug()
 	}
 	return nil, false
 }
@@ -2871,8 +2829,6 @@ func (m *EventMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldLastSyncedAt(ctx)
 	case event.FieldLastSyncError:
 		return m.OldLastSyncError(ctx)
-	case event.FieldSlug:
-		return m.OldSlug(ctx)
 	}
 	return nil, fmt.Errorf("unknown Event field %s", name)
 }
@@ -2979,13 +2935,6 @@ func (m *EventMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLastSyncError(v)
-		return nil
-	case event.FieldSlug:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSlug(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Event field %s", name)
@@ -3122,9 +3071,6 @@ func (m *EventMutation) ResetField(name string) error {
 		return nil
 	case event.FieldLastSyncError:
 		m.ResetLastSyncError()
-		return nil
-	case event.FieldSlug:
-		m.ResetSlug()
 		return nil
 	}
 	return fmt.Errorf("unknown Event field %s", name)

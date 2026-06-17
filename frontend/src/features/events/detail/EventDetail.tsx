@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import DetailCard from './DetailCard';
 
 const EventDetail = () => {
-    const params = useParams<{slug: string}>();
+    const params = useParams<{id: string}>();
     const router = useRouter();
 
-    const { eventDetail, isLoading, error } = useFetchEventDetail(params.slug);
+    const { eventDetail, isLoading, error } = useFetchEventDetail(params.id);
 
     useEffect(() => {
         if (!isLoading && (!eventDetail || error)) {
@@ -27,7 +27,7 @@ const EventDetail = () => {
     return (
         <div>
             {eventDetail &&
-                <DetailCard detail={eventDetail} slug={params.slug} />
+                <DetailCard detail={eventDetail} eventID={params.id} />
             }
         </div>
     );

@@ -23,7 +23,7 @@ const NeedsActionDrafts: React.FC = () => {
                     {needsActionDrafts.map((event) => (
                         <div key={event.id}>
                             <MiniEventCard
-                            onClick={() => router.push(`/schedule/draft/${event.slug}`)}
+                            onClick={() => router.push(`/schedule/draft/${event.id}`)}
                             {...event}
                             />
                         </div>

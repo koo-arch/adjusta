@@ -1,20 +1,14 @@
 package schema
 
 import (
-	"context"
-
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
-	gen "github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/hook"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
-	"github.com/koo-arch/adjusta-backend/utils"
 )
 
 const (
@@ -22,8 +16,6 @@ const (
 	StatusActive    = domainvalue.StatusActive
 	StatusConfirmed = domainvalue.StatusConfirmed
 	StatusCancelled = domainvalue.StatusCancelled
-
-	randomStringLen = 4
 )
 
 // Event holds the schema definition for the Event entity.
@@ -60,13 +52,6 @@ func (Event) Fields() []ent.Field {
 			Default(string(domainvalue.SyncStatusNotSynced)),
 		field.Time("last_synced_at").Optional().Nillable(),
 		field.Text("last_sync_error").Optional().Nillable(),
-		field.String("slug").Unique(),
-	}
-}
-
-func (Event) Hooks() []ent.Hook {
-	return []ent.Hook{
-		hook.On(generateSlug, ent.OpCreate|ent.OpUpdate),
 	}
 }
 
@@ -95,41 +80,4 @@ func (Event) Mixin() []ent.Mixin {
 		mixins.TimeMixin{},
 		mixins.SoftDeleteMixin{},
 	}
-}
-
-func generateSlug(next ent.Mutator) ent.Mutator {
-	return hook.EventFunc(func(ctx context.Context, m *gen.EventMutation) (ent.Value, error) {
-		title, ok := m.Title()
-		if !ok {
-			println("title is not set")
-			return next.Mutate(ctx, m)
-		}
-
-		baseSlug, err := utils.NormalizeToSlug(ctx, title)
-		if err != nil {
-			return nil, err
-		}
-
-		// 既存のスラッグを取得
-		existingSlugs, err := m.Client().Event.
-			Query().
-			Where(event.SlugContains(baseSlug)).
-			Select(event.FieldSlug).
-			All(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		uniqueSlug := baseSlug
-		existingSlugMap := make(map[string]struct{})
-		for _, e := range existingSlugs {
-			existingSlugMap[e.Slug] = struct{}{}
-		}
-
-		// 既存のスラッグと競合しないスラッグを生成
-		uniqueSlug = utils.EnsureUniqueSlug(ctx, existingSlugMap, baseSlug, randomStringLen)
-
-		m.SetSlug(uniqueSlug)
-		return next.Mutate(ctx, m)
-	})
 }

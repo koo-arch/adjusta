@@ -196,12 +196,6 @@ func (ec *EventCreate) SetNillableLastSyncError(s *string) *EventCreate {
 	return ec
 }
 
-// SetSlug sets the "slug" field.
-func (ec *EventCreate) SetSlug(s string) *EventCreate {
-	ec.mutation.SetSlug(s)
-	return ec
-}
-
 // SetID sets the "id" field.
 func (ec *EventCreate) SetID(u uuid.UUID) *EventCreate {
 	ec.mutation.SetID(u)
@@ -253,9 +247,7 @@ func (ec *EventCreate) Mutation() *EventMutation {
 
 // Save creates the Event in the database.
 func (ec *EventCreate) Save(ctx context.Context) (*Event, error) {
-	if err := ec.defaults(); err != nil {
-		return nil, err
-	}
+	ec.defaults()
 	return withHooks(ctx, ec.sqlSave, ec.mutation, ec.hooks)
 }
 
@@ -282,18 +274,12 @@ func (ec *EventCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (ec *EventCreate) defaults() error {
+func (ec *EventCreate) defaults() {
 	if _, ok := ec.mutation.CreatedAt(); !ok {
-		if event.DefaultCreatedAt == nil {
-			return fmt.Errorf("ent: uninitialized event.DefaultCreatedAt (forgotten import ent/runtime?)")
-		}
 		v := event.DefaultCreatedAt()
 		ec.mutation.SetCreatedAt(v)
 	}
 	if _, ok := ec.mutation.UpdatedAt(); !ok {
-		if event.DefaultUpdatedAt == nil {
-			return fmt.Errorf("ent: uninitialized event.DefaultUpdatedAt (forgotten import ent/runtime?)")
-		}
 		v := event.DefaultUpdatedAt()
 		ec.mutation.SetUpdatedAt(v)
 	}
@@ -306,13 +292,9 @@ func (ec *EventCreate) defaults() error {
 		ec.mutation.SetSyncStatus(v)
 	}
 	if _, ok := ec.mutation.ID(); !ok {
-		if event.DefaultID == nil {
-			return fmt.Errorf("ent: uninitialized event.DefaultID (forgotten import ent/runtime?)")
-		}
 		v := event.DefaultID()
 		ec.mutation.SetID(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -352,9 +334,6 @@ func (ec *EventCreate) check() error {
 		if err := event.SyncStatusValidator(v); err != nil {
 			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "Event.sync_status": %w`, err)}
 		}
-	}
-	if _, ok := ec.mutation.Slug(); !ok {
-		return &ValidationError{Name: "slug", err: errors.New(`ent: missing required field "Event.slug"`)}
 	}
 	if len(ec.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Event.user"`)}
@@ -440,10 +419,6 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.LastSyncError(); ok {
 		_spec.SetField(event.FieldLastSyncError, field.TypeString, value)
 		_node.LastSyncError = &value
-	}
-	if value, ok := ec.mutation.Slug(); ok {
-		_spec.SetField(event.FieldSlug, field.TypeString, value)
-		_node.Slug = value
 	}
 	if nodes := ec.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

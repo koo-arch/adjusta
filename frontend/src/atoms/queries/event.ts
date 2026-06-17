@@ -7,13 +7,13 @@ import { authAtom } from '../auth';
 
 export const eventDetailIdAtom = atom<string | null>(null);
 
-export const fetchEventDetailAtomFamily = atomFamily((slug?: string) =>
+export const fetchEventDetailAtomFamily = atomFamily((eventID?: string) =>
     atomWithQuery((get) => ({
-        queryKey: ['eventDetail', slug],
+        queryKey: ['eventDetail', eventID],
         queryFn: async () => {
-            const { data } = await axios.get<EventDraftDetail>(`/api/calendar/event/draft/${slug}`);
+            const { data } = await axios.get<EventDraftDetail>(`/api/calendar/event/draft/${eventID}`);
             return data;
         },
-        enabled: !!slug && get(authAtom),
+        enabled: !!eventID && get(authAtom),
     }))
 );

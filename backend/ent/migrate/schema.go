@@ -66,7 +66,6 @@ var (
 		{Name: "sync_status", Type: field.TypeEnum, Enums: []string{"not_synced", "pending_sync", "synced", "sync_failed"}, Default: "not_synced"},
 		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_sync_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "slug", Type: field.TypeString, Unique: true},
 		{Name: "primary_calendar_id", Type: field.TypeUUID},
 		{Name: "confirmed_date_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "user_id", Type: field.TypeUUID},
@@ -79,19 +78,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "events_calendars_primary_events",
-				Columns:    []*schema.Column{EventsColumns[13]},
+				Columns:    []*schema.Column{EventsColumns[12]},
 				RefColumns: []*schema.Column{CalendarsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "events_proposed_dates_confirmed_date",
-				Columns:    []*schema.Column{EventsColumns[14]},
+				Columns:    []*schema.Column{EventsColumns[13]},
 				RefColumns: []*schema.Column{ProposedDatesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "events_users_events",
-				Columns:    []*schema.Column{EventsColumns[15]},
+				Columns:    []*schema.Column{EventsColumns[14]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -100,17 +99,17 @@ var (
 			{
 				Name:    "event_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[15]},
+				Columns: []*schema.Column{EventsColumns[14]},
 			},
 			{
 				Name:    "event_primary_calendar_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[13]},
+				Columns: []*schema.Column{EventsColumns[12]},
 			},
 			{
 				Name:    "event_confirmed_date_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[14]},
+				Columns: []*schema.Column{EventsColumns[13]},
 			},
 			{
 				Name:    "event_status",

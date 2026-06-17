@@ -45,8 +45,6 @@ const (
 	FieldLastSyncedAt = "last_synced_at"
 	// FieldLastSyncError holds the string denoting the last_sync_error field in the database.
 	FieldLastSyncError = "last_sync_error"
-	// FieldSlug holds the string denoting the slug field in the database.
-	FieldSlug = "slug"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgePrimaryCalendar holds the string denoting the primary_calendar edge name in mutations.
@@ -104,7 +102,6 @@ var Columns = []string{
 	FieldSyncStatus,
 	FieldLastSyncedAt,
 	FieldLastSyncError,
-	FieldSlug,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -123,7 +120,6 @@ func ValidColumn(column string) bool {
 //
 //	import _ "github.com/koo-arch/adjusta-backend/ent/runtime"
 var (
-	Hooks        [1]ent.Hook
 	Interceptors [1]ent.Interceptor
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
@@ -269,11 +265,6 @@ func ByLastSyncedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSyncError orders the results by the last_sync_error field.
 func ByLastSyncError(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSyncError, opts...).ToFunc()
-}
-
-// BySlug orders the results by the slug field.
-func BySlug(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSlug, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

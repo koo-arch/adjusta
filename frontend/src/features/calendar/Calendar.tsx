@@ -64,7 +64,6 @@ const Calendar = <T extends CalendarEvent>({
                 location: event.location,
                 description: event.description,
                 origin: "google",
-                slug: null,
                 local_event_id: null,
             })) ?? [];
         
@@ -79,7 +78,6 @@ const Calendar = <T extends CalendarEvent>({
                     location: event.location,
                     description: event.description,
                     origin: "local",
-                    slug: event.slug,
                     local_event_id: event.id
                 }))
         ) ?? [];

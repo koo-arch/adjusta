@@ -14,11 +14,11 @@ import (
 )
 
 type draftedEventDetailFinder interface {
-	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
+	FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
 }
 
-func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, finder draftedEventDetailFinder, userID uuid.UUID, email, slug string) (*EventRecord, error) {
-	storedEvent, err := finder.FindEventBySlug(ctx, userID, slug, true)
+func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, finder draftedEventDetailFinder, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+	storedEvent, err := finder.FindEventByID(ctx, userID, eventID, true)
 	if err != nil {
 		log.Printf("failed to get event detail for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
@@ -30,8 +30,8 @@ func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, finder draf
 	return storedEvent, nil
 }
 
-func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, store EventTxStore, userID uuid.UUID, email, slug string) (*EventRecord, error) {
-	storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, store, userID, email, slug)
+func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, store EventTxStore, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+	storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, store, userID, email, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, store Eve
 		return nil, err
 	}
 
-	return uc.loadDraftedEventDetailRecord(ctx, store, userID, email, slug)
+	return uc.loadDraftedEventDetailRecord(ctx, store, userID, email, eventID)
 }
 
 func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, store EventTxStore, userID uuid.UUID, email, calendarID string, storedEvent *EventRecord) error {

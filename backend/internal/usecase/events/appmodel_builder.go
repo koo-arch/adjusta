@@ -48,7 +48,6 @@ func buildAppEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDet
 		ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 		LastSyncedAt:           storedEvent.LastSyncedAt,
 		LastSyncError:          storedEvent.LastSyncError,
-		Slug:                   storedEvent.Slug,
 		ProposedDates:          buildAppProposedDates(storedEvent.ProposedDates),
 	}, nil
 }

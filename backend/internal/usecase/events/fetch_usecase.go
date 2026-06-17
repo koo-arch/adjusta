@@ -119,9 +119,9 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 	return searchResult, nil
 }
 
-func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, slug string) (*appmodel.EventDraftDetail, error) {
+func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*appmodel.EventDraftDetail, error) {
 	if uc.tx == nil {
-		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.reader, userID, email, slug)
+		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.reader, userID, email, eventID)
 		if err != nil {
 			return nil, err
 		}
@@ -131,7 +131,7 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 	var response *appmodel.EventDraftDetail
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
-		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, store, userID, email, slug)
+		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, store, userID, email, eventID)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,6 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 					ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 					LastSyncedAt:           storedEvent.LastSyncedAt,
 					LastSyncError:          storedEvent.LastSyncError,
-					Slug:                   storedEvent.Slug,
 					Start:                  storedDate.StartTime,
 					End:                    storedDate.EndTime,
 				})
@@ -246,7 +245,6 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 				Location:       storedEvent.Location,
 				Description:    storedEvent.Description,
 				Status:         storedEvent.Status,
-				Slug:           storedEvent.Slug,
 				Start:          storedDate.StartTime,
 				End:            storedDate.EndTime,
 				NeedsAttention: currentTime.After(storedDate.StartTime),

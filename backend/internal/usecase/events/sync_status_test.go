@@ -17,7 +17,7 @@ type fakeEventTxStore struct {
 	t                              *testing.T
 	findPrimaryCalendarFn          func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
 	findAdjustaCandidateCalendarFn func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
-	findEventBySlugFn              func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
+	findEventByIDFn                func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
 	readCalendarFn                 func(ctx context.Context, calendarID uuid.UUID) (*CalendarRecord, error)
 	createEventFn                  func(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*EventRecord, error)
 	updateEventFn                  func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error)
@@ -47,11 +47,11 @@ func (f *fakeEventTxStore) FindAdjustaCandidateCalendar(ctx context.Context, use
 	return f.findAdjustaCandidateCalendarFn(ctx, userID)
 }
 
-func (f *fakeEventTxStore) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-	if f.findEventBySlugFn == nil {
-		f.unexpected("FindEventBySlug")
+func (f *fakeEventTxStore) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+	if f.findEventByIDFn == nil {
+		f.unexpected("FindEventByID")
 	}
-	return f.findEventBySlugFn(ctx, userID, slug, withProposedDates)
+	return f.findEventByIDFn(ctx, userID, eventID, withProposedDates)
 }
 
 func (f *fakeEventTxStore) ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*CalendarRecord, error) {
@@ -438,9 +438,9 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 					}
 					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: true}, nil
 				},
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-					if gotUserID != userID || slug != "draft-event" {
-						t.Fatalf("unexpected find event args: %s %s", gotUserID, slug)
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+					if gotUserID != userID || gotEventID != eventID {
+						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
 					}
 					return &EventRecord{
 						ID:                eventID,
@@ -491,7 +491,7 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, "draft-event", "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
@@ -556,9 +556,9 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 					}
 					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: false}, nil
 				},
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-					if gotUserID != userID || slug != "draft-event" {
-						t.Fatalf("unexpected find event args: %s %s", gotUserID, slug)
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+					if gotUserID != userID || gotEventID != eventID {
+						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
 					}
 					return &EventRecord{
 						ID:                eventID,
@@ -621,7 +621,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, "draft-event", "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
@@ -703,7 +703,10 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 					}
 					return nil, repoerr.ErrNotFound
 				},
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+					if gotEventID != eventID {
+						t.Fatalf("unexpected event id: %s", gotEventID)
+					}
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
@@ -748,7 +751,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, "draft-event", "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
@@ -820,7 +823,7 @@ func TestDeleteDraftedEventsMarksPendingBeforeSoftDelete(t *testing.T) {
 		nil,
 	)
 
-	err := uc.DeleteDraftedEvents(ctx, userID, "user@example.com", &appmodel.EventDraftDetail{ID: eventID})
+	err := uc.DeleteDraftedEvents(ctx, userID, "user@example.com", eventID)
 	if err != nil {
 		t.Fatalf("DeleteDraftedEvents returned error: %v", err)
 	}
@@ -861,7 +864,10 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 					}
 					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: true}, nil
 				},
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+					if gotEventID != eventID {
+						t.Fatalf("unexpected event id: %s", gotEventID)
+					}
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
@@ -898,7 +904,7 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, "draft-event", "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
@@ -944,9 +950,9 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-					if gotUserID != userID || slug != "finalize-event" {
-						t.Fatalf("unexpected find event args: %s %s", gotUserID, slug)
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+					if gotUserID != userID || gotEventID != eventID {
+						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
 					}
 					return &EventRecord{
 						ID:                eventID,
@@ -984,7 +990,7 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 		},
 	)
 
-	err := uc.FinalizeProposedDate(ctx, userID, "finalize-event", "user@example.com", &appmodel.ConfirmEvent{
+	err := uc.FinalizeProposedDate(ctx, userID, eventID, "user@example.com", &appmodel.ConfirmEvent{
 		ConfirmDate: appmodel.ConfirmDate{
 			Start: &start,
 			End:   &end,

@@ -21,6 +21,5 @@ type Event struct {
 	SyncStatus             domainvalue.SyncStatus
 	LastSyncedAt           *time.Time
 	LastSyncError          *string
-	Slug                   string
 	ProposedDates          []*repoProposedDate.ProposedDate
 }

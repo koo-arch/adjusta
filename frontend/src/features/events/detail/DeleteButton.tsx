@@ -1,34 +1,26 @@
 'use client'
 import React, { useState } from 'react';
 import axios from '@/lib/axios/public';
-import { useForm, SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import type { EventDraftDetail } from '@/hooks/event/type';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import { TrashIcon } from '@heroicons/react/20/solid';
 
 interface EventDeleteProps {
-    id: string;
-    detail: EventDraftDetail;
+    eventID: string;
 }
 
-const DeleteButton: React.FC<EventDeleteProps> = ({ id, detail }) => {
+const DeleteButton: React.FC<EventDeleteProps> = ({ eventID }) => {
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
 
-    const { handleSubmit } = useForm<EventDraftDetail>({
-        defaultValues: detail
-    });
-
-    
-    const deleteEvent = async (data: EventDraftDetail) => {
-        return await axios.delete(`api/calendar/event/draft/${id}`, { data });
+    const deleteEvent = async () => {
+        return await axios.delete(`api/calendar/event/draft/${eventID}`);
     }
 
-    const onSubmit: SubmitHandler<EventDraftDetail> = (data) => {
-        deleteEvent(data)
+    const onSubmit = () => {
+        deleteEvent()
             .then(res => {
                 console.log(res);
                 setIsOpen(false);
@@ -55,7 +47,7 @@ const DeleteButton: React.FC<EventDeleteProps> = ({ id, detail }) => {
                     <Button
                         type="submit"
                         intent="danger"
-                        onClick={handleSubmit(onSubmit)}
+                        onClick={onSubmit}
                     >
                         削除
                     </Button>

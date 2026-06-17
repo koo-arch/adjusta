@@ -54,8 +54,8 @@ func (r *eventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.
 	return toEventRecords(events), nil
 }
 
-func (r *eventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
-	event, err := r.repos.Event.FindBySlugAndUser(ctx, userID, slug, repoEvent.EventQueryOptions{
+func (r *eventReader) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
+	event, err := r.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventQueryOptions{
 		WithProposedDates: withProposedDates,
 	})
 	if err != nil {
@@ -101,8 +101,8 @@ func (s *eventTxStore) FindAdjustaCandidateCalendar(ctx context.Context, userID 
 	return findAdjustaCandidateCalendarRecord(ctx, s.repos, userID)
 }
 
-func (s *eventTxStore) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
-	event, err := s.repos.Event.FindBySlugAndUser(ctx, userID, slug, repoEvent.EventQueryOptions{
+func (s *eventTxStore) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
+	event, err := s.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventQueryOptions{
 		WithProposedDates: withProposedDates,
 	})
 	if err != nil {
@@ -288,7 +288,6 @@ func toEventRecord(event *repoEvent.Event) *usecaseEvents.EventRecord {
 		SyncStatus:             event.SyncStatus,
 		LastSyncedAt:           event.LastSyncedAt,
 		LastSyncError:          event.LastSyncError,
-		Slug:                   event.Slug,
 		ProposedDates:          toProposedDateRecords(event.ProposedDates),
 	}
 }

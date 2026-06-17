@@ -47,7 +47,6 @@ type EventRecord struct {
 	SyncStatus             domainvalue.SyncStatus
 	LastSyncedAt           *time.Time
 	LastSyncError          *string
-	Slug                   string
 	ProposedDates          []*ProposedDateRecord
 }
 
@@ -64,13 +63,13 @@ type EventReader interface {
 	AdjustaCandidateCalendarFinder
 	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error)
 	SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error)
-	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
+	FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
 }
 
 type EventTxStore interface {
 	PrimaryCalendarFinder
 	AdjustaCandidateCalendarFinder
-	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
+	FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
 	ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*CalendarRecord, error)
 	CreateEvent(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*EventRecord, error)
 	UpdateEvent(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error)

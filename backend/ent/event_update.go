@@ -248,20 +248,6 @@ func (eu *EventUpdate) ClearLastSyncError() *EventUpdate {
 	return eu
 }
 
-// SetSlug sets the "slug" field.
-func (eu *EventUpdate) SetSlug(s string) *EventUpdate {
-	eu.mutation.SetSlug(s)
-	return eu
-}
-
-// SetNillableSlug sets the "slug" field if the given value is not nil.
-func (eu *EventUpdate) SetNillableSlug(s *string) *EventUpdate {
-	if s != nil {
-		eu.SetSlug(*s)
-	}
-	return eu
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (eu *EventUpdate) SetUser(u *User) *EventUpdate {
 	return eu.SetUserID(u.ID)
@@ -338,9 +324,7 @@ func (eu *EventUpdate) RemoveProposedDates(p ...*ProposedDate) *EventUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (eu *EventUpdate) Save(ctx context.Context) (int, error) {
-	if err := eu.defaults(); err != nil {
-		return 0, err
-	}
+	eu.defaults()
 	return withHooks(ctx, eu.sqlSave, eu.mutation, eu.hooks)
 }
 
@@ -367,15 +351,11 @@ func (eu *EventUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (eu *EventUpdate) defaults() error {
+func (eu *EventUpdate) defaults() {
 	if _, ok := eu.mutation.UpdatedAt(); !ok {
-		if event.UpdateDefaultUpdatedAt == nil {
-			return fmt.Errorf("ent: uninitialized event.UpdateDefaultUpdatedAt (forgotten import ent/runtime?)")
-		}
 		v := event.UpdateDefaultUpdatedAt()
 		eu.mutation.SetUpdatedAt(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -463,9 +443,6 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if eu.mutation.LastSyncErrorCleared() {
 		_spec.ClearField(event.FieldLastSyncError, field.TypeString)
-	}
-	if value, ok := eu.mutation.Slug(); ok {
-		_spec.SetField(event.FieldSlug, field.TypeString, value)
 	}
 	if eu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -835,20 +812,6 @@ func (euo *EventUpdateOne) ClearLastSyncError() *EventUpdateOne {
 	return euo
 }
 
-// SetSlug sets the "slug" field.
-func (euo *EventUpdateOne) SetSlug(s string) *EventUpdateOne {
-	euo.mutation.SetSlug(s)
-	return euo
-}
-
-// SetNillableSlug sets the "slug" field if the given value is not nil.
-func (euo *EventUpdateOne) SetNillableSlug(s *string) *EventUpdateOne {
-	if s != nil {
-		euo.SetSlug(*s)
-	}
-	return euo
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (euo *EventUpdateOne) SetUser(u *User) *EventUpdateOne {
 	return euo.SetUserID(u.ID)
@@ -938,9 +901,7 @@ func (euo *EventUpdateOne) Select(field string, fields ...string) *EventUpdateOn
 
 // Save executes the query and returns the updated Event entity.
 func (euo *EventUpdateOne) Save(ctx context.Context) (*Event, error) {
-	if err := euo.defaults(); err != nil {
-		return nil, err
-	}
+	euo.defaults()
 	return withHooks(ctx, euo.sqlSave, euo.mutation, euo.hooks)
 }
 
@@ -967,15 +928,11 @@ func (euo *EventUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (euo *EventUpdateOne) defaults() error {
+func (euo *EventUpdateOne) defaults() {
 	if _, ok := euo.mutation.UpdatedAt(); !ok {
-		if event.UpdateDefaultUpdatedAt == nil {
-			return fmt.Errorf("ent: uninitialized event.UpdateDefaultUpdatedAt (forgotten import ent/runtime?)")
-		}
 		v := event.UpdateDefaultUpdatedAt()
 		euo.mutation.SetUpdatedAt(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -1080,9 +1037,6 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 	}
 	if euo.mutation.LastSyncErrorCleared() {
 		_spec.ClearField(event.FieldLastSyncError, field.TypeString)
-	}
-	if value, ok := euo.mutation.Slug(); ok {
-		_spec.SetField(event.FieldSlug, field.TypeString, value)
 	}
 	if euo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

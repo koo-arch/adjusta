@@ -27,7 +27,6 @@ type EventQueryOptions struct {
 	ClearLastSyncedAt      bool
 	LastSyncError          *string
 	ClearLastSyncError     bool
-	Slug                   *string
 	WithProposedDates      bool
 	EventOffset            int
 	EventLimit             int
@@ -45,7 +44,7 @@ type EventRepository interface {
 	WithTx(tx transaction.Tx) EventRepository
 	Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
 	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*Event, error)
-	FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*Event, error)
+	FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventQueryOptions) (*Event, error)
 	Create(ctx context.Context, userID uuid.UUID, opt EventCreateOptions, primaryCalendarID uuid.UUID) (*Event, error)
 	Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
 	Delete(ctx context.Context, id uuid.UUID) error

@@ -49,8 +49,6 @@ type Event struct {
 	LastSyncedAt *time.Time `json:"last_synced_at,omitempty"`
 	// LastSyncError holds the value of the "last_sync_error" field.
 	LastSyncError *string `json:"last_sync_error,omitempty"`
-	// Slug holds the value of the "slug" field.
-	Slug string `json:"slug,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EventQuery when eager-loading is set.
 	Edges        EventEdges `json:"edges"`
@@ -119,7 +117,7 @@ func (*Event) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case event.FieldTitle, event.FieldDescription, event.FieldLocation, event.FieldStatus, event.FieldConfirmedGoogleEventID, event.FieldSyncStatus, event.FieldLastSyncError, event.FieldSlug:
+		case event.FieldTitle, event.FieldDescription, event.FieldLocation, event.FieldStatus, event.FieldConfirmedGoogleEventID, event.FieldSyncStatus, event.FieldLastSyncError:
 			values[i] = new(sql.NullString)
 		case event.FieldCreatedAt, event.FieldUpdatedAt, event.FieldDeletedAt, event.FieldLastSyncedAt:
 			values[i] = new(sql.NullTime)
@@ -234,12 +232,6 @@ func (e *Event) assignValues(columns []string, values []any) error {
 				e.LastSyncError = new(string)
 				*e.LastSyncError = value.String
 			}
-		case event.FieldSlug:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field slug", values[i])
-			} else if value.Valid {
-				e.Slug = value.String
-			}
 		default:
 			e.selectValues.Set(columns[i], values[i])
 		}
@@ -345,9 +337,6 @@ func (e *Event) String() string {
 		builder.WriteString("last_sync_error=")
 		builder.WriteString(*v)
 	}
-	builder.WriteString(", ")
-	builder.WriteString("slug=")
-	builder.WriteString(e.Slug)
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.EventDraftUpdate) error {
+func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.EventDraftUpdate) error {
 	var committedErr error
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
@@ -26,7 +26,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			return err
 		}
 
-		storedEvent, err := store.FindEventBySlug(ctx, userID, slug, false)
+		storedEvent, err := store.FindEventByID(ctx, userID, eventID, false)
 		if err != nil {
 			log.Printf("failed to get event for account: %s, error: %v", email, err)
 			if repoerr.IsNotFound(err) {

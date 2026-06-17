@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/api/queryparser"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
@@ -21,6 +22,22 @@ func NewCalendarHandler(handler *Handler) *CalendarHandler {
 }
 
 var extractErrorMessage = "ユーザー情報確認時にエラーが発生しました。"
+
+func parseEventIDParam(c *gin.Context) (uuid.UUID, bool) {
+	eventIDParam := c.Param("id")
+	if eventIDParam == "" {
+		respond.BadRequest(c, "イベントIDがありません")
+		return uuid.UUID{}, false
+	}
+
+	eventID, err := uuid.Parse(eventIDParam)
+	if err != nil {
+		respond.BadRequest(c, "イベントIDが不正です")
+		return uuid.UUID{}, false
+	}
+
+	return eventID, true
+}
 
 func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -168,15 +185,14 @@ func (ch *CalendarHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 			return
 		}
 
-		slug := c.Param("slug")
-		if slug == "" {
-			respond.BadRequest(c, "スラッグがありません")
+		eventID, ok := parseEventIDParam(c)
+		if !ok {
 			return
 		}
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		draftedEvent, err := eventUsecase.FetchDraftedEventDetail(ctx, userid, email, slug)
+		draftedEvent, err := eventUsecase.FetchDraftedEventDetail(ctx, userid, email, eventID)
 		if err != nil {
 			log.Printf("failed to fetch events: %v", err)
 			respond.Error(c, err, "イベント詳細の取得に失敗しました")
@@ -231,9 +247,8 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		slug := c.Param("slug")
-		if slug == "" {
-			respond.BadRequest(c, "スラッグがありません")
+		eventID, ok := parseEventIDParam(c)
+		if !ok {
 			return
 		}
 
@@ -251,7 +266,7 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventUsecase.FinalizeProposedDate(ctx, userid, slug, email, confirmEvent)
+		err = eventUsecase.FinalizeProposedDate(ctx, userid, eventID, email, confirmEvent)
 		if err != nil {
 			log.Printf("failed to finalize event: %v", err)
 			respond.Error(c, err, "イベントの確定に失敗しました")
@@ -272,9 +287,8 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		slug := c.Param("slug")
-		if slug == "" {
-			respond.BadRequest(c, "スラッグがありません")
+		eventID, ok := parseEventIDParam(c)
+		if !ok {
 			return
 		}
 
@@ -291,7 +305,7 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventUsecase.UpdateDraftedEvents(ctx, userid, slug, email, eventDraft)
+		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, eventDraft)
 		if err != nil {
 			log.Printf("failed to update events: %v", err)
 			respond.Error(c, err, "イベントの更新に失敗しました")
@@ -312,15 +326,14 @@ func (ch *CalendarHandler) DeleteEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		var eventDraft *appmodel.EventDraftDetail
-		if err := c.ShouldBindJSON(&eventDraft); err != nil {
-			respond.BadRequest(c, "リクエストのデータ形式が不正です")
+		eventID, ok := parseEventIDParam(c)
+		if !ok {
 			return
 		}
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventUsecase.DeleteDraftedEvents(ctx, userid, email, eventDraft)
+		err = eventUsecase.DeleteDraftedEvents(ctx, userid, email, eventID)
 		if err != nil {
 			log.Printf("failed to delete events: %v", err)
 			respond.Error(c, err, "イベントの削除に失敗しました")

@@ -79,7 +79,7 @@ func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID
 	return toEvents(entities), nil
 }
 
-func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid.UUID, slug string, opt EventQueryOptions) (*repoEvent.Event, error) {
+func (r *EventRepositoryImpl) FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	if opt.WithProposedDates {
@@ -88,7 +88,7 @@ func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid
 
 	entity, err := query.
 		Where(
-			event.SlugEQ(slug),
+			event.IDEQ(eventID),
 			event.UserIDEQ(userID),
 		).
 		Only(ctx)
@@ -311,7 +311,6 @@ func toEvent(entity *ent.Event) *repoEvent.Event {
 		SyncStatus:             domainvalue.SyncStatus(entity.SyncStatus),
 		LastSyncedAt:           entity.LastSyncedAt,
 		LastSyncError:          entity.LastSyncError,
-		Slug:                   entity.Slug,
 		ProposedDates:          toEventProposedDates(entity.Edges.ProposedDates),
 	}
 }

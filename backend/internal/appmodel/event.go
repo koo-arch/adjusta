@@ -42,7 +42,6 @@ type EventDraftDetail struct {
 	ConfirmedGoogleEventID *string                 `json:"confirmed_google_event_id,omitempty"`
 	LastSyncedAt           *time.Time              `json:"last_synced_at,omitempty"`
 	LastSyncError          *string                 `json:"last_sync_error,omitempty"`
-	Slug                   string                  `json:"slug"`
 	ProposedDates          []ProposedDate          `json:"proposed_dates"`
 }
 
@@ -53,7 +52,6 @@ type EventDraftUpdate struct {
 	Status          domainvalue.EventStatus `json:"status"`
 	ConfirmedDateID *uuid.UUID              `json:"confirmed_date_id"`
 	GoogleEventID   string                  `json:"google_event_id"`
-	Slug            string                  `json:"slug"`
 	ProposedDates   []ProposedDate          `json:"proposed_dates"`
 }
 
@@ -103,7 +101,6 @@ type UpcomingEvent struct {
 	ConfirmedGoogleEventID *string                 `json:"confirmed_google_event_id,omitempty"`
 	LastSyncedAt           *time.Time              `json:"last_synced_at,omitempty"`
 	LastSyncError          *string                 `json:"last_sync_error,omitempty"`
-	Slug                   string                  `json:"slug"`
 	Start                  time.Time               `json:"start"`
 	End                    time.Time               `json:"end"`
 }
@@ -114,7 +111,6 @@ type NeedsActionDraft struct {
 	Location       string                  `json:"location"`
 	Description    string                  `json:"description"`
 	Status         domainvalue.EventStatus `json:"status"`
-	Slug           string                  `json:"slug"`
 	Start          time.Time               `json:"start"`
 	End            time.Time               `json:"end"`
 	NeedsAttention bool                    `json:"needs_attention"`

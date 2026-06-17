@@ -34,13 +34,13 @@ type EventService interface {
 	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleEvent, error)
 	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.EventDraftDetail, error)
 	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*appmodel.EventDraftDetail, error)
-	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email, slug string) (*appmodel.EventDraftDetail, error)
+	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*appmodel.EventDraftDetail, error)
 	FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error)
 	FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error)
 	CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftCreation) (*appmodel.EventDraftDetail, error)
-	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.ConfirmEvent) error
-	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, slug, email string, eventReq *appmodel.EventDraftUpdate) error
-	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftDetail) error
+	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.ConfirmEvent) error
+	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.EventDraftUpdate) error
+	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) error
 }
 
 type Dependencies struct {

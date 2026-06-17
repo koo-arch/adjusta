@@ -17,7 +17,7 @@ type fakeEventReader struct {
 	findAdjustaCandidateCalendarFn func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
 	listCalendarsByUserFn          func(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error)
 	searchEventsFn                 func(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error)
-	findEventBySlugFn              func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
+	findEventByIDFn                func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
 }
 
 func (f *fakeEventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
@@ -39,8 +39,8 @@ func (f *fakeEventReader) SearchEvents(ctx context.Context, userID, calendarID u
 	return f.searchEventsFn(ctx, userID, calendarID, opt)
 }
 
-func (f *fakeEventReader) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-	return f.findEventBySlugFn(ctx, userID, slug, withProposedDates)
+func (f *fakeEventReader) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+	return f.findEventByIDFn(ctx, userID, eventID, withProposedDates)
 }
 
 type fakeGoogleCalendarGateway struct {
@@ -157,8 +157,8 @@ func TestFetchAllGoogleEventsReturnsPartialContent(t *testing.T) {
 				t.Fatalf("search events should not be called")
 				return nil, nil
 			},
-			findEventBySlugFn: func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-				t.Fatalf("find by slug should not be called")
+			findEventByIDFn: func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				t.Fatalf("find by id should not be called")
 				return nil, nil
 			},
 		},
@@ -250,8 +250,8 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 					},
 				}, nil
 			},
-			findEventBySlugFn: func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-				t.Fatalf("find by slug should not be called")
+			findEventByIDFn: func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				t.Fatalf("find by id should not be called")
 				return nil, nil
 			},
 		},
@@ -307,15 +307,14 @@ func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
 						ID:     uuid.New(),
 						Title:  "Needs action",
 						Status: domainvalue.StatusActive,
-						Slug:   "needs-action",
 						ProposedDates: []*ProposedDateRecord{
 							{ID: uuid.New(), StartTime: now.Add(-1 * time.Hour), EndTime: now.Add(1 * time.Hour)},
 						},
 					},
 				}, nil
 			},
-			findEventBySlugFn: func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
-				t.Fatalf("find by slug should not be called")
+			findEventByIDFn: func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				t.Fatalf("find by id should not be called")
 				return nil, nil
 			},
 		},
@@ -367,7 +366,6 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		Description: "Discuss roadmap",
 		Status:      domainvalue.StatusActive,
 		SyncStatus:  domainvalue.SyncStatusPending,
-		Slug:        "draft-event",
 		ProposedDates: []*ProposedDateRecord{
 			{
 				ID:         dateID1,
@@ -394,12 +392,12 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					if slug != "draft-event" {
-						t.Fatalf("unexpected slug: %s", slug)
+					if gotEventID != eventID {
+						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
 					if !withProposedDates {
 						t.Fatal("expected proposed dates to be loaded")
@@ -464,7 +462,7 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		},
 	)
 
-	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", "draft-event")
+	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID)
 	if err != nil {
 		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
 	}
@@ -530,7 +528,6 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 		Description: "Discuss roadmap",
 		Status:      domainvalue.StatusActive,
 		SyncStatus:  domainvalue.SyncStatusPending,
-		Slug:        "draft-event",
 		ProposedDates: []*ProposedDateRecord{
 			{
 				ID:         dateID,
@@ -548,9 +545,12 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
+					}
+					if gotEventID != eventID {
+						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
 					return storedEvent, nil
 				},
@@ -589,7 +589,7 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 		},
 	)
 
-	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", "draft-event")
+	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID)
 	if err != nil {
 		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
 	}
@@ -631,7 +631,6 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 		Description: "Discuss roadmap",
 		Status:      domainvalue.StatusActive,
 		SyncStatus:  domainvalue.SyncStatusNotSynced,
-		Slug:        "draft-event",
 		ProposedDates: []*ProposedDateRecord{
 			{
 				ID:            dateID,
@@ -650,7 +649,10 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findEventBySlugFn: func(ctx context.Context, gotUserID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+					if gotEventID != eventID {
+						t.Fatalf("unexpected event id: %s", gotEventID)
+					}
 					return storedEvent, nil
 				},
 				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
@@ -682,7 +684,7 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 		},
 	)
 
-	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", "draft-event")
+	detail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID)
 	if err != nil {
 		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
 	}

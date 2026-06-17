@@ -9,11 +9,11 @@ import ConfirmButton from './ConfirmButton';
 import DeleteButton from './DeleteButton';
 
 type DetailCardProps = {
-    slug: string;
+    eventID: string;
     detail: EventDraftDetail;
 }
 
-const DetailCard: React.FC<DetailCardProps> = ({ detail, slug }) => {
+const DetailCard: React.FC<DetailCardProps> = ({ detail, eventID }) => {
     const confirmedDate = detail.proposed_dates?.find((date) => date.id === detail.confirmed_date_id);
     const isConfirmed = detail.status === 'confirmed' && !!detail.confirmed_date_id && !!confirmedDate;
     return (
@@ -21,7 +21,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, slug }) => {
             <div className="space-y-6">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                     <h1 className="text-2xl font-bold text-gray-900">{detail.title}</h1>
-                    <EditButton to={`/schedule/draft/${slug}/edit`} />
+                    <EditButton to={`/schedule/draft/${eventID}/edit`} />
                 </div>
 
                 {isConfirmed && (
@@ -29,7 +29,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, slug }) => {
                         <div className="flex items-center space-x-2 mb-2">
                             <h2 className="text-lg font-semibold text-gray-700">確定日時</h2>
                             <ConfirmButton
-                                slug={slug}
+                                eventID={eventID}
                                 detail={detail}
                                 isConfirmed={isConfirmed}
                             />
@@ -45,7 +45,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, slug }) => {
                         <div className="flex items-center space-x-2">
                             <h2 className="text-lg font-semibold text-gray-700">候補日程</h2>
                             <ConfirmButton 
-                                slug={slug}
+                                eventID={eventID}
                                 detail={detail}
                                 isConfirmed={isConfirmed}
                             />
@@ -69,7 +69,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, slug }) => {
                     <p className="text-sm text-gray-700 mt-2">{detail.description}</p>
                 </div>
                 <div className="flex justify-end items-end">
-                    <DeleteButton id={slug} detail={detail} />
+                    <DeleteButton eventID={eventID} />
                 </div>
             </div>
         </Card>
