@@ -25,13 +25,14 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ slug, detail, isConfirmed
     const [isOpen, setIsOpen] = useState(false);
     const proposedDates = detail.proposed_dates || [];
     const [isDropdownSelected, setIsDropdownSelected] = useState(true); // ドロップダウンが選ばれているかどうか
+    const confirmedGoogleEventID = detail.confirmed_google_event_id ?? detail.google_event_id;
 
     const method = useForm<ConfirmForm>({
         resolver: ConfirmFormResolver,
         defaultValues: {
             confirm_date: {
                 id: null,
-                google_event_id: detail.google_event_id,
+                google_event_id: confirmedGoogleEventID,
                 priority: 0,
             }
         }

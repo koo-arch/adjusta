@@ -47,6 +47,7 @@ const Calendar = <T extends CalendarEvent>({
     const { events, isLoading: isGoogleEventLoading, error: googleEventError } = useFetchGoogleEvent();
     const { searchEvents, isLoading: isSearchLoading, error: searchError } = useSearchEvents({ status: "active" });
     const [allEvents, setAllEvents] = useAtom(allEventsAtom);
+    const confirmedGoogleEventID = editEvent?.confirmed_google_event_id ?? editEvent?.google_event_id;
 
     const warningToastId = 'google-calendar-warning';
 
@@ -54,7 +55,7 @@ const Calendar = <T extends CalendarEvent>({
         if (isGoogleEventLoading || isSearchLoading) return;
 
         const googleEventList: CalendarEvent[]  = events?.events
-            .filter(ge => !editEvent || editEvent.google_event_id !== ge.id)
+            .filter(ge => !confirmedGoogleEventID || confirmedGoogleEventID !== ge.id)
             .map(event => ({
                 id: event.id,
                 title: event.summary,
@@ -85,7 +86,7 @@ const Calendar = <T extends CalendarEvent>({
 
         const allEvents: CalendarEvent[] = [...googleEventList, ...searchEventList, ...(selectedEvents || [])];
         setAllEvents(allEvents);
-    }, [events, searchEvents, isGoogleEventLoading, isSearchLoading, editEvent, setAllEvents, selectedEvents]);
+    }, [events, searchEvents, isGoogleEventLoading, isSearchLoading, editEvent, confirmedGoogleEventID, setAllEvents, selectedEvents]);
 
     useEffect(() => {
         if (events?.warning?.failed_calendars) {

@@ -25,7 +25,7 @@ export interface EventDraftDetail {
     sync_status: SyncStatus;
     confirmed_date_id: string | null;
     confirmed_google_event_id?: string;
-    google_event_id: string;
+    google_event_id?: string;
     last_synced_at?: string;
     last_sync_error?: string;
     slug: string;
