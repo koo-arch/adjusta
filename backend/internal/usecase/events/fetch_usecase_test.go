@@ -12,14 +12,22 @@ import (
 )
 
 type fakeEventReader struct {
-	findPrimaryCalendarFn func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
-	listCalendarsByUserFn func(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error)
-	searchEventsFn        func(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error)
-	findEventBySlugFn     func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
+	findPrimaryCalendarFn          func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
+	findAdjustaCandidateCalendarFn func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
+	listCalendarsByUserFn          func(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error)
+	searchEventsFn                 func(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error)
+	findEventBySlugFn              func(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
 }
 
 func (f *fakeEventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
 	return f.findPrimaryCalendarFn(ctx, userID)
+}
+
+func (f *fakeEventReader) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
+	if f.findAdjustaCandidateCalendarFn == nil {
+		panic("FindAdjustaCandidateCalendar should not be called")
+	}
+	return f.findAdjustaCandidateCalendarFn(ctx, userID)
 }
 
 func (f *fakeEventReader) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error) {

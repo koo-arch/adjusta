@@ -40,6 +40,16 @@ func NewPendingEventChange(status *domainvalue.EventStatus) EventChange {
 	}
 }
 
+func NewNotSyncedEventChange(status *domainvalue.EventStatus) EventChange {
+	return EventChange{
+		Status: status,
+		Sync: SyncChange{
+			Status:             domainvalue.SyncStatusNotSynced,
+			ClearLastSyncError: true,
+		},
+	}
+}
+
 func NewSyncedEventChange(status domainvalue.EventStatus, confirmedDateID uuid.UUID, googleEventID string, syncedAt time.Time) EventChange {
 	return EventChange{
 		Status:                 &status,
@@ -73,6 +83,19 @@ func NewPendingProposedDateChange(start, end *time.Time, priority *int, status *
 		Status:   status,
 		Sync: SyncChange{
 			Status: domainvalue.SyncStatusPending,
+		},
+	}
+}
+
+func NewNotSyncedProposedDateChange(start, end *time.Time, priority *int, status *domainvalue.ProposedDateStatus) ProposedDateChange {
+	return ProposedDateChange{
+		Start:    start,
+		End:      end,
+		Priority: priority,
+		Status:   status,
+		Sync: SyncChange{
+			Status:             domainvalue.SyncStatusNotSynced,
+			ClearLastSyncError: true,
 		},
 	}
 }

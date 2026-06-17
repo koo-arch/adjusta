@@ -14,11 +14,12 @@ type GoogleTokenProvider interface {
 }
 
 type CalendarRecord struct {
-	ID               uuid.UUID
-	GoogleCalendarID string
-	Summary          string
-	Description      *string
-	Timezone         *string
+	ID                uuid.UUID
+	GoogleCalendarID  string
+	Summary           string
+	Description       *string
+	Timezone          *string
+	SyncProposedDates bool
 }
 
 type ProposedDateRecord struct {
@@ -55,8 +56,13 @@ type PrimaryCalendarFinder interface {
 	FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
 }
 
+type AdjustaCandidateCalendarFinder interface {
+	FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
+}
+
 type EventReader interface {
 	PrimaryCalendarFinder
+	AdjustaCandidateCalendarFinder
 	ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error)
 	SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error)
 	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
@@ -64,6 +70,7 @@ type EventReader interface {
 
 type EventTxStore interface {
 	PrimaryCalendarFinder
+	AdjustaCandidateCalendarFinder
 	FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*EventRecord, error)
 	ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*CalendarRecord, error)
 	CreateEvent(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*EventRecord, error)

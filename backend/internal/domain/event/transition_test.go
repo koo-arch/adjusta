@@ -22,6 +22,22 @@ func TestNewPendingEventChange(t *testing.T) {
 	}
 }
 
+func TestNewNotSyncedEventChange(t *testing.T) {
+	status := domainvalue.StatusActive
+
+	change := NewNotSyncedEventChange(&status)
+
+	if change.Status == nil || *change.Status != domainvalue.StatusActive {
+		t.Fatalf("unexpected status: %#v", change.Status)
+	}
+	if change.Sync.Status != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+	if !change.Sync.ClearLastSyncError {
+		t.Fatal("expected clear last sync error flag")
+	}
+}
+
 func TestNewSyncedEventChange(t *testing.T) {
 	confirmedDateID := uuid.New()
 	syncedAt := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
@@ -84,6 +100,34 @@ func TestNewPendingProposedDateChange(t *testing.T) {
 	}
 	if change.Sync.Status != domainvalue.SyncStatusPending {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+}
+
+func TestNewNotSyncedProposedDateChange(t *testing.T) {
+	start := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	priority := 1024
+	status := domainvalue.ProposedDateStatusConfirmed
+
+	change := NewNotSyncedProposedDateChange(&start, &end, &priority, &status)
+
+	if change.Start == nil || !change.Start.Equal(start) {
+		t.Fatalf("unexpected start: %#v", change.Start)
+	}
+	if change.End == nil || !change.End.Equal(end) {
+		t.Fatalf("unexpected end: %#v", change.End)
+	}
+	if change.Priority == nil || *change.Priority != priority {
+		t.Fatalf("unexpected priority: %#v", change.Priority)
+	}
+	if change.Status == nil || *change.Status != status {
+		t.Fatalf("unexpected status: %#v", change.Status)
+	}
+	if change.Sync.Status != domainvalue.SyncStatusNotSynced {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+	if !change.Sync.ClearLastSyncError {
+		t.Fatal("expected clear last sync error flag")
 	}
 }
 

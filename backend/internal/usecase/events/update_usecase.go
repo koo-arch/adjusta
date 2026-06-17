@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
@@ -18,6 +19,10 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		if _, err := uc.loadPrimaryCalendar(ctx, store, userID, email); err != nil {
+			return err
+		}
+		candidateCalendar, err := uc.loadAdjustaCandidateCalendar(ctx, store, userID, email)
+		if err != nil {
 			return err
 		}
 
@@ -36,7 +41,11 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			Description: &eventReq.Description,
 		}
 		if eventReq.Status != domainvalue.StatusConfirmed {
-			eventOptions = mergeEventChange(eventOptions, domainEvent.NewPendingEventChange(&eventReq.Status))
+			if candidateCalendar.SyncProposedDates {
+				eventOptions = mergeEventChange(eventOptions, domainEvent.NewPendingEventChange(&eventReq.Status))
+			} else {
+				eventOptions = mergeEventChange(eventOptions, domainEvent.NewNotSyncedEventChange(&eventReq.Status))
+			}
 		}
 		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, eventOptions)
 		if err != nil {
@@ -87,7 +96,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 			}
 		}
 
-		if err := uc.updateProposedDates(ctx, store, eventReq, storedEvent, existingDates); err != nil {
+		if err := uc.updateProposedDates(ctx, store, eventReq, storedEvent, existingDates, candidateCalendar.SyncProposedDates); err != nil {
 			return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 		}
 
@@ -104,24 +113,30 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, sl
 	return nil
 }
 
-func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *EventRecord, existingDates []*ProposedDateRecord) error {
+func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
 	requestedDates, err := toDomainDraftDateList(eventReq.ProposedDates)
 	if err != nil {
 		return err
 	}
 
 	changeSet := domainEvent.PlanProposedDateChanges(requestedDates, toDomainExistingDateList(existingDates))
+	buildChange := func(start, end *time.Time, priority *int, status *domainvalue.ProposedDateStatus) domainEvent.ProposedDateChange {
+		if syncProposedDates {
+			return domainEvent.NewPendingProposedDateChange(start, end, priority, status)
+		}
+		return domainEvent.NewNotSyncedProposedDateChange(start, end, priority, status)
+	}
 
 	for _, date := range changeSet.Updates {
-		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(&date.Start, &date.End, &date.Priority, nil))
+		dateOptions := buildProposedDateMutation(buildChange(&date.Start, &date.End, &date.Priority, nil))
 		if _, err := store.UpdateProposedDate(ctx, date.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date for account: %s, error: %w", date.ID, err)
 		}
 	}
 
 	for _, dateID := range changeSet.Deletes {
-		if _, err := store.UpdateProposedDate(ctx, dateID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, nil))); err != nil {
-			return fmt.Errorf("failed to mark proposed date sync pending for account: %s, error: %w", dateID, err)
+		if _, err := store.UpdateProposedDate(ctx, dateID, buildProposedDateMutation(buildChange(nil, nil, nil, nil))); err != nil {
+			return fmt.Errorf("failed to update proposed date sync state for account: %s, error: %w", dateID, err)
 		}
 		if err := store.DeleteProposedDate(ctx, dateID); err != nil {
 			return fmt.Errorf("failed to delete proposed date for account: %s, error: %w", dateID, err)
@@ -129,7 +144,7 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, 
 	}
 
 	for _, date := range changeSet.Creates {
-		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(&date.Start, &date.End, &date.Priority, nil))
+		dateOptions := buildProposedDateMutation(buildChange(&date.Start, &date.End, &date.Priority, nil))
 		if _, err := store.CreateProposedDate(ctx, dateOptions, storedEvent.ID); err != nil {
 			return fmt.Errorf("failed to create proposed date for event: %s, error: %w", storedEvent.ID, err)
 		}

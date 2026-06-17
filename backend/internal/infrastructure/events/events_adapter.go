@@ -11,6 +11,7 @@ import (
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
+	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -31,6 +32,10 @@ func (r *eventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID)
 		return nil, err
 	}
 	return toCalendarRecord(calendar), nil
+}
+
+func (r *eventReader) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
+	return findAdjustaCandidateCalendarRecord(ctx, r.repos, userID)
 }
 
 func (r *eventReader) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*usecaseEvents.CalendarRecord, error) {
@@ -90,6 +95,10 @@ func (s *eventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID
 		return nil, err
 	}
 	return toCalendarRecord(calendar), nil
+}
+
+func (s *eventTxStore) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
+	return findAdjustaCandidateCalendarRecord(ctx, s.repos, userID)
 }
 
 func (s *eventTxStore) FindEventBySlug(ctx context.Context, userID uuid.UUID, slug string, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
@@ -215,16 +224,21 @@ func toProposedDateQueryOptions(opt usecaseEvents.ProposedDateMutation) repoProp
 }
 
 func toCalendarRecord(calendar *repoCalendar.Calendar) *usecaseEvents.CalendarRecord {
+	return toCalendarRecordWithSync(calendar, false)
+}
+
+func toCalendarRecordWithSync(calendar *repoCalendar.Calendar, syncProposedDates bool) *usecaseEvents.CalendarRecord {
 	if calendar == nil {
 		return nil
 	}
 
 	return &usecaseEvents.CalendarRecord{
-		ID:               calendar.ID,
-		GoogleCalendarID: calendar.GoogleCalendarID,
-		Summary:          calendar.Summary,
-		Description:      calendar.Description,
-		Timezone:         calendar.Timezone,
+		ID:                calendar.ID,
+		GoogleCalendarID:  calendar.GoogleCalendarID,
+		Summary:           calendar.Summary,
+		Description:       calendar.Description,
+		Timezone:          calendar.Timezone,
+		SyncProposedDates: syncProposedDates,
 	}
 }
 
@@ -234,6 +248,28 @@ func toCalendarRecords(calendars []*repoCalendar.Calendar) []*usecaseEvents.Cale
 		records = append(records, toCalendarRecord(calendar))
 	}
 	return records
+}
+
+func findAdjustaCandidateCalendarRecord(ctx context.Context, repos infraRepository.Repositories, userID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
+	userCalendars, err := repos.UserCalendar.FilterByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, userCalendar := range userCalendars {
+		if userCalendar.Role != domainvalue.UserCalendarRoleAdjustaCandidate {
+			continue
+		}
+
+		calendar, err := repos.Calendar.Read(ctx, userCalendar.CalendarID, repoCalendar.CalendarQueryOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		return toCalendarRecordWithSync(calendar, userCalendar.SyncProposedDates), nil
+	}
+
+	return nil, repoerr.ErrNotFound
 }
 
 func toEventRecord(event *repoEvent.Event) *usecaseEvents.EventRecord {

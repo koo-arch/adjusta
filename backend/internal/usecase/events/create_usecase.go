@@ -18,15 +18,14 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		if err != nil {
 			return err
 		}
+		candidateCalendar, err := uc.loadAdjustaCandidateCalendar(ctx, store, userID, email)
+		if err != nil {
+			return err
+		}
 
 		storedEvent, err := store.CreateEvent(ctx, userID, storedCalendar.ID, eventReq.Title, eventReq.Location, eventReq.Description, eventReq.SelectedDates[0].Start, eventReq.SelectedDates[0].End)
 		if err != nil {
 			log.Printf("failed to create event for account: %s, error: %v", email, err)
-			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
-		}
-		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventChange(nil)))
-		if err != nil {
-			log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
@@ -35,11 +34,20 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			log.Printf("failed to create proposed dates for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
-		for i, storedDate := range storedDates {
-			storedDates[i], err = store.UpdateProposedDate(ctx, storedDate.ID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, nil)))
+
+		if candidateCalendar.SyncProposedDates {
+			storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventChange(nil)))
 			if err != nil {
-				log.Printf("failed to mark proposed date sync pending for account: %s, error: %v", email, err)
+				log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			}
+
+			for i, storedDate := range storedDates {
+				storedDates[i], err = store.UpdateProposedDate(ctx, storedDate.ID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, nil)))
+				if err != nil {
+					log.Printf("failed to mark proposed date sync pending for account: %s, error: %v", email, err)
+					return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+				}
 			}
 		}
 
