@@ -40,30 +40,19 @@ type Calendar struct {
 
 // CalendarEdges holds the relations/edges for other nodes in the graph.
 type CalendarEdges struct {
-	// Events holds the value of the events edge.
-	Events []*Event `json:"events,omitempty"`
 	// UserCalendars holds the value of the user_calendars edge.
 	UserCalendars []*UserCalendar `json:"user_calendars,omitempty"`
 	// PrimaryEvents holds the value of the primary_events edge.
 	PrimaryEvents []*Event `json:"primary_events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
-}
-
-// EventsOrErr returns the Events value or an error if the edge
-// was not loaded in eager-loading.
-func (e CalendarEdges) EventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[0] {
-		return e.Events, nil
-	}
-	return nil, &NotLoadedError{edge: "events"}
+	loadedTypes [2]bool
 }
 
 // UserCalendarsOrErr returns the UserCalendars value or an error if the edge
 // was not loaded in eager-loading.
 func (e CalendarEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[0] {
 		return e.UserCalendars, nil
 	}
 	return nil, &NotLoadedError{edge: "user_calendars"}
@@ -72,7 +61,7 @@ func (e CalendarEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
 // PrimaryEventsOrErr returns the PrimaryEvents value or an error if the edge
 // was not loaded in eager-loading.
 func (e CalendarEdges) PrimaryEventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[1] {
 		return e.PrimaryEvents, nil
 	}
 	return nil, &NotLoadedError{edge: "primary_events"}
@@ -168,11 +157,6 @@ func (c *Calendar) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (c *Calendar) Value(name string) (ent.Value, error) {
 	return c.selectValues.Get(name)
-}
-
-// QueryEvents queries the "events" edge of the Calendar entity.
-func (c *Calendar) QueryEvents() *EventQuery {
-	return NewCalendarClient(c.config).QueryEvents(c)
 }
 
 // QueryUserCalendars queries the "user_calendars" edge of the Calendar entity.

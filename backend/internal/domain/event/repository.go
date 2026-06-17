@@ -10,10 +10,9 @@ import (
 )
 
 type EventCreateOptions struct {
-	Title         string
-	Location      string
-	Description   string
-	GoogleEventID *string
+	Title       string
+	Location    string
+	Description string
 }
 
 type EventQueryOptions struct {
@@ -23,7 +22,6 @@ type EventQueryOptions struct {
 	Status                 *domainvalue.EventStatus
 	SyncStatus             *domainvalue.SyncStatus
 	ConfirmedDateID        *uuid.UUID
-	GoogleEventID          *string
 	ConfirmedGoogleEventID *string
 	LastSyncedAt           *time.Time
 	ClearLastSyncedAt      bool

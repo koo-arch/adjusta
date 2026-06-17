@@ -38,7 +38,7 @@ func (Event) Fields() []ent.Field {
 		field.UUID("user_id", uuid.UUID{}),
 		field.UUID("primary_calendar_id", uuid.UUID{}),
 		field.String("title").NotEmpty(),
-		field.String("description").Optional(),
+		field.Text("description").Optional(),
 		field.String("location").Optional(),
 		field.Enum("status").
 			Values(
@@ -49,7 +49,6 @@ func (Event) Fields() []ent.Field {
 			).
 			Default(string(StatusActive)),
 		field.UUID("confirmed_date_id", uuid.UUID{}).Optional(),
-		field.String("google_event_id").Optional(),
 		field.String("confirmed_google_event_id").Optional().Nillable(),
 		field.Enum("sync_status").
 			Values(

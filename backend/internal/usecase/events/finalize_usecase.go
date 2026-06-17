@@ -67,7 +67,6 @@ func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, cale
 		eventReq.ConfirmDate.ID,
 		storedEvent.ConfirmedGoogleEventID,
 		eventReq.ConfirmDate.GoogleEventID,
-		storedEvent.GoogleEventID,
 	)
 
 	googleEventID, err := uc.googleCalendar.UpsertEvent(

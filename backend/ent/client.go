@@ -513,22 +513,6 @@ func (c *CalendarClient) GetX(ctx context.Context, id uuid.UUID) *Calendar {
 	return obj
 }
 
-// QueryEvents queries the events edge of a Calendar.
-func (c *CalendarClient) QueryEvents(ca *Calendar) *EventQuery {
-	query := (&EventClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ca.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(calendar.Table, calendar.FieldID, id),
-			sqlgraph.To(event.Table, event.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, calendar.EventsTable, calendar.EventsColumn),
-		)
-		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryUserCalendars queries the user_calendars edge of a Calendar.
 func (c *CalendarClient) QueryUserCalendars(ca *Calendar) *UserCalendarQuery {
 	query := (&UserCalendarClient{config: c.config}).Query()

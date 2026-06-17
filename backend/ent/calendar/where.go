@@ -521,29 +521,6 @@ func TimezoneContainsFold(v string) predicate.Calendar {
 	return predicate.Calendar(sql.FieldContainsFold(FieldTimezone, v))
 }
 
-// HasEvents applies the HasEdge predicate on the "events" edge.
-func HasEvents() predicate.Calendar {
-	return predicate.Calendar(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, EventsTable, EventsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasEventsWith applies the HasEdge predicate on the "events" edge with a given conditions (other predicates).
-func HasEventsWith(preds ...predicate.Event) predicate.Calendar {
-	return predicate.Calendar(func(s *sql.Selector) {
-		step := newEventsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasUserCalendars applies the HasEdge predicate on the "user_calendars" edge.
 func HasUserCalendars() predicate.Calendar {
 	return predicate.Calendar(func(s *sql.Selector) {

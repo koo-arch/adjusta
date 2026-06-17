@@ -186,7 +186,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 					Status:                 storedEvent.Status,
 					SyncStatus:             storedEvent.SyncStatus,
 					ConfirmedDateID:        storedEvent.ConfirmedDateID,
-					GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID, storedEvent.GoogleEventID),
+					GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
 					ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 					LastSyncedAt:           storedEvent.LastSyncedAt,
 					LastSyncError:          storedEvent.LastSyncError,

@@ -44,7 +44,7 @@ func buildAppEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDet
 		Status:                 storedEvent.Status,
 		SyncStatus:             storedEvent.SyncStatus,
 		ConfirmedDateID:        &storedEvent.ConfirmedDateID,
-		GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID, storedEvent.GoogleEventID),
+		GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
 		ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 		LastSyncedAt:           storedEvent.LastSyncedAt,
 		LastSyncError:          storedEvent.LastSyncError,

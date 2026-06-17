@@ -41,8 +41,6 @@ type Event struct {
 	Status event.Status `json:"status,omitempty"`
 	// ConfirmedDateID holds the value of the "confirmed_date_id" field.
 	ConfirmedDateID uuid.UUID `json:"confirmed_date_id,omitempty"`
-	// GoogleEventID holds the value of the "google_event_id" field.
-	GoogleEventID string `json:"google_event_id,omitempty"`
 	// ConfirmedGoogleEventID holds the value of the "confirmed_google_event_id" field.
 	ConfirmedGoogleEventID *string `json:"confirmed_google_event_id,omitempty"`
 	// SyncStatus holds the value of the "sync_status" field.
@@ -55,9 +53,8 @@ type Event struct {
 	Slug string `json:"slug,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EventQuery when eager-loading is set.
-	Edges           EventEdges `json:"edges"`
-	calendar_events *uuid.UUID
-	selectValues    sql.SelectValues
+	Edges        EventEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // EventEdges holds the relations/edges for other nodes in the graph.
@@ -122,14 +119,12 @@ func (*Event) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case event.FieldTitle, event.FieldDescription, event.FieldLocation, event.FieldStatus, event.FieldGoogleEventID, event.FieldConfirmedGoogleEventID, event.FieldSyncStatus, event.FieldLastSyncError, event.FieldSlug:
+		case event.FieldTitle, event.FieldDescription, event.FieldLocation, event.FieldStatus, event.FieldConfirmedGoogleEventID, event.FieldSyncStatus, event.FieldLastSyncError, event.FieldSlug:
 			values[i] = new(sql.NullString)
 		case event.FieldCreatedAt, event.FieldUpdatedAt, event.FieldDeletedAt, event.FieldLastSyncedAt:
 			values[i] = new(sql.NullTime)
 		case event.FieldID, event.FieldUserID, event.FieldPrimaryCalendarID, event.FieldConfirmedDateID:
 			values[i] = new(uuid.UUID)
-		case event.ForeignKeys[0]: // calendar_events
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -212,12 +207,6 @@ func (e *Event) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				e.ConfirmedDateID = *value
 			}
-		case event.FieldGoogleEventID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field google_event_id", values[i])
-			} else if value.Valid {
-				e.GoogleEventID = value.String
-			}
 		case event.FieldConfirmedGoogleEventID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field confirmed_google_event_id", values[i])
@@ -250,13 +239,6 @@ func (e *Event) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field slug", values[i])
 			} else if value.Valid {
 				e.Slug = value.String
-			}
-		case event.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field calendar_events", values[i])
-			} else if value.Valid {
-				e.calendar_events = new(uuid.UUID)
-				*e.calendar_events = *value.S.(*uuid.UUID)
 			}
 		default:
 			e.selectValues.Set(columns[i], values[i])
@@ -345,9 +327,6 @@ func (e *Event) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("confirmed_date_id=")
 	builder.WriteString(fmt.Sprintf("%v", e.ConfirmedDateID))
-	builder.WriteString(", ")
-	builder.WriteString("google_event_id=")
-	builder.WriteString(e.GoogleEventID)
 	builder.WriteString(", ")
 	if v := e.ConfirmedGoogleEventID; v != nil {
 		builder.WriteString("confirmed_google_event_id=")

@@ -37,8 +37,6 @@ const (
 	FieldStatus = "status"
 	// FieldConfirmedDateID holds the string denoting the confirmed_date_id field in the database.
 	FieldConfirmedDateID = "confirmed_date_id"
-	// FieldGoogleEventID holds the string denoting the google_event_id field in the database.
-	FieldGoogleEventID = "google_event_id"
 	// FieldConfirmedGoogleEventID holds the string denoting the confirmed_google_event_id field in the database.
 	FieldConfirmedGoogleEventID = "confirmed_google_event_id"
 	// FieldSyncStatus holds the string denoting the sync_status field in the database.
@@ -102,7 +100,6 @@ var Columns = []string{
 	FieldLocation,
 	FieldStatus,
 	FieldConfirmedDateID,
-	FieldGoogleEventID,
 	FieldConfirmedGoogleEventID,
 	FieldSyncStatus,
 	FieldLastSyncedAt,
@@ -110,21 +107,10 @@ var Columns = []string{
 	FieldSlug,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "events"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"calendar_events",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -263,11 +249,6 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByConfirmedDateID orders the results by the confirmed_date_id field.
 func ByConfirmedDateID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldConfirmedDateID, opts...).ToFunc()
-}
-
-// ByGoogleEventID orders the results by the google_event_id field.
-func ByGoogleEventID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldGoogleEventID, opts...).ToFunc()
 }
 
 // ByConfirmedGoogleEventID orders the results by the confirmed_google_event_id field.

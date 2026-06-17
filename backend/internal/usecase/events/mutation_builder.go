@@ -15,7 +15,6 @@ func (uc *Usecase) recordEventSyncFailure(ctx context.Context, store EventTxStor
 func mergeEventChange(mutation EventMutation, change domainEvent.EventChange) EventMutation {
 	mutation.Status = change.Status
 	mutation.ConfirmedDateID = change.ConfirmedDateID
-	mutation.GoogleEventID = change.GoogleEventID
 	mutation.ConfirmedGoogleEventID = change.ConfirmedGoogleEventID
 	if change.Sync.Status != "" {
 		syncStatus := change.Sync.Status

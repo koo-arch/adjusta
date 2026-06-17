@@ -58,7 +58,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			Description:   storedEvent.Description,
 			Status:        storedEvent.Status,
 			SyncStatus:    storedEvent.SyncStatus,
-			GoogleEventID: domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID, storedEvent.GoogleEventID),
+			GoogleEventID: domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
 			ProposedDates: buildAppProposedDates(storedDates),
 		}
 

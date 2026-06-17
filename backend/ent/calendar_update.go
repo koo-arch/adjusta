@@ -137,21 +137,6 @@ func (cu *CalendarUpdate) ClearTimezone() *CalendarUpdate {
 	return cu
 }
 
-// AddEventIDs adds the "events" edge to the Event entity by IDs.
-func (cu *CalendarUpdate) AddEventIDs(ids ...uuid.UUID) *CalendarUpdate {
-	cu.mutation.AddEventIDs(ids...)
-	return cu
-}
-
-// AddEvents adds the "events" edges to the Event entity.
-func (cu *CalendarUpdate) AddEvents(e ...*Event) *CalendarUpdate {
-	ids := make([]uuid.UUID, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
-	}
-	return cu.AddEventIDs(ids...)
-}
-
 // AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
 func (cu *CalendarUpdate) AddUserCalendarIDs(ids ...uuid.UUID) *CalendarUpdate {
 	cu.mutation.AddUserCalendarIDs(ids...)
@@ -185,27 +170,6 @@ func (cu *CalendarUpdate) AddPrimaryEvents(e ...*Event) *CalendarUpdate {
 // Mutation returns the CalendarMutation object of the builder.
 func (cu *CalendarUpdate) Mutation() *CalendarMutation {
 	return cu.mutation
-}
-
-// ClearEvents clears all "events" edges to the Event entity.
-func (cu *CalendarUpdate) ClearEvents() *CalendarUpdate {
-	cu.mutation.ClearEvents()
-	return cu
-}
-
-// RemoveEventIDs removes the "events" edge to Event entities by IDs.
-func (cu *CalendarUpdate) RemoveEventIDs(ids ...uuid.UUID) *CalendarUpdate {
-	cu.mutation.RemoveEventIDs(ids...)
-	return cu
-}
-
-// RemoveEvents removes "events" edges to Event entities.
-func (cu *CalendarUpdate) RemoveEvents(e ...*Event) *CalendarUpdate {
-	ids := make([]uuid.UUID, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
-	}
-	return cu.RemoveEventIDs(ids...)
 }
 
 // ClearUserCalendars clears all "user_calendars" edges to the UserCalendar entity.
@@ -327,51 +291,6 @@ func (cu *CalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if cu.mutation.TimezoneCleared() {
 		_spec.ClearField(calendar.FieldTimezone, field.TypeString)
-	}
-	if cu.mutation.EventsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := cu.mutation.RemovedEventsIDs(); len(nodes) > 0 && !cu.mutation.EventsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := cu.mutation.EventsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if cu.mutation.UserCalendarsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -589,21 +508,6 @@ func (cuo *CalendarUpdateOne) ClearTimezone() *CalendarUpdateOne {
 	return cuo
 }
 
-// AddEventIDs adds the "events" edge to the Event entity by IDs.
-func (cuo *CalendarUpdateOne) AddEventIDs(ids ...uuid.UUID) *CalendarUpdateOne {
-	cuo.mutation.AddEventIDs(ids...)
-	return cuo
-}
-
-// AddEvents adds the "events" edges to the Event entity.
-func (cuo *CalendarUpdateOne) AddEvents(e ...*Event) *CalendarUpdateOne {
-	ids := make([]uuid.UUID, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
-	}
-	return cuo.AddEventIDs(ids...)
-}
-
 // AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
 func (cuo *CalendarUpdateOne) AddUserCalendarIDs(ids ...uuid.UUID) *CalendarUpdateOne {
 	cuo.mutation.AddUserCalendarIDs(ids...)
@@ -637,27 +541,6 @@ func (cuo *CalendarUpdateOne) AddPrimaryEvents(e ...*Event) *CalendarUpdateOne {
 // Mutation returns the CalendarMutation object of the builder.
 func (cuo *CalendarUpdateOne) Mutation() *CalendarMutation {
 	return cuo.mutation
-}
-
-// ClearEvents clears all "events" edges to the Event entity.
-func (cuo *CalendarUpdateOne) ClearEvents() *CalendarUpdateOne {
-	cuo.mutation.ClearEvents()
-	return cuo
-}
-
-// RemoveEventIDs removes the "events" edge to Event entities by IDs.
-func (cuo *CalendarUpdateOne) RemoveEventIDs(ids ...uuid.UUID) *CalendarUpdateOne {
-	cuo.mutation.RemoveEventIDs(ids...)
-	return cuo
-}
-
-// RemoveEvents removes "events" edges to Event entities.
-func (cuo *CalendarUpdateOne) RemoveEvents(e ...*Event) *CalendarUpdateOne {
-	ids := make([]uuid.UUID, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
-	}
-	return cuo.RemoveEventIDs(ids...)
 }
 
 // ClearUserCalendars clears all "user_calendars" edges to the UserCalendar entity.
@@ -809,51 +692,6 @@ func (cuo *CalendarUpdateOne) sqlSave(ctx context.Context) (_node *Calendar, err
 	}
 	if cuo.mutation.TimezoneCleared() {
 		_spec.ClearField(calendar.FieldTimezone, field.TypeString)
-	}
-	if cuo.mutation.EventsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := cuo.mutation.RemovedEventsIDs(); len(nodes) > 0 && !cuo.mutation.EventsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := cuo.mutation.EventsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if cuo.mutation.UserCalendarsCleared() {
 		edge := &sqlgraph.EdgeSpec{

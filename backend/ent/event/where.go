@@ -101,11 +101,6 @@ func ConfirmedDateID(v uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldConfirmedDateID, v))
 }
 
-// GoogleEventID applies equality check predicate on the "google_event_id" field. It's identical to GoogleEventIDEQ.
-func GoogleEventID(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldGoogleEventID, v))
-}
-
 // ConfirmedGoogleEventID applies equality check predicate on the "confirmed_google_event_id" field. It's identical to ConfirmedGoogleEventIDEQ.
 func ConfirmedGoogleEventID(v string) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldConfirmedGoogleEventID, v))
@@ -559,81 +554,6 @@ func ConfirmedDateIDIsNil() predicate.Event {
 // ConfirmedDateIDNotNil applies the NotNil predicate on the "confirmed_date_id" field.
 func ConfirmedDateIDNotNil() predicate.Event {
 	return predicate.Event(sql.FieldNotNull(FieldConfirmedDateID))
-}
-
-// GoogleEventIDEQ applies the EQ predicate on the "google_event_id" field.
-func GoogleEventIDEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDNEQ applies the NEQ predicate on the "google_event_id" field.
-func GoogleEventIDNEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldNEQ(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDIn applies the In predicate on the "google_event_id" field.
-func GoogleEventIDIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldIn(FieldGoogleEventID, vs...))
-}
-
-// GoogleEventIDNotIn applies the NotIn predicate on the "google_event_id" field.
-func GoogleEventIDNotIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldNotIn(FieldGoogleEventID, vs...))
-}
-
-// GoogleEventIDGT applies the GT predicate on the "google_event_id" field.
-func GoogleEventIDGT(v string) predicate.Event {
-	return predicate.Event(sql.FieldGT(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDGTE applies the GTE predicate on the "google_event_id" field.
-func GoogleEventIDGTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldGTE(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDLT applies the LT predicate on the "google_event_id" field.
-func GoogleEventIDLT(v string) predicate.Event {
-	return predicate.Event(sql.FieldLT(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDLTE applies the LTE predicate on the "google_event_id" field.
-func GoogleEventIDLTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldLTE(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDContains applies the Contains predicate on the "google_event_id" field.
-func GoogleEventIDContains(v string) predicate.Event {
-	return predicate.Event(sql.FieldContains(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDHasPrefix applies the HasPrefix predicate on the "google_event_id" field.
-func GoogleEventIDHasPrefix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasPrefix(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDHasSuffix applies the HasSuffix predicate on the "google_event_id" field.
-func GoogleEventIDHasSuffix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasSuffix(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDIsNil applies the IsNil predicate on the "google_event_id" field.
-func GoogleEventIDIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldGoogleEventID))
-}
-
-// GoogleEventIDNotNil applies the NotNil predicate on the "google_event_id" field.
-func GoogleEventIDNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldGoogleEventID))
-}
-
-// GoogleEventIDEqualFold applies the EqualFold predicate on the "google_event_id" field.
-func GoogleEventIDEqualFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldEqualFold(FieldGoogleEventID, v))
-}
-
-// GoogleEventIDContainsFold applies the ContainsFold predicate on the "google_event_id" field.
-func GoogleEventIDContainsFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldContainsFold(FieldGoogleEventID, v))
 }
 
 // ConfirmedGoogleEventIDEQ applies the EQ predicate on the "confirmed_google_event_id" field.

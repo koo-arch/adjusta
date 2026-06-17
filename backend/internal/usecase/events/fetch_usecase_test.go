@@ -75,9 +75,6 @@ func applyEventMutation(record *EventRecord, opt EventMutation) {
 	if opt.ConfirmedDateID != nil {
 		record.ConfirmedDateID = *opt.ConfirmedDateID
 	}
-	if opt.GoogleEventID != nil {
-		record.GoogleEventID = *opt.GoogleEventID
-	}
 	if opt.ConfirmedGoogleEventID != nil {
 		confirmedGoogleEventID := *opt.ConfirmedGoogleEventID
 		record.ConfirmedGoogleEventID = &confirmedGoogleEventID

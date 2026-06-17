@@ -50,9 +50,6 @@ func TestNewSyncedEventChange(t *testing.T) {
 	if change.ConfirmedDateID == nil || *change.ConfirmedDateID != confirmedDateID {
 		t.Fatalf("unexpected confirmed date id: %#v", change.ConfirmedDateID)
 	}
-	if change.GoogleEventID == nil || *change.GoogleEventID != "google-event-id" {
-		t.Fatalf("unexpected google event id: %#v", change.GoogleEventID)
-	}
 	if change.ConfirmedGoogleEventID == nil || *change.ConfirmedGoogleEventID != "google-event-id" {
 		t.Fatalf("unexpected confirmed google event id: %#v", change.ConfirmedGoogleEventID)
 	}
@@ -183,10 +180,10 @@ func TestNewFailedProposedDateChange(t *testing.T) {
 func TestResolveGoogleEventID(t *testing.T) {
 	confirmedGoogleEventID := "confirmed-google-event-id"
 
-	if got := ResolveGoogleEventID(&confirmedGoogleEventID, "legacy-google-event-id"); got != "confirmed-google-event-id" {
+	if got := ResolveGoogleEventID(&confirmedGoogleEventID); got != "confirmed-google-event-id" {
 		t.Fatalf("unexpected resolved google event id: %q", got)
 	}
-	if got := ResolveGoogleEventID(nil, "legacy-google-event-id"); got != "legacy-google-event-id" {
+	if got := ResolveGoogleEventID(nil); got != "" {
 		t.Fatalf("unexpected fallback google event id: %q", got)
 	}
 }
@@ -195,22 +192,22 @@ func TestResolveReusableGoogleEventID(t *testing.T) {
 	confirmDateID := uuid.New()
 	confirmedGoogleEventID := "confirmed-google-event-id"
 
-	if got := ResolveReusableGoogleEventID(nil, &confirmedGoogleEventID, "requested-google-event-id", "legacy-google-event-id"); got != nil {
+	if got := ResolveReusableGoogleEventID(nil, &confirmedGoogleEventID, "requested-google-event-id"); got != nil {
 		t.Fatalf("expected nil without confirmed date id, got %#v", got)
 	}
 
-	got := ResolveReusableGoogleEventID(&confirmDateID, &confirmedGoogleEventID, "requested-google-event-id", "legacy-google-event-id")
+	got := ResolveReusableGoogleEventID(&confirmDateID, &confirmedGoogleEventID, "requested-google-event-id")
 	if got == nil || *got != confirmedGoogleEventID {
 		t.Fatalf("unexpected resolved confirmed google event id: %#v", got)
 	}
 
-	got = ResolveReusableGoogleEventID(&confirmDateID, nil, "requested-google-event-id", "legacy-google-event-id")
+	got = ResolveReusableGoogleEventID(&confirmDateID, nil, "requested-google-event-id")
 	if got == nil || *got != "requested-google-event-id" {
 		t.Fatalf("unexpected requested google event id: %#v", got)
 	}
 
-	got = ResolveReusableGoogleEventID(&confirmDateID, nil, "", "legacy-google-event-id")
-	if got == nil || *got != "legacy-google-event-id" {
-		t.Fatalf("unexpected legacy google event id: %#v", got)
+	got = ResolveReusableGoogleEventID(&confirmDateID, nil, "")
+	if got != nil {
+		t.Fatalf("expected nil without reusable google event id, got %#v", got)
 	}
 }

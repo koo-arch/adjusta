@@ -59,16 +59,14 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "title", Type: field.TypeString},
-		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "location", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"draft", "active", "confirmed", "cancelled"}, Default: "active"},
-		{Name: "google_event_id", Type: field.TypeString, Nullable: true},
 		{Name: "confirmed_google_event_id", Type: field.TypeString, Nullable: true},
 		{Name: "sync_status", Type: field.TypeEnum, Enums: []string{"not_synced", "pending_sync", "synced", "sync_failed"}, Default: "not_synced"},
 		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_sync_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "slug", Type: field.TypeString, Unique: true},
-		{Name: "calendar_events", Type: field.TypeUUID, Nullable: true},
 		{Name: "primary_calendar_id", Type: field.TypeUUID},
 		{Name: "confirmed_date_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "user_id", Type: field.TypeUUID},
@@ -80,26 +78,20 @@ var (
 		PrimaryKey: []*schema.Column{EventsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "events_calendars_events",
-				Columns:    []*schema.Column{EventsColumns[14]},
-				RefColumns: []*schema.Column{CalendarsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
 				Symbol:     "events_calendars_primary_events",
-				Columns:    []*schema.Column{EventsColumns[15]},
+				Columns:    []*schema.Column{EventsColumns[13]},
 				RefColumns: []*schema.Column{CalendarsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "events_proposed_dates_confirmed_date",
-				Columns:    []*schema.Column{EventsColumns[16]},
+				Columns:    []*schema.Column{EventsColumns[14]},
 				RefColumns: []*schema.Column{ProposedDatesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "events_users_events",
-				Columns:    []*schema.Column{EventsColumns[17]},
+				Columns:    []*schema.Column{EventsColumns[15]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -108,17 +100,17 @@ var (
 			{
 				Name:    "event_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[17]},
+				Columns: []*schema.Column{EventsColumns[15]},
 			},
 			{
 				Name:    "event_primary_calendar_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[15]},
+				Columns: []*schema.Column{EventsColumns[13]},
 			},
 			{
 				Name:    "event_confirmed_date_id",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[16]},
+				Columns: []*schema.Column{EventsColumns[14]},
 			},
 			{
 				Name:    "event_status",
@@ -128,7 +120,7 @@ var (
 			{
 				Name:    "event_sync_status",
 				Unique:  false,
-				Columns: []*schema.Column{EventsColumns[10]},
+				Columns: []*schema.Column{EventsColumns[9]},
 			},
 		},
 	}
@@ -320,9 +312,8 @@ var (
 func init() {
 	AccountsTable.ForeignKeys[0].RefTable = UsersTable
 	EventsTable.ForeignKeys[0].RefTable = CalendarsTable
-	EventsTable.ForeignKeys[1].RefTable = CalendarsTable
-	EventsTable.ForeignKeys[2].RefTable = ProposedDatesTable
-	EventsTable.ForeignKeys[3].RefTable = UsersTable
+	EventsTable.ForeignKeys[1].RefTable = ProposedDatesTable
+	EventsTable.ForeignKeys[2].RefTable = UsersTable
 	ProposedDatesTable.ForeignKeys[0].RefTable = EventsTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	UserCalendarsTable.ForeignKeys[0].RefTable = CalendarsTable

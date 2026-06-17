@@ -18,7 +18,6 @@ type SyncChange struct {
 type EventChange struct {
 	Status                 *domainvalue.EventStatus
 	ConfirmedDateID        *uuid.UUID
-	GoogleEventID          *string
 	ConfirmedGoogleEventID *string
 	Sync                   SyncChange
 }
@@ -55,7 +54,6 @@ func NewSyncedEventChange(status domainvalue.EventStatus, confirmedDateID uuid.U
 	return EventChange{
 		Status:                 &status,
 		ConfirmedDateID:        &confirmedDateID,
-		GoogleEventID:          &googleEventID,
 		ConfirmedGoogleEventID: &googleEventID,
 		Sync: SyncChange{
 			Status:             domainvalue.SyncStatusSynced,
@@ -133,14 +131,14 @@ func NewSyncedEventSyncChange(syncedAt time.Time) EventChange {
 	}
 }
 
-func ResolveGoogleEventID(confirmedGoogleEventID *string, googleEventID string) string {
+func ResolveGoogleEventID(confirmedGoogleEventID *string) string {
 	if confirmedGoogleEventID != nil && *confirmedGoogleEventID != "" {
 		return *confirmedGoogleEventID
 	}
-	return googleEventID
+	return ""
 }
 
-func ResolveReusableGoogleEventID(confirmDateID *uuid.UUID, confirmedGoogleEventID *string, requestedGoogleEventID, googleEventID string) *string {
+func ResolveReusableGoogleEventID(confirmDateID *uuid.UUID, confirmedGoogleEventID *string, requestedGoogleEventID string) *string {
 	if confirmDateID == nil {
 		return nil
 	}
@@ -149,9 +147,6 @@ func ResolveReusableGoogleEventID(confirmDateID *uuid.UUID, confirmedGoogleEvent
 	}
 	if requestedGoogleEventID != "" {
 		return &requestedGoogleEventID
-	}
-	if googleEventID != "" {
-		return &googleEventID
 	}
 	return nil
 }

@@ -140,20 +140,6 @@ func (ec *EventCreate) SetNillableConfirmedDateID(u *uuid.UUID) *EventCreate {
 	return ec
 }
 
-// SetGoogleEventID sets the "google_event_id" field.
-func (ec *EventCreate) SetGoogleEventID(s string) *EventCreate {
-	ec.mutation.SetGoogleEventID(s)
-	return ec
-}
-
-// SetNillableGoogleEventID sets the "google_event_id" field if the given value is not nil.
-func (ec *EventCreate) SetNillableGoogleEventID(s *string) *EventCreate {
-	if s != nil {
-		ec.SetGoogleEventID(*s)
-	}
-	return ec
-}
-
 // SetConfirmedGoogleEventID sets the "confirmed_google_event_id" field.
 func (ec *EventCreate) SetConfirmedGoogleEventID(s string) *EventCreate {
 	ec.mutation.SetConfirmedGoogleEventID(s)
@@ -438,10 +424,6 @@ func (ec *EventCreate) createSpec() (*Event, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.Status(); ok {
 		_spec.SetField(event.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
-	}
-	if value, ok := ec.mutation.GoogleEventID(); ok {
-		_spec.SetField(event.FieldGoogleEventID, field.TypeString, value)
-		_node.GoogleEventID = value
 	}
 	if value, ok := ec.mutation.ConfirmedGoogleEventID(); ok {
 		_spec.SetField(event.FieldConfirmedGoogleEventID, field.TypeString, value)

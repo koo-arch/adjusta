@@ -897,9 +897,6 @@ type CalendarMutation struct {
 	description           *string
 	timezone              *string
 	clearedFields         map[string]struct{}
-	events                map[uuid.UUID]struct{}
-	removedevents         map[uuid.UUID]struct{}
-	clearedevents         bool
 	user_calendars        map[uuid.UUID]struct{}
 	removeduser_calendars map[uuid.UUID]struct{}
 	cleareduser_calendars bool
@@ -1332,60 +1329,6 @@ func (m *CalendarMutation) ResetTimezone() {
 	delete(m.clearedFields, calendar.FieldTimezone)
 }
 
-// AddEventIDs adds the "events" edge to the Event entity by ids.
-func (m *CalendarMutation) AddEventIDs(ids ...uuid.UUID) {
-	if m.events == nil {
-		m.events = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.events[ids[i]] = struct{}{}
-	}
-}
-
-// ClearEvents clears the "events" edge to the Event entity.
-func (m *CalendarMutation) ClearEvents() {
-	m.clearedevents = true
-}
-
-// EventsCleared reports if the "events" edge to the Event entity was cleared.
-func (m *CalendarMutation) EventsCleared() bool {
-	return m.clearedevents
-}
-
-// RemoveEventIDs removes the "events" edge to the Event entity by IDs.
-func (m *CalendarMutation) RemoveEventIDs(ids ...uuid.UUID) {
-	if m.removedevents == nil {
-		m.removedevents = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.events, ids[i])
-		m.removedevents[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedEvents returns the removed IDs of the "events" edge to the Event entity.
-func (m *CalendarMutation) RemovedEventsIDs() (ids []uuid.UUID) {
-	for id := range m.removedevents {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// EventsIDs returns the "events" edge IDs in the mutation.
-func (m *CalendarMutation) EventsIDs() (ids []uuid.UUID) {
-	for id := range m.events {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetEvents resets all changes to the "events" edge.
-func (m *CalendarMutation) ResetEvents() {
-	m.events = nil
-	m.clearedevents = false
-	m.removedevents = nil
-}
-
 // AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by ids.
 func (m *CalendarMutation) AddUserCalendarIDs(ids ...uuid.UUID) {
 	if m.user_calendars == nil {
@@ -1762,10 +1705,7 @@ func (m *CalendarMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CalendarMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
-	if m.events != nil {
-		edges = append(edges, calendar.EdgeEvents)
-	}
+	edges := make([]string, 0, 2)
 	if m.user_calendars != nil {
 		edges = append(edges, calendar.EdgeUserCalendars)
 	}
@@ -1779,12 +1719,6 @@ func (m *CalendarMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *CalendarMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case calendar.EdgeEvents:
-		ids := make([]ent.Value, 0, len(m.events))
-		for id := range m.events {
-			ids = append(ids, id)
-		}
-		return ids
 	case calendar.EdgeUserCalendars:
 		ids := make([]ent.Value, 0, len(m.user_calendars))
 		for id := range m.user_calendars {
@@ -1803,10 +1737,7 @@ func (m *CalendarMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CalendarMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
-	if m.removedevents != nil {
-		edges = append(edges, calendar.EdgeEvents)
-	}
+	edges := make([]string, 0, 2)
 	if m.removeduser_calendars != nil {
 		edges = append(edges, calendar.EdgeUserCalendars)
 	}
@@ -1820,12 +1751,6 @@ func (m *CalendarMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *CalendarMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case calendar.EdgeEvents:
-		ids := make([]ent.Value, 0, len(m.removedevents))
-		for id := range m.removedevents {
-			ids = append(ids, id)
-		}
-		return ids
 	case calendar.EdgeUserCalendars:
 		ids := make([]ent.Value, 0, len(m.removeduser_calendars))
 		for id := range m.removeduser_calendars {
@@ -1844,10 +1769,7 @@ func (m *CalendarMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CalendarMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
-	if m.clearedevents {
-		edges = append(edges, calendar.EdgeEvents)
-	}
+	edges := make([]string, 0, 2)
 	if m.cleareduser_calendars {
 		edges = append(edges, calendar.EdgeUserCalendars)
 	}
@@ -1861,8 +1783,6 @@ func (m *CalendarMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *CalendarMutation) EdgeCleared(name string) bool {
 	switch name {
-	case calendar.EdgeEvents:
-		return m.clearedevents
 	case calendar.EdgeUserCalendars:
 		return m.cleareduser_calendars
 	case calendar.EdgePrimaryEvents:
@@ -1883,9 +1803,6 @@ func (m *CalendarMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CalendarMutation) ResetEdge(name string) error {
 	switch name {
-	case calendar.EdgeEvents:
-		m.ResetEvents()
-		return nil
 	case calendar.EdgeUserCalendars:
 		m.ResetUserCalendars()
 		return nil
@@ -1909,7 +1826,6 @@ type EventMutation struct {
 	description               *string
 	location                  *string
 	status                    *event.Status
-	google_event_id           *string
 	confirmed_google_event_id *string
 	sync_status               *event.SyncStatus
 	last_synced_at            *time.Time
@@ -2446,55 +2362,6 @@ func (m *EventMutation) ResetConfirmedDateID() {
 	delete(m.clearedFields, event.FieldConfirmedDateID)
 }
 
-// SetGoogleEventID sets the "google_event_id" field.
-func (m *EventMutation) SetGoogleEventID(s string) {
-	m.google_event_id = &s
-}
-
-// GoogleEventID returns the value of the "google_event_id" field in the mutation.
-func (m *EventMutation) GoogleEventID() (r string, exists bool) {
-	v := m.google_event_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldGoogleEventID returns the old "google_event_id" field's value of the Event entity.
-// If the Event object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EventMutation) OldGoogleEventID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldGoogleEventID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldGoogleEventID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldGoogleEventID: %w", err)
-	}
-	return oldValue.GoogleEventID, nil
-}
-
-// ClearGoogleEventID clears the value of the "google_event_id" field.
-func (m *EventMutation) ClearGoogleEventID() {
-	m.google_event_id = nil
-	m.clearedFields[event.FieldGoogleEventID] = struct{}{}
-}
-
-// GoogleEventIDCleared returns if the "google_event_id" field was cleared in this mutation.
-func (m *EventMutation) GoogleEventIDCleared() bool {
-	_, ok := m.clearedFields[event.FieldGoogleEventID]
-	return ok
-}
-
-// ResetGoogleEventID resets all changes to the "google_event_id" field.
-func (m *EventMutation) ResetGoogleEventID() {
-	m.google_event_id = nil
-	delete(m.clearedFields, event.FieldGoogleEventID)
-}
-
 // SetConfirmedGoogleEventID sets the "confirmed_google_event_id" field.
 func (m *EventMutation) SetConfirmedGoogleEventID(s string) {
 	m.confirmed_google_event_id = &s
@@ -2883,7 +2750,7 @@ func (m *EventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EventMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 15)
 	if m.created_at != nil {
 		fields = append(fields, event.FieldCreatedAt)
 	}
@@ -2913,9 +2780,6 @@ func (m *EventMutation) Fields() []string {
 	}
 	if m.confirmed_date != nil {
 		fields = append(fields, event.FieldConfirmedDateID)
-	}
-	if m.google_event_id != nil {
-		fields = append(fields, event.FieldGoogleEventID)
 	}
 	if m.confirmed_google_event_id != nil {
 		fields = append(fields, event.FieldConfirmedGoogleEventID)
@@ -2960,8 +2824,6 @@ func (m *EventMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case event.FieldConfirmedDateID:
 		return m.ConfirmedDateID()
-	case event.FieldGoogleEventID:
-		return m.GoogleEventID()
 	case event.FieldConfirmedGoogleEventID:
 		return m.ConfirmedGoogleEventID()
 	case event.FieldSyncStatus:
@@ -3001,8 +2863,6 @@ func (m *EventMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldStatus(ctx)
 	case event.FieldConfirmedDateID:
 		return m.OldConfirmedDateID(ctx)
-	case event.FieldGoogleEventID:
-		return m.OldGoogleEventID(ctx)
 	case event.FieldConfirmedGoogleEventID:
 		return m.OldConfirmedGoogleEventID(ctx)
 	case event.FieldSyncStatus:
@@ -3092,13 +2952,6 @@ func (m *EventMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetConfirmedDateID(v)
 		return nil
-	case event.FieldGoogleEventID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetGoogleEventID(v)
-		return nil
 	case event.FieldConfirmedGoogleEventID:
 		v, ok := value.(string)
 		if !ok {
@@ -3176,9 +3029,6 @@ func (m *EventMutation) ClearedFields() []string {
 	if m.FieldCleared(event.FieldConfirmedDateID) {
 		fields = append(fields, event.FieldConfirmedDateID)
 	}
-	if m.FieldCleared(event.FieldGoogleEventID) {
-		fields = append(fields, event.FieldGoogleEventID)
-	}
 	if m.FieldCleared(event.FieldConfirmedGoogleEventID) {
 		fields = append(fields, event.FieldConfirmedGoogleEventID)
 	}
@@ -3213,9 +3063,6 @@ func (m *EventMutation) ClearField(name string) error {
 		return nil
 	case event.FieldConfirmedDateID:
 		m.ClearConfirmedDateID()
-		return nil
-	case event.FieldGoogleEventID:
-		m.ClearGoogleEventID()
 		return nil
 	case event.FieldConfirmedGoogleEventID:
 		m.ClearConfirmedGoogleEventID()
@@ -3263,9 +3110,6 @@ func (m *EventMutation) ResetField(name string) error {
 		return nil
 	case event.FieldConfirmedDateID:
 		m.ResetConfirmedDateID()
-		return nil
-	case event.FieldGoogleEventID:
-		m.ResetGoogleEventID()
 		return nil
 	case event.FieldConfirmedGoogleEventID:
 		m.ResetConfirmedGoogleEventID()

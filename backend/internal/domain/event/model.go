@@ -17,7 +17,6 @@ type Event struct {
 	Description            string
 	Status                 domainvalue.EventStatus
 	ConfirmedDateID        uuid.UUID
-	GoogleEventID          string
 	ConfirmedGoogleEventID *string
 	SyncStatus             domainvalue.SyncStatus
 	LastSyncedAt           *time.Time

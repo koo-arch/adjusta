@@ -43,7 +43,6 @@ type EventRecord struct {
 	Description            string
 	Status                 domainvalue.EventStatus
 	ConfirmedDateID        uuid.UUID
-	GoogleEventID          string
 	ConfirmedGoogleEventID *string
 	SyncStatus             domainvalue.SyncStatus
 	LastSyncedAt           *time.Time
@@ -108,7 +107,6 @@ type EventMutation struct {
 	Status                 *domainvalue.EventStatus
 	SyncStatus             *domainvalue.SyncStatus
 	ConfirmedDateID        *uuid.UUID
-	GoogleEventID          *string
 	ConfirmedGoogleEventID *string
 	LastSyncedAt           *time.Time
 	ClearLastSyncedAt      bool

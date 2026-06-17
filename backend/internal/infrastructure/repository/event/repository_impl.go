@@ -101,10 +101,6 @@ func (r *EventRepositoryImpl) FindBySlugAndUser(ctx context.Context, userID uuid
 func (r *EventRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, opt EventCreateOptions, primaryCalendarID uuid.UUID) (*repoEvent.Event, error) {
 	eventCreate := r.client.Event.Create()
 
-	if opt.GoogleEventID != nil && *opt.GoogleEventID != "" {
-		eventCreate = eventCreate.SetGoogleEventID(*opt.GoogleEventID)
-	}
-
 	eventCreate = eventCreate.
 		SetUserID(userID).
 		SetPrimaryCalendarID(primaryCalendarID).
@@ -146,10 +142,6 @@ func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt Even
 
 	if opt.ConfirmedDateID != nil {
 		eventUpdate = eventUpdate.SetConfirmedDateID(*opt.ConfirmedDateID)
-	}
-
-	if opt.GoogleEventID != nil {
-		eventUpdate = eventUpdate.SetGoogleEventID(*opt.GoogleEventID)
 	}
 
 	if opt.ConfirmedGoogleEventID != nil {
@@ -226,10 +218,6 @@ func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendar
 
 	if opt.ConfirmedDateID != nil {
 		query = query.Where(event.ConfirmedDateIDEQ(*opt.ConfirmedDateID))
-	}
-
-	if opt.GoogleEventID != nil {
-		query = query.Where(event.GoogleEventIDEQ(*opt.GoogleEventID))
 	}
 
 	if opt.ConfirmedGoogleEventID != nil {
@@ -319,7 +307,6 @@ func toEvent(entity *ent.Event) *repoEvent.Event {
 		Description:            entity.Description,
 		Status:                 domainvalue.EventStatus(entity.Status),
 		ConfirmedDateID:        entity.ConfirmedDateID,
-		GoogleEventID:          entity.GoogleEventID,
 		ConfirmedGoogleEventID: entity.ConfirmedGoogleEventID,
 		SyncStatus:             domainvalue.SyncStatus(entity.SyncStatus),
 		LastSyncedAt:           entity.LastSyncedAt,

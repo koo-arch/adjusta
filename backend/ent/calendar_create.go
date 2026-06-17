@@ -135,21 +135,6 @@ func (cc *CalendarCreate) SetNillableID(u *uuid.UUID) *CalendarCreate {
 	return cc
 }
 
-// AddEventIDs adds the "events" edge to the Event entity by IDs.
-func (cc *CalendarCreate) AddEventIDs(ids ...uuid.UUID) *CalendarCreate {
-	cc.mutation.AddEventIDs(ids...)
-	return cc
-}
-
-// AddEvents adds the "events" edges to the Event entity.
-func (cc *CalendarCreate) AddEvents(e ...*Event) *CalendarCreate {
-	ids := make([]uuid.UUID, len(e))
-	for i := range e {
-		ids[i] = e[i].ID
-	}
-	return cc.AddEventIDs(ids...)
-}
-
 // AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
 func (cc *CalendarCreate) AddUserCalendarIDs(ids ...uuid.UUID) *CalendarCreate {
 	cc.mutation.AddUserCalendarIDs(ids...)
@@ -299,22 +284,6 @@ func (cc *CalendarCreate) createSpec() (*Calendar, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.Timezone(); ok {
 		_spec.SetField(calendar.FieldTimezone, field.TypeString, value)
 		_node.Timezone = &value
-	}
-	if nodes := cc.mutation.EventsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   calendar.EventsTable,
-			Columns: []string{calendar.EventsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := cc.mutation.UserCalendarsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
