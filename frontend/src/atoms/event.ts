@@ -1,6 +1,3 @@
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
+import { atomFamily, atomWithReset } from 'jotai/utils';
 
-export const isConfirmedAtomFamily = atomFamily((eventID?: string) => {
-    return atom(false);
-})
+export const isConfirmedAtomFamily = atomFamily((formScope: string) => atomWithReset(false));

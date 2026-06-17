@@ -1,30 +1,29 @@
 'use client'
 import React from 'react';
-import { useAtom } from 'jotai';
-import type { SelectedDate, ProposedDate } from '@/atoms/calendar';
 import DraggableList from '@/components/DraggableList';
 import WrapText from '@/components/WrapText';
 import { formatJaDateSpan } from '@/lib/date/format';
 import IconButton from '@/components/IconButton';
 import { TrashIcon } from '@heroicons/react/20/solid';
+import type { ProposedDate, SelectedDate } from './form-state';
 
-interface DraggableEventListProps {
-    atom: any;
+interface DraggableEventListProps<T extends SelectedDate | ProposedDate> {
+    dates: T[];
+    onDatesChange: React.Dispatch<React.SetStateAction<T[]>>;
     enableTopHighlight?: boolean;
 }
 
 const DraggableEventList = <T extends SelectedDate | ProposedDate>({
-    atom,
+    dates,
+    onDatesChange,
     enableTopHighlight
- }: DraggableEventListProps) => {
-    const [dates, setDates] = useAtom<T[]>(atom);
-
+ }: DraggableEventListProps<T>) => {
     const handleReorder = (newDates: T[]) => {
-        setDates(newDates);
+        onDatesChange(newDates);
     }
 
     const handleDelete = (id: string) => {
-        setDates(dates.filter(date => date.id !== id));
+        onDatesChange(dates.filter(date => date.id !== id));
     }
 
     return (
@@ -45,7 +44,6 @@ const DraggableEventList = <T extends SelectedDate | ProposedDate>({
                         type="button"
                         onClick={() => {
                             handleDelete(date.id);
-                            console.log('delete');
                         }}
                         className="ml-1"
                         iconSize="md"

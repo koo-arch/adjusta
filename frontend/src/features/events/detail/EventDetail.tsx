@@ -1,34 +1,32 @@
 'use client'
-import React, { useEffect } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import { useFetchEventDetail } from '@/hooks/event/useFetchEventDetail';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import DetailCard from './DetailCard';
 
 const EventDetail = () => {
     const params = useParams<{id: string}>();
-    const router = useRouter();
-
     const { eventDetail, isLoading, error } = useFetchEventDetail(params.id);
-
-    useEffect(() => {
-        if (!isLoading && (!eventDetail || error)) {
-            router.replace('/schedule/draft');
-        }
-    },[isLoading, eventDetail, error, router]);
 
     if (isLoading) {
         return <p>Loading...</p>;
     }
 
     if (error || !eventDetail) {
-        return null;
+        return (
+            <div className="py-8 text-center">
+                <p className="mb-4 text-sm text-gray-500">イベントが見つかりませんでした。</p>
+                <Link href="/schedule/draft" className="text-sm text-indigo-600 hover:underline">
+                    イベント一覧へ戻る
+                </Link>
+            </div>
+        );
     }
 
     return (
         <div>
-            {eventDetail &&
-                <DetailCard detail={eventDetail} eventID={params.id} />
-            }
+            <DetailCard detail={eventDetail} eventID={params.id} />
         </div>
     );
 };

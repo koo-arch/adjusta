@@ -1,7 +1,5 @@
 'use client'
-import React, { useState } from 'react';
-import { toast } from 'react-toastify';
-import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
+import React, { useMemo, useState } from 'react';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import ToggleButton from '@/components/ToggleButton';
@@ -10,10 +8,11 @@ import DropdownSelect from '@/components/DropdownSelect';
 import { formatJaDateSpan } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { EventDraftDetail } from '@/hooks/event/type';
+import { useConfirmEventMutation } from '@/hooks/event/useConfirmEventMutation';
+import { buildZodFieldErrors } from '@/lib/validation/zod';
 import { MdEditCalendar } from 'react-icons/md';
 import { FaRegCalendarCheck } from 'react-icons/fa6';
-import { apiClient } from '@/lib/api/client';
-import { type ConfirmForm, ConfirmFormResolver } from './zod';
+import { ConfirmFormSchema, type ConfirmFormErrors } from './zod';
 
 interface ConfirmButtonProps {
     eventID: string;
@@ -21,48 +20,102 @@ interface ConfirmButtonProps {
     isConfirmed: boolean;
 }
 
-const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfirmed }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const proposedDates = detail.proposed_dates || [];
-    const [isDropdownSelected, setIsDropdownSelected] = useState(true); // ドロップダウンが選ばれているかどうか
-    const confirmedGoogleEventID = detail.confirmed_google_event_id ?? detail.google_event_id;
+interface ConfirmDateInput {
+    id: string | null;
+    google_event_id?: string;
+    start: Date | null;
+    end: Date | null;
+    priority: number;
+}
 
-    const method = useForm<ConfirmForm>({
-        resolver: ConfirmFormResolver,
-        defaultValues: {
-            confirm_date: {
-                id: null,
-                google_event_id: confirmedGoogleEventID,
-                priority: 0,
-            }
-        }
-    });
-    const { control, handleSubmit, reset, formState: { errors } } = method;
+const buildEmptyConfirmDate = (googleEventID?: string): ConfirmDateInput => ({
+    id: null,
+    google_event_id: googleEventID,
+    start: null,
+    end: null,
+    priority: 0,
+});
+
+const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfirmed }) => {
+    const confirmEventMutation = useConfirmEventMutation(eventID);
+    const proposedDates = detail.proposed_dates;
+    const confirmedGoogleEventID = detail.confirmed_google_event_id ?? detail.google_event_id;
+    const [isOpen, setIsOpen] = useState(false);
+    const [isDropdownSelected, setIsDropdownSelected] = useState(true);
+    const [confirmDate, setConfirmDate] = useState<ConfirmDateInput>(buildEmptyConfirmDate(confirmedGoogleEventID));
+    const [clientErrors, setClientErrors] = useState<ConfirmFormErrors>({});
+
+    const errors = {
+        ...confirmEventMutation.errors.fieldErrors,
+        ...clientErrors,
+    };
+
+    const selectedProposedDate = useMemo(
+        () => proposedDates.find((date) => date.id === confirmDate.id) ?? null,
+        [confirmDate.id, proposedDates],
+    );
+
+    const resetMutationErrorState = () => {
+        confirmEventMutation.reset();
+    };
+
+    const resetConfirmDate = () => {
+        setClientErrors({});
+        setConfirmDate(buildEmptyConfirmDate(confirmedGoogleEventID));
+        resetMutationErrorState();
+    };
 
     const handleToggle = (selected: string) => {
         setIsDropdownSelected(selected === '候補日程を選択');
-        reset();
-    }
+        resetConfirmDate();
+    };
 
-    const patchConfirmDate = async (data: ConfirmForm) => {
-        return apiClient.patch<void, ConfirmForm>(`/api/calendar/event/confirm/${eventID}`, data);
-    }
+    const handleSelectProposedDate = (date: EventDraftDetail['proposed_dates'][number] | null) => {
+        setClientErrors((prev) => ({ ...prev, confirm_date: undefined }));
+        resetMutationErrorState();
 
+        if (!date) {
+            setConfirmDate(buildEmptyConfirmDate(confirmedGoogleEventID));
+            return;
+        }
 
-    const onSubmit: SubmitHandler<ConfirmForm> = (data) => {
-        console.log(data);
-        patchConfirmDate(data)
-            .then(res => {
-                console.log(res);
-                setIsOpen(false);
-                toast.success('日程を確定しました');
-            })
-            .catch(err => {
-                console.log(err);
-                toast.error('日程の確定に失敗しました');
-            }
-        )
-    }
+        setConfirmDate({
+            id: date.id,
+            google_event_id: date.google_event_id,
+            start: date.start,
+            end: date.end,
+            priority: date.priority,
+        });
+    };
+
+    const handleSubmit = async () => {
+        if (isDropdownSelected && !selectedProposedDate) {
+            setClientErrors({ confirm_date: '日程を選択してください' });
+            return;
+        }
+
+        const payload = {
+            confirm_date: {
+                id: confirmDate.id,
+                google_event_id: confirmDate.google_event_id,
+                start: confirmDate.start as Date,
+                end: confirmDate.end as Date,
+                priority: confirmDate.priority,
+            },
+        };
+
+        const result = ConfirmFormSchema.safeParse(payload);
+        if (!result.success) {
+            setClientErrors(buildZodFieldErrors<keyof ConfirmFormErrors>(result.error));
+            return;
+        }
+
+        setClientErrors({});
+        const confirmed = await confirmEventMutation.submit(result.data);
+        if (confirmed) {
+            setIsOpen(false);
+        }
+    };
 
     return (
         <>
@@ -87,14 +140,23 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                         variant='solid'
                         intent='primary'
                         size='md'
-                        type='submit'
-                        onClick={() => handleSubmit(onSubmit)()}
+                        type='button'
+                        onClick={handleSubmit}
+                        disabled={confirmEventMutation.isPending}
                     >
                         確定
                     </Button>
                 }
             >
-                {/* 切り替え用ボタン */}
+                {confirmEventMutation.errors.formErrors.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                        {confirmEventMutation.errors.formErrors.map((message) => (
+                            <p key={message} className="text-sm text-red-500">
+                                {message}
+                            </p>
+                        ))}
+                    </div>
+                )}
                 <div className="mb-4">
                     <ToggleButton
                         options={['候補日程を選択', '手動で入力']}
@@ -103,55 +165,46 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                         renderLabel={(option) => option}
                     />
                 </div>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    {isDropdownSelected ? 
-                    <Controller
-                        control={control}
-                        name='confirm_date'
-                        render={({ field }) => (
-                            <DropdownSelect
-                                label='日程'
-                                options={proposedDates}
-                                renderLabel={(date) => 
-                                    date && (
-                                        <>
-                                            {`${formatJaDateSpan(date.start, date.end)}`}
-                                        </>
-                                    )
-                                }
-                                onChange={field.onChange}
-                                error={!!errors.confirm_date}
-                                helperText={errors.confirm_date?.message}
-                            />
-                        )}
+                {isDropdownSelected ? 
+                    <DropdownSelect
+                        label='日程'
+                        options={proposedDates}
+                        value={selectedProposedDate}
+                        renderLabel={(date) => 
+                            date && (
+                                <>
+                                    {`${formatJaDateSpan(date.start, date.end)}`}
+                                </>
+                            )
+                        }
+                        onChange={handleSelectProposedDate}
+                        error={!!errors.confirm_date}
+                        helperText={errors.confirm_date}
                     /> : 
                     <div>
-                        <Controller
-                            control={control}
-                            name='confirm_date.start'
-                            render={({ field }) => (
-                                <DateTimePicker
-                                    label='開始日時'
-                                    onChange={field.onChange}
-                                    error={!!errors.confirm_date?.start}
-                                    helperText={errors.confirm_date?.start?.message}
-                                />
-                            )}
+                        <DateTimePicker
+                            label='開始日時'
+                            selected={confirmDate.start}
+                            onChange={(date) => {
+                                setConfirmDate((prev) => ({ ...prev, start: date }));
+                                setClientErrors((prev) => ({ ...prev, 'confirm_date.start': undefined }));
+                                resetMutationErrorState();
+                            }}
+                            error={!!errors['confirm_date.start']}
+                            helperText={errors['confirm_date.start']}
                         />
-                        <Controller
-                            control={control}
-                            name='confirm_date.end'
-                            render={({ field }) => (
-                                <DateTimePicker
-                                    label='終了日時'
-                                    onChange={field.onChange}
-                                    error={!!errors.confirm_date?.end}
-                                    helperText={errors.confirm_date?.end?.message}
-                                />
-                            )}
+                        <DateTimePicker
+                            label='終了日時'
+                            selected={confirmDate.end}
+                            onChange={(date) => {
+                                setConfirmDate((prev) => ({ ...prev, end: date }));
+                                setClientErrors((prev) => ({ ...prev, 'confirm_date.end': undefined }));
+                                resetMutationErrorState();
+                            }}
+                            error={!!errors['confirm_date.end']}
+                            helperText={errors['confirm_date.end']}
                         />
                     </div>}
-                </form>
             </Modal>
         </>
     )

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 const EventBasicFormSchema = z.object({
     title: z.string().min(1, { message: 'タイトルは必須です'}).max(100, { message: 'タイトルは100文字以内で入力してください'}),
@@ -21,14 +20,14 @@ const SendSelectedDateSchema = z.object({
     priority: z.number(),
 });
 
-const EventDraftFormSchema = EventBasicFormSchema.merge(z.object({
+export const EventDraftFormSchema = EventBasicFormSchema.merge(z.object({
     form_type: z.literal('draft'),
     selected_dates: z.array(SendSelectedDateSchema)
         .min(1, { message: '日程は1つ以上選択してください' })
         .max(10, { message: '日程は10個まで選択できます' }),
 }));
 
-const EventUpdateFormSchema = EventBasicFormSchema.merge(z.object({
+export const EventUpdateFormSchema = EventBasicFormSchema.merge(z.object({
     form_type: z.literal('edit'),
     id: z.string().nullable(),
     status: z.enum(['draft', 'active', 'confirmed', 'cancelled']).optional(),
@@ -37,10 +36,13 @@ const EventUpdateFormSchema = EventBasicFormSchema.merge(z.object({
         .max(10, { message: '日程は10個まで選択できます' }),
 }));
 
-const DiscriminatedEventFormSchema = z.discriminatedUnion('form_type', [EventDraftFormSchema, EventUpdateFormSchema]);
+export const DiscriminatedEventFormSchema = z.discriminatedUnion('form_type', [EventDraftFormSchema, EventUpdateFormSchema]);
 
 export type DiscriminatedEventForm = z.infer<typeof DiscriminatedEventFormSchema>;
+export type EventDraftForm = z.infer<typeof EventDraftFormSchema>;
+export type EventUpdateForm = z.infer<typeof EventUpdateFormSchema>;
+export type EventFormType = DiscriminatedEventForm['form_type'];
+export type EventFormErrors = Partial<Record<'title' | 'description' | 'location' | 'url' | 'selected_dates' | 'proposed_dates', string>>;
+export type EventFormEditedField = keyof EventFormErrors | 'confirmed';
 
 export type SendSelectedDate = z.infer<typeof SendSelectedDateSchema>;
-
-export const DiscriminatedEventFormResolver = zodResolver(DiscriminatedEventFormSchema);

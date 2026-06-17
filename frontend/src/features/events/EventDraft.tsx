@@ -1,60 +1,86 @@
 'use client'
-import React, { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
-import { selectedDatesAtom, sendSelectedDatesAtom, titleAtomFamily } from '@/atoms/calendar';
-import { useAtom } from 'jotai';
-import { useForm, type SubmitHandler, FormProvider } from 'react-hook-form';
-import { apiClient } from '@/lib/api/client';
-import { type DiscriminatedEventForm, DiscriminatedEventFormResolver } from './zod';
+import React from 'react';
+import { Provider, useAtomValue, useSetAtom } from 'jotai';
+import { useHydrateAtoms } from 'jotai/utils';
+import { useRouter } from 'next/navigation';
+import {
+    descriptionAtomFamily,
+    locationAtomFamily,
+    selectedDatesAtomFamily,
+    sendSelectedDatesAtomFamily,
+    titleAtomFamily,
+} from '@/atoms/calendar';
+import { setClientEventFormErrorsAtomFamily } from './form-meta-atoms';
 import EventForm from './EventForm';
+import { useCreateDraftMutation } from '@/hooks/event/useCreateDraftMutation';
+import { buildZodFieldErrors } from '@/lib/validation/zod';
+import {
+    EventDraftFormSchema,
+    type EventFormErrors,
+} from './zod';
 
-const EventDraft: React.FC = () => {
-    const { id } = useParams<{ id?: string }>();
+const draftFormScope = 'draft';
+
+const EventDraftContent: React.FC = () => {
     const router = useRouter();
-    const method = useForm<DiscriminatedEventForm>({
-        resolver: DiscriminatedEventFormResolver,
-        defaultValues: {
-            form_type: "draft",
+    const createDraftMutation = useCreateDraftMutation(draftFormScope);
+    const setClientErrors = useSetAtom(setClientEventFormErrorsAtomFamily(draftFormScope));
+
+    useHydrateAtoms([
+        [titleAtomFamily(draftFormScope), ''],
+        [descriptionAtomFamily(draftFormScope), ''],
+        [locationAtomFamily(draftFormScope), ''],
+        [selectedDatesAtomFamily(draftFormScope), []],
+    ]);
+
+    const title = useAtomValue(titleAtomFamily(draftFormScope));
+    const description = useAtomValue(descriptionAtomFamily(draftFormScope));
+    const location = useAtomValue(locationAtomFamily(draftFormScope));
+    const selectedDates = useAtomValue(sendSelectedDatesAtomFamily(draftFormScope));
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const payload = {
+            form_type: 'draft' as const,
+            title,
+            description,
+            location,
+            selected_dates: selectedDates,
+        };
+
+        const result = EventDraftFormSchema.safeParse(payload);
+        if (!result.success) {
+            setClientErrors(buildZodFieldErrors<keyof EventFormErrors>(result.error));
+            return;
         }
-    });
-    const { handleSubmit, setValue } = method;
-    const [selectedDates, setSelectedDates] = useAtom(selectedDatesAtom);
-    const [sendSelectedDate] = useAtom(sendSelectedDatesAtom);
-    const [,setTitle] = useAtom(titleAtomFamily(id));
 
-    useEffect(() => {
-        setValue('selected_dates', sendSelectedDate);
-    }, [selectedDates, setValue, sendSelectedDate]);
-
-    const postEventDraft = async (data: DiscriminatedEventForm) => {
-        return apiClient.post<{ id: string }, DiscriminatedEventForm>('/api/calendar/event/draft', data);
-    }
-
-    const onSubmit: SubmitHandler<DiscriminatedEventForm> = (data) => {
-        postEventDraft(data)
-            .then(res => {
-                console.log(res);
-                setSelectedDates([]);
-                setTitle('');
-                toast.success('イベントを作成しました');
-                router.push(`/schedule/draft/${res.data.id}`);
-            })
-            .catch(err => {
-                console.log(err);
-                toast.error('イベントの作成に失敗しました');
-            })
-    }
+        setClientErrors({});
+        const createdDraftID = await createDraftMutation.submit(result.data);
+        if (createdDraftID) {
+            router.push(`/schedule/draft/${createdDraftID}`);
+        }
+    };
 
     return (
         <div>
-            <FormProvider {...method}>
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <EventForm />
-                </form>
-            </FormProvider>
+            <form onSubmit={handleSubmit}>
+                <EventForm
+                    formType="draft"
+                    formScope={draftFormScope}
+                    isSubmitting={createDraftMutation.isPending}
+                />
+            </form>
         </div>
     )
 }
+
+const EventDraft: React.FC = () => {
+    return (
+        <Provider>
+            <EventDraftContent />
+        </Provider>
+    );
+};
 
 export default EventDraft;

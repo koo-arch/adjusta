@@ -1,34 +1,28 @@
 'use client'
-import React, { useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { useAtom } from 'jotai';
-import { titleAtomFamily } from '@/atoms/calendar';
-import { useFormContext } from 'react-hook-form';
+import React from 'react';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import {
+    descriptionAtomFamily,
+    locationAtomFamily,
+    titleAtomFamily,
+} from '@/atoms/calendar';
 import Card from '@/components/Card';
 import TextField from '@/components/TextField';
 import TextArea from '@/components/TextArea';
-import type { DiscriminatedEventForm } from './zod';
+import { clearEditedEventFieldStateAtomFamily, mergedEventFormErrorsAtomFamily } from './form-meta-atoms';
 
 interface EventBasicFormProps {
-    title?: string;
-    description?: string;
-    location?: string;
+    formScope: string;
 }
 
-const EventBasicForm: React.FC<EventBasicFormProps> =({ title: initialTitle, description, location }) => {
-    const { id } = useParams<{ id?: string }>();
-    const { register, formState: { errors } } = useFormContext<DiscriminatedEventForm>();
-    const [title, setUpdateTitle] = useAtom(titleAtomFamily(id));
-    const initializedTitleRef = useRef(false);
-
-    useEffect(() => {
-        if (initializedTitleRef.current || !initialTitle) {
-            return;
-        }
-
-        setUpdateTitle(initialTitle);
-        initializedTitleRef.current = true;
-    }, [initialTitle, setUpdateTitle]);
+const EventBasicForm: React.FC<EventBasicFormProps> = ({
+    formScope,
+}) => {
+    const [title, setTitle] = useAtom(titleAtomFamily(formScope));
+    const [description, setDescription] = useAtom(descriptionAtomFamily(formScope));
+    const [location, setLocation] = useAtom(locationAtomFamily(formScope));
+    const errors = useAtomValue(mergedEventFormErrorsAtomFamily(formScope));
+    const clearEditedFieldState = useSetAtom(clearEditedEventFieldStateAtomFamily(formScope));
 
     return (
         <Card variant="outlined" background="inherit" className="w-full">
@@ -36,26 +30,34 @@ const EventBasicForm: React.FC<EventBasicFormProps> =({ title: initialTitle, des
             <p className="text-sm text-gray-500 mb-4">日程調整するイベントのタイトルや詳細を入力してください</p>
             <div className="space-y-6">
                 <TextField
-                    {...register('title')}
                     label="タイトル"
-                    defaultValue={title}
+                    value={title}
                     error={!!errors.title}
-                    helperText={errors.title?.message}
-                    onChange={(e) => setUpdateTitle(e.target.value)}
+                    helperText={errors.title}
+                    onChange={(e) => {
+                        setTitle(e.target.value);
+                        clearEditedFieldState('title');
+                    }}
                 />
                 <TextField
-                    {...register('location')}
                     label="場所"
-                    defaultValue={location}
+                    value={location}
                     error={!!errors.location}
-                    helperText={errors.location?.message}
+                    helperText={errors.location}
+                    onChange={(e) => {
+                        setLocation(e.target.value);
+                        clearEditedFieldState('location');
+                    }}
                 />
                 <TextArea
-                    {...register('description')}
                     label="説明"
-                    defaultValue={description}
+                    value={description}
                     error={!!errors.description}
-                    helperText={errors.description?.message}
+                    helperText={errors.description}
+                    onChange={(e) => {
+                        setDescription(e.target.value);
+                        clearEditedFieldState('description');
+                    }}
                 />
             </div>
         </Card>

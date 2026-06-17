@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useRef } from 'react';
-import { useAtom, useAtomValue } from 'jotai';
 import type { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import Calendar from './Calendar';
@@ -8,6 +7,7 @@ import { EventImpl } from '@fullcalendar/core/internal';
 import PopupMenu from '@/components/PopupMenu';
 import type { CalendarEvent } from './type';
 import type { EventDraftDetail } from '@/hooks/event/type';
+import type { ProposedDate, SelectedDate } from '@/features/events/form-state';
 
 type DateSelectInfo = {
     id: string;
@@ -15,19 +15,19 @@ type DateSelectInfo = {
     end: Date;
 }
 
-interface SelectableCalendarProps<TDate extends DateSelectInfo, TEvent extends CalendarEvent> {
-    dateAtom: any;
-    eventAtom: any;
+interface SelectableCalendarProps<TDate extends DateSelectInfo> {
+    dates: TDate[];
+    onDatesChange: React.Dispatch<React.SetStateAction<TDate[]>>;
+    selectedEvents: CalendarEvent[];
     editingEvent?: EventDraftDetail;
 }
 
-const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends CalendarEvent>({
-    dateAtom,
-    eventAtom,
+const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
+    dates,
+    onDatesChange,
+    selectedEvents,
     editingEvent,
-}:SelectableCalendarProps<TDate, TEvent>) => {
-    const [selectedDates, setSelectedDates] = useAtom<TDate[]>(dateAtom);
-    const selectedEvents = useAtomValue<TEvent[]>(eventAtom);
+}:SelectableCalendarProps<TDate>) => {
     const [clickedEvent, setClickedEvent] = useState<EventImpl>();
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -38,12 +38,12 @@ const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends Calenda
             start: e.start,
             end: e.end,
         } as TDate;
-        setSelectedDates([...selectedDates, newDate]);
+        onDatesChange((prev) => [...prev, newDate]);
     }
 
     // イベントをクリックした時にポップアップを表示する
     const handleEventClick = (e: EventClickArg) => {
-        const event = selectedDates.find((date) => date.id === e.event.id);
+        const event = dates.find((date) => date.id === e.event.id);
 
         if (event) {
             if (buttonRef.current) {
@@ -57,7 +57,7 @@ const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends Calenda
 
     // イベントのドラッグ＆ドロップ時の処理
     const handleEventDrop = (e: EventDropArg) => {
-        const updatedDates = selectedDates.map((date) => {
+        const updatedDates = dates.map((date) => {
             if (date.id === e.event.id) {
                 return {
                     ...date,
@@ -68,12 +68,12 @@ const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends Calenda
             return date;
         });
 
-        setSelectedDates(updatedDates);
+        onDatesChange(updatedDates);
     }
 
     // イベントの開始・終了時間の変更時の処理
     const handleEventResize = (e: EventResizeDoneArg) => {
-        const updatedDates = selectedDates.map((date) => {
+        const updatedDates = dates.map((date) => {
             if (date.id === e.event.id) {
                 return {
                     ...date,
@@ -84,14 +84,14 @@ const SelectableCalendar = <TDate extends DateSelectInfo, TEvent extends Calenda
             return date;
         });
 
-        setSelectedDates(updatedDates);
+        onDatesChange(updatedDates);
     }
 
     // イベントの削除時の処理
     const handleDeleteEvent = () => {
         if (clickedEvent) {
             clickedEvent.remove();
-            setSelectedDates((prev) => prev.filter((date) => date.id !== clickedEvent.id));
+            onDatesChange((prev) => prev.filter((date) => date.id !== clickedEvent.id));
         }
     }
 

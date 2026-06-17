@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React from 'react';
 import DatePicker, { DatePickerProps } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
@@ -9,28 +9,18 @@ type DateTimePickerProps = DatePickerProps & {
     error?: boolean;
     timeIntervals?: number;
     helperText?: string;
-    initialDate?: Date;
 } & {
     selectsRange?: never;
     selectsMultiple?: never;
 };
 
-const DateTimePicker: React.FC<DateTimePickerProps> = ({ timeIntervals, label, error, helperText, initialDate, onChange, ...props }) => {
-    const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
-
-    const handleDateChange = (date: Date | null, event?: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>) => {
-        setSelectedDate(date);
-        onChange && onChange(date, event);
-    }
-
+const DateTimePicker: React.FC<DateTimePickerProps> = ({ timeIntervals, label, error, helperText, ...props }) => {
     return (
         <div>
             {label && <label className="block text-base font-medium text-gray-700 mb-2">{label}</label>}
             <DatePicker
                 locale={ja}
                 showTimeSelect
-                selected={selectedDate}
-                onChange={handleDateChange}
                 timeFormat="HH:mm"
                 timeIntervals={timeIntervals || 15}
                 timeCaption="time"

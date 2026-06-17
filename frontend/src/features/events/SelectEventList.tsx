@@ -1,55 +1,101 @@
 'use client'
 import React from 'react';
-import { useParams } from 'next/navigation';
-import { useFormContext } from 'react-hook-form';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { proposedDatesAtomFamily, selectedDatesAtomFamily } from '@/atoms/calendar';
+import { isConfirmedAtomFamily } from '@/atoms/event';
 import DraggableEventList from '@/features/events/DraggableEventList';
-import { useAtomValue, useAtom } from 'jotai';
-import { selectedDatesAtom, proposedDatesAtom } from '@/atoms/calendar';
 import Card from '@/components/Card';
 import ToggleSwitch from '@/components/ToggleSwitch';
-import { isConfirmedAtomFamily } from '@/atoms/event';
-import { DiscriminatedEventForm } from './zod';
+import { clearEditedEventFieldStateAtomFamily, mergedEventFormErrorsAtomFamily } from './form-meta-atoms';
 
-const SelectEventList: React.FC = () => {
-    const { id } = useParams<{ id?: string }>();
-    const { formState: { errors }, getValues } = useFormContext<DiscriminatedEventForm>();
-    const [isConfirmed, setIsConfirmed] = useAtom(isConfirmedAtomFamily(id));
-    const selectedDates = useAtomValue(selectedDatesAtom);
-    const proposedDates = useAtomValue(proposedDatesAtom);
+type DraftSelectEventListProps = {
+    formType: 'draft';
+    formScope: string;
+};
 
-    const formType = getValues('form_type');
-    const dates = formType === 'draft' ? selectedDates : proposedDates;
+type EditSelectEventListProps = {
+    formType: 'edit';
+    formScope: string;
+};
+
+type SelectEventListProps = DraftSelectEventListProps | EditSelectEventListProps;
+
+const DraftSelectEventList: React.FC<DraftSelectEventListProps> = (props) => {
+    const [dates, setDates] = useAtom(selectedDatesAtomFamily(props.formScope));
+    const errors = useAtomValue(mergedEventFormErrorsAtomFamily(props.formScope));
+    const clearEditedFieldState = useSetAtom(clearEditedEventFieldStateAtomFamily(props.formScope));
 
     return (
         <Card variant="outlined" background="inherit">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold mb-2">選択日程</h2>
-                {formType == 'edit' && (
-                    <ToggleSwitch
-                        checked={isConfirmed}
-                        onChange={() => setIsConfirmed(!isConfirmed)}
-                        label="候補日程の確定"
-                    />
-                )}
             </div>
             <p className="text-sm text-gray-500 mb-4">ドラッグで優先順位の入れ替えができます</p>
 
-            {formType === 'draft' && 'selected_dates' in errors && (
-                <p className="text-sm text-red-500 mb-4">{errors.selected_dates?.message}</p>
+            {errors.selected_dates && (
+                <p className="text-sm text-red-500 mb-4">{errors.selected_dates}</p>
             )}
-            {formType === 'edit' && 'proposed_dates' in errors && (
-                <p className="text-sm text-red-500 mb-4">{errors.proposed_dates?.message}</p>
-            )}
-           {dates.length > 0 ? (
+            {dates.length > 0 ? (
                 <DraggableEventList
-                    atom={formType === 'draft' ? selectedDatesAtom : proposedDatesAtom}
-                    enableTopHighlight={formType === 'edit' && isConfirmed}
+                    dates={dates}
+                    onDatesChange={(value) => {
+                        setDates(value);
+                        clearEditedFieldState('selected_dates');
+                    }}
                 />
             ) : (
                 <p className="font-bold py-16 text-center">日程を選択してください</p>
             )}
         </Card>
-    )
-}
+    );
+};
+
+const EditSelectEventList: React.FC<EditSelectEventListProps> = (props) => {
+    const [dates, setDates] = useAtom(proposedDatesAtomFamily(props.formScope));
+    const [isConfirmed, setIsConfirmed] = useAtom(isConfirmedAtomFamily(props.formScope));
+    const errors = useAtomValue(mergedEventFormErrorsAtomFamily(props.formScope));
+    const clearEditedFieldState = useSetAtom(clearEditedEventFieldStateAtomFamily(props.formScope));
+
+    return (
+        <Card variant="outlined" background="inherit">
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold mb-2">選択日程</h2>
+                <ToggleSwitch
+                    checked={isConfirmed}
+                    onChange={(checked) => {
+                        setIsConfirmed(checked);
+                        clearEditedFieldState('confirmed');
+                    }}
+                    label="候補日程の確定"
+                />
+            </div>
+            <p className="text-sm text-gray-500 mb-4">ドラッグで優先順位の入れ替えができます</p>
+
+            {errors.proposed_dates && (
+                <p className="text-sm text-red-500 mb-4">{errors.proposed_dates}</p>
+            )}
+            {dates.length > 0 ? (
+                <DraggableEventList
+                    dates={dates}
+                    onDatesChange={(value) => {
+                        setDates(value);
+                        clearEditedFieldState('proposed_dates');
+                    }}
+                    enableTopHighlight={isConfirmed}
+                />
+            ) : (
+                <p className="font-bold py-16 text-center">日程を選択してください</p>
+            )}
+        </Card>
+    );
+};
+
+const SelectEventList: React.FC<SelectEventListProps> = (props) => {
+    if (props.formType === 'draft') {
+        return <DraftSelectEventList {...props} />;
+    }
+
+    return <EditSelectEventList {...props} />;
+};
 
 export default SelectEventList;

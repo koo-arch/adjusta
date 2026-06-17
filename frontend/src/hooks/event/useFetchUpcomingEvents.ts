@@ -4,6 +4,8 @@ import { apiClient } from '@/lib/api/client';
 import { UpcomingEvent } from './type';
 import { useAuth } from '../auth/useAuth';
 
+export const buildUpcomingEventsQueryKey = () => ['upcomingEvents'] as const;
+
 const fetchUpcomingEvents = async () => {
     const response = await apiClient.get<UpcomingEvent[]>('/api/event/confirmed/upcoming');
     return response.data;
@@ -12,7 +14,7 @@ const fetchUpcomingEvents = async () => {
 export const useFetchUpcomingEvents = () => {
     const { isAuthenticated, isLoading: isAuthLoading, error: authError } = useAuth();
     const { data, isLoading, error } = useQuery({
-        queryKey: ['upcomingEvents'],
+        queryKey: buildUpcomingEventsQueryKey(),
         queryFn: fetchUpcomingEvents,
         enabled: isAuthenticated,
     });
