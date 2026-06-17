@@ -406,10 +406,7 @@ func (pdq *ProposedDateQuery) loadEvent(ctx context.Context, query *EventQuery, 
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*ProposedDate)
 	for i := range nodes {
-		if nodes[i].EventID == nil {
-			continue
-		}
-		fk := *nodes[i].EventID
+		fk := nodes[i].EventID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

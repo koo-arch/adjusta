@@ -3536,7 +3536,7 @@ func (m *ProposedDateMutation) EventID() (r uuid.UUID, exists bool) {
 // OldEventID returns the old "event_id" field's value of the ProposedDate entity.
 // If the ProposedDate object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProposedDateMutation) OldEventID(ctx context.Context) (v *uuid.UUID, err error) {
+func (m *ProposedDateMutation) OldEventID(ctx context.Context) (v uuid.UUID, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
 	}
@@ -3550,22 +3550,9 @@ func (m *ProposedDateMutation) OldEventID(ctx context.Context) (v *uuid.UUID, er
 	return oldValue.EventID, nil
 }
 
-// ClearEventID clears the value of the "event_id" field.
-func (m *ProposedDateMutation) ClearEventID() {
-	m.event = nil
-	m.clearedFields[proposeddate.FieldEventID] = struct{}{}
-}
-
-// EventIDCleared returns if the "event_id" field was cleared in this mutation.
-func (m *ProposedDateMutation) EventIDCleared() bool {
-	_, ok := m.clearedFields[proposeddate.FieldEventID]
-	return ok
-}
-
 // ResetEventID resets all changes to the "event_id" field.
 func (m *ProposedDateMutation) ResetEventID() {
 	m.event = nil
-	delete(m.clearedFields, proposeddate.FieldEventID)
 }
 
 // SetGoogleEventID sets the "google_event_id" field.
@@ -3923,7 +3910,7 @@ func (m *ProposedDateMutation) ClearEvent() {
 
 // EventCleared reports if the "event" edge to the Event entity was cleared.
 func (m *ProposedDateMutation) EventCleared() bool {
-	return m.EventIDCleared() || m.clearedevent
+	return m.clearedevent
 }
 
 // EventIDs returns the "event" edge IDs in the mutation.
@@ -4219,9 +4206,6 @@ func (m *ProposedDateMutation) ClearedFields() []string {
 	if m.FieldCleared(proposeddate.FieldDeletedAt) {
 		fields = append(fields, proposeddate.FieldDeletedAt)
 	}
-	if m.FieldCleared(proposeddate.FieldEventID) {
-		fields = append(fields, proposeddate.FieldEventID)
-	}
 	if m.FieldCleared(proposeddate.FieldGoogleEventID) {
 		fields = append(fields, proposeddate.FieldGoogleEventID)
 	}
@@ -4247,9 +4231,6 @@ func (m *ProposedDateMutation) ClearField(name string) error {
 	switch name {
 	case proposeddate.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case proposeddate.FieldEventID:
-		m.ClearEventID()
 		return nil
 	case proposeddate.FieldGoogleEventID:
 		m.ClearGoogleEventID()

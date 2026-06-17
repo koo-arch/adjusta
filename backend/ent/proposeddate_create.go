@@ -70,14 +70,6 @@ func (pdc *ProposedDateCreate) SetEventID(u uuid.UUID) *ProposedDateCreate {
 	return pdc
 }
 
-// SetNillableEventID sets the "event_id" field if the given value is not nil.
-func (pdc *ProposedDateCreate) SetNillableEventID(u *uuid.UUID) *ProposedDateCreate {
-	if u != nil {
-		pdc.SetEventID(*u)
-	}
-	return pdc
-}
-
 // SetGoogleEventID sets the "google_event_id" field.
 func (pdc *ProposedDateCreate) SetGoogleEventID(s string) *ProposedDateCreate {
 	pdc.mutation.SetGoogleEventID(s)
@@ -274,6 +266,9 @@ func (pdc *ProposedDateCreate) check() error {
 	if _, ok := pdc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProposedDate.updated_at"`)}
 	}
+	if _, ok := pdc.mutation.EventID(); !ok {
+		return &ValidationError{Name: "event_id", err: errors.New(`ent: missing required field "ProposedDate.event_id"`)}
+	}
 	if _, ok := pdc.mutation.StartTime(); !ok {
 		return &ValidationError{Name: "start_time", err: errors.New(`ent: missing required field "ProposedDate.start_time"`)}
 	}
@@ -298,6 +293,9 @@ func (pdc *ProposedDateCreate) check() error {
 		if err := proposeddate.SyncStatusValidator(v); err != nil {
 			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.sync_status": %w`, err)}
 		}
+	}
+	if len(pdc.mutation.EventIDs()) == 0 {
+		return &ValidationError{Name: "event", err: errors.New(`ent: missing required edge "ProposedDate.event"`)}
 	}
 	return nil
 }
@@ -392,7 +390,7 @@ func (pdc *ProposedDateCreate) createSpec() (*ProposedDate, *sqlgraph.CreateSpec
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.EventID = &nodes[0]
+		_node.EventID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

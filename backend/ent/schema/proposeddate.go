@@ -25,7 +25,7 @@ type ProposedDate struct {
 func (ProposedDate) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Unique().Immutable(),
-		field.UUID("event_id", uuid.UUID{}).Optional().Nillable(),
+		field.UUID("event_id", uuid.UUID{}),
 		field.String("google_event_id").Optional().Nillable(),
 		field.Time("start_time"),
 		field.Time("end_time"),
@@ -54,7 +54,7 @@ func (ProposedDate) Fields() []ent.Field {
 // Edges of the ProposedDate.
 func (ProposedDate) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("event", Event.Type).Ref("proposed_dates").Field("event_id").Unique(),
+		edge.From("event", Event.Type).Ref("proposed_dates").Field("event_id").Unique().Required(),
 	}
 }
 

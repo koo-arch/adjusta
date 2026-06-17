@@ -24,7 +24,7 @@ type CalendarRecord struct {
 
 type ProposedDateRecord struct {
 	ID            uuid.UUID
-	EventID       *uuid.UUID
+	EventID       uuid.UUID
 	GoogleEventID *string
 	StartTime     time.Time
 	EndTime       time.Time

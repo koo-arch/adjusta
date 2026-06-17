@@ -9,7 +9,7 @@ import (
 
 type ProposedDate struct {
 	ID            uuid.UUID
-	EventID       *uuid.UUID
+	EventID       uuid.UUID
 	GoogleEventID *string
 	StartTime     time.Time
 	EndTime       time.Time

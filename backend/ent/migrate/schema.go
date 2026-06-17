@@ -138,7 +138,7 @@ var (
 		{Name: "sync_status", Type: field.TypeEnum, Enums: []string{"not_synced", "pending_sync", "synced", "sync_failed"}, Default: "not_synced"},
 		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_sync_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "event_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "event_id", Type: field.TypeUUID},
 	}
 	// ProposedDatesTable holds the schema information for the "proposed_dates" table.
 	ProposedDatesTable = &schema.Table{

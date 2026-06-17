@@ -256,16 +256,6 @@ func EventIDNotIn(vs ...uuid.UUID) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldNotIn(FieldEventID, vs...))
 }
 
-// EventIDIsNil applies the IsNil predicate on the "event_id" field.
-func EventIDIsNil() predicate.ProposedDate {
-	return predicate.ProposedDate(sql.FieldIsNull(FieldEventID))
-}
-
-// EventIDNotNil applies the NotNil predicate on the "event_id" field.
-func EventIDNotNil() predicate.ProposedDate {
-	return predicate.ProposedDate(sql.FieldNotNull(FieldEventID))
-}
-
 // GoogleEventIDEQ applies the EQ predicate on the "google_event_id" field.
 func GoogleEventIDEQ(v string) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldEQ(FieldGoogleEventID, v))

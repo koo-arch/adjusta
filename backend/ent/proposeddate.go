@@ -26,7 +26,7 @@ type ProposedDate struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// EventID holds the value of the "event_id" field.
-	EventID *uuid.UUID `json:"event_id,omitempty"`
+	EventID uuid.UUID `json:"event_id,omitempty"`
 	// GoogleEventID holds the value of the "google_event_id" field.
 	GoogleEventID *string `json:"google_event_id,omitempty"`
 	// StartTime holds the value of the "start_time" field.
@@ -74,15 +74,13 @@ func (*ProposedDate) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case proposeddate.FieldEventID:
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case proposeddate.FieldPriority:
 			values[i] = new(sql.NullInt64)
 		case proposeddate.FieldGoogleEventID, proposeddate.FieldStatus, proposeddate.FieldSyncStatus, proposeddate.FieldLastSyncError:
 			values[i] = new(sql.NullString)
 		case proposeddate.FieldCreatedAt, proposeddate.FieldUpdatedAt, proposeddate.FieldDeletedAt, proposeddate.FieldStartTime, proposeddate.FieldEndTime, proposeddate.FieldLastSyncedAt:
 			values[i] = new(sql.NullTime)
-		case proposeddate.FieldID:
+		case proposeddate.FieldID, proposeddate.FieldEventID:
 			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -125,11 +123,10 @@ func (pd *ProposedDate) assignValues(columns []string, values []any) error {
 				*pd.DeletedAt = value.Time
 			}
 		case proposeddate.FieldEventID:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
+			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field event_id", values[i])
-			} else if value.Valid {
-				pd.EventID = new(uuid.UUID)
-				*pd.EventID = *value.S.(*uuid.UUID)
+			} else if value != nil {
+				pd.EventID = *value
 			}
 		case proposeddate.FieldGoogleEventID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -234,10 +231,8 @@ func (pd *ProposedDate) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := pd.EventID; v != nil {
-		builder.WriteString("event_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("event_id=")
+	builder.WriteString(fmt.Sprintf("%v", pd.EventID))
 	builder.WriteString(", ")
 	if v := pd.GoogleEventID; v != nil {
 		builder.WriteString("google_event_id=")

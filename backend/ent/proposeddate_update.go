@@ -70,12 +70,6 @@ func (pdu *ProposedDateUpdate) SetNillableEventID(u *uuid.UUID) *ProposedDateUpd
 	return pdu
 }
 
-// ClearEventID clears the value of the "event_id" field.
-func (pdu *ProposedDateUpdate) ClearEventID() *ProposedDateUpdate {
-	pdu.mutation.ClearEventID()
-	return pdu
-}
-
 // SetGoogleEventID sets the "google_event_id" field.
 func (pdu *ProposedDateUpdate) SetGoogleEventID(s string) *ProposedDateUpdate {
 	pdu.mutation.SetGoogleEventID(s)
@@ -283,6 +277,9 @@ func (pdu *ProposedDateUpdate) check() error {
 			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.sync_status": %w`, err)}
 		}
 	}
+	if pdu.mutation.EventCleared() && len(pdu.mutation.EventIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "ProposedDate.event"`)
+	}
 	return nil
 }
 
@@ -429,12 +426,6 @@ func (pduo *ProposedDateUpdateOne) SetNillableEventID(u *uuid.UUID) *ProposedDat
 	if u != nil {
 		pduo.SetEventID(*u)
 	}
-	return pduo
-}
-
-// ClearEventID clears the value of the "event_id" field.
-func (pduo *ProposedDateUpdateOne) ClearEventID() *ProposedDateUpdateOne {
-	pduo.mutation.ClearEventID()
 	return pduo
 }
 
@@ -657,6 +648,9 @@ func (pduo *ProposedDateUpdateOne) check() error {
 		if err := proposeddate.SyncStatusValidator(v); err != nil {
 			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.sync_status": %w`, err)}
 		}
+	}
+	if pduo.mutation.EventCleared() && len(pduo.mutation.EventIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "ProposedDate.event"`)
 	}
 	return nil
 }
