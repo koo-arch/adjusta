@@ -6,7 +6,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/api/respond"
-	"github.com/koo-arch/adjusta-backend/cookie"
+	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
 )
 
 type AuthMiddleware struct {
@@ -51,5 +51,5 @@ func (am *AuthMiddleware) clearSession(c *gin.Context) {
 	if err := session.Save(); err != nil {
 		log.Printf("failed to clear session cookie: %v", err)
 	}
-	cookie.DeleteCookie(c, "session")
+	infraCookie.DeleteCookie(c, "session")
 }

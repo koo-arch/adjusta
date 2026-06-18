@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
-	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -96,13 +95,13 @@ func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calend
 	return upsertedEvent.Id, nil
 }
 
-func (g *eventGateway) newCalendarService(ctx context.Context, userID uuid.UUID) (*customCalendar.Calendar, error) {
+func (g *eventGateway) newCalendarService(ctx context.Context, userID uuid.UUID) (*Client, error) {
 	token, err := g.googleTokenProvider.GetToken(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	calendarService, err := customCalendar.NewCalendar(ctx, toOAuth2Token(token))
+	calendarService, err := NewClient(ctx, toOAuth2Token(token))
 	if err != nil {
 		return nil, normalizeGoogleAPIError(err)
 	}

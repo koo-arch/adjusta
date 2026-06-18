@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/configs"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
 func init() {
@@ -28,7 +28,6 @@ func DefaultCookieOptions() sessions.Options {
 	}
 }
 
-// SetCookieはレスポンスにクッキーを設定します
 func SetCookie(c *gin.Context, name, value string, maxAge int) {
 	opt := DefaultCookieOptions()
 	cookie := &http.Cookie{
@@ -44,7 +43,6 @@ func SetCookie(c *gin.Context, name, value string, maxAge int) {
 	http.SetCookie(c.Writer, cookie)
 }
 
-// DeleteCookie deletes a cookie in the response
 func DeleteCookie(c *gin.Context, name string) {
 	domain := configs.GetEnv("DOMAIN")
 	secure := configs.GetEnv("GO_ENV") != "development"

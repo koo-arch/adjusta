@@ -9,7 +9,6 @@ import (
 
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
-	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/googleapi"
 )
@@ -25,7 +24,7 @@ func NewGoogleCalendarManager() *GoogleCalendarManager {
 	return &GoogleCalendarManager{}
 }
 
-func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *customCalendar.Calendar, calendars []*repoCalendar.Calendar, startTime, endTime time.Time) (*FetchResult, error) {
+func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *Client, calendars []*repoCalendar.Calendar, startTime, endTime time.Time) (*FetchResult, error) {
 	var events []*appmodel.GoogleEvent
 	var failedCalendars []string
 	var wg sync.WaitGroup
@@ -75,7 +74,7 @@ func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *cust
 	}, joinedErr
 }
 
-func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *customCalendar.Calendar, calendarID string, eventReq *appmodel.EventDraftCreation) ([]*calendar.Event, error) {
+func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *Client, calendarID string, eventReq *appmodel.EventDraftCreation) ([]*calendar.Event, error) {
 	// Googleカレンダーに登録されたイベントを追跡するスライス
 	insertedGoogleEvents := make([]*calendar.Event, len(eventReq.SelectedDates))
 
@@ -131,7 +130,7 @@ func (gcm *GoogleCalendarManager) CreateGoogleEvents(calendarService *customCale
 	return insertedGoogleEvents, nil
 }
 
-func (gcm *GoogleCalendarManager) UpdateGoogleCalendarEvents(calendarService *customCalendar.Calendar, calendarID string, eventReq *appmodel.EventDraftDetail) error {
+func (gcm *GoogleCalendarManager) UpdateGoogleCalendarEvents(calendarService *Client, calendarID string, eventReq *appmodel.EventDraftDetail) error {
 	// Googleカレンダーに登録されたイベントを追跡するスライス
 	var backupGoogleEvents []*calendar.Event
 
@@ -184,7 +183,7 @@ func (gcm *GoogleCalendarManager) UpdateGoogleCalendarEvents(calendarService *cu
 	return nil
 }
 
-func (gcm *GoogleCalendarManager) UpdateOrCreateGoogleEvent(calendarService *customCalendar.Calendar, calendarID string, googleEvent *calendar.Event) (*calendar.Event, error) {
+func (gcm *GoogleCalendarManager) UpdateOrCreateGoogleEvent(calendarService *Client, calendarID string, googleEvent *calendar.Event) (*calendar.Event, error) {
 	updateEvent, err := calendarService.UpdateEvent(calendarID, googleEvent.Id, googleEvent)
 	if err != nil {
 		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 404 {
@@ -202,7 +201,7 @@ func (gcm *GoogleCalendarManager) UpdateOrCreateGoogleEvent(calendarService *cus
 
 }
 
-func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *customCalendar.Calendar, calendarID string, eventReq *appmodel.EventDraftDetail) ([]*calendar.Event, error) {
+func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *Client, calendarID string, eventReq *appmodel.EventDraftDetail) ([]*calendar.Event, error) {
 	var backupGoogleEvents []*calendar.Event // 削除前のイベントをバックアップするためのスライス
 
 	// 並列処理でイベントを削除
@@ -257,7 +256,7 @@ func (gcm *GoogleCalendarManager) DeleteGoogleCalendarEvents(calendarService *cu
 	return backupGoogleEvents, nil
 }
 
-func (gcm *GoogleCalendarManager) DeleteGoogleEvents(calendarService *customCalendar.Calendar, calendarID string, events []*calendar.Event) error {
+func (gcm *GoogleCalendarManager) DeleteGoogleEvents(calendarService *Client, calendarID string, events []*calendar.Event) error {
 	for _, event := range events {
 		if event == nil || event.Id == "" {
 			continue // eventまたはIDがnilの場合はスキップ

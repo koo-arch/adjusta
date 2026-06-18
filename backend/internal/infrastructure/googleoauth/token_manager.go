@@ -1,4 +1,4 @@
-package oauth
+package googleoauth
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*appmod
 		Expiry:       *entAccount.ExpiresAt,
 	}
 
-	refreshedToken, err := oauth2.ReuseTokenSource(token, GetGoogleAuthConfig().TokenSource(ctx, token)).Token()
+	refreshedToken, err := oauth2.ReuseTokenSource(token, GetConfig().TokenSource(ctx, token)).Token()
 	if err != nil {
 		log.Printf("failed to get new token: %v", err)
 		if strings.Contains(err.Error(), "invalid_token") {

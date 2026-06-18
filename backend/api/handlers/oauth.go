@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/api/respond"
-	"github.com/koo-arch/adjusta-backend/configs"
-	"github.com/koo-arch/adjusta-backend/cookie"
+	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
+	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
 )
 
 type OauthHandler struct {
@@ -51,7 +51,7 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 		return
 	}
 
-	cookie.DeleteCookie(c, "session")
+	infraCookie.DeleteCookie(c, "session")
 
 	respond.OKMessage(c, "logged out")
 }
@@ -91,6 +91,6 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, configs.GetEnv("REDIRECT_URL_AFTER_LOGIN"))
+		c.Redirect(http.StatusTemporaryRedirect, infraConfigs.GetEnv("REDIRECT_URL_AFTER_LOGIN"))
 	}
 }

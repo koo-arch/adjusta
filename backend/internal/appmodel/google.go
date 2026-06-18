@@ -16,3 +16,9 @@ type GoogleUserProfile struct {
 	Name     string `json:"name"`
 	Picture  string `json:"picture"`
 }
+
+type GoogleCalendarList struct {
+	CalendarID string `json:"calendar_id"`
+	Summary    string `json:"summary"`
+	Primary    bool   `json:"primary"`
+}

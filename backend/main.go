@@ -13,15 +13,15 @@ import (
 	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/handlers"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
-	"github.com/koo-arch/adjusta-backend/cache"
-	"github.com/koo-arch/adjusta-backend/configs"
-	opCookie "github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/ent"
-	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
+	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/calendar"
+	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
+	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
 	infraEvents "github.com/koo-arch/adjusta-backend/internal/infrastructure/events"
 	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
@@ -34,10 +34,10 @@ import (
 
 func main() {
 	// 環境変数の読み込み
-	configs.LoadEnv()
+	infraConfigs.LoadEnv()
 
 	// DB接続
-	databaseURL := configs.GetEnv("DATABASE_URL")
+	databaseURL := infraConfigs.GetEnv("DATABASE_URL")
 	if databaseURL == "" {
 		log.Fatal("DATABASE_URL is not set")
 	}
@@ -58,18 +58,18 @@ func main() {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
-	cacheStore := cache.NewCache()
+	cacheStore := infraCache.NewCache()
 	repos := infraRepository.NewRepositories(client)
 	uow := infraRepository.NewUnitOfWork(client, repos)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
-	sessionLifetime := time.Duration(opCookie.DefaultCookieOptions().MaxAge) * time.Second
+	sessionLifetime := time.Duration(infraCookie.DefaultCookieOptions().MaxAge) * time.Second
 	authService := usecaseAuth.NewAuthService(
 		infraAuth.NewAuthReader(repos.User, repos.Account),
 		infraAuth.NewAuthTransaction(uow),
 		infraAuth.NewAuthSessionStore(repos.Session),
 		sessionLifetime,
 	)
-	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
+	googleTokenManager := infraGoogleOAuth.NewTokenManager(repos.Account)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
 		googleTokenManager,
 		infraAuth.NewGoogleUserInfoFetcher(),
@@ -104,7 +104,7 @@ func main() {
 	router := gin.Default()
 
 	// CORSの設定
-	allowedOrigins := strings.Split(configs.GetEnv("CORS_ALLOW_ORIGINS"), ",")
+	allowedOrigins := strings.Split(infraConfigs.GetEnv("CORS_ALLOW_ORIGINS"), ",")
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
@@ -114,8 +114,8 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	store := cookie.NewStore([]byte(configs.GetEnv("SESSION_SECRET")))
-	store.Options(opCookie.DefaultCookieOptions())
+	store := cookie.NewStore([]byte(infraConfigs.GetEnv("SESSION_SECRET")))
+	store.Options(infraCookie.DefaultCookieOptions())
 	router.Use(sessions.Sessions("session", store))
 
 	handler := handlers.NewHandler(server)
@@ -157,7 +157,7 @@ func main() {
 	}
 
 	// サーバー起動
-	port := configs.GetEnv("PORT")
+	port := infraConfigs.GetEnv("PORT")
 	if port == "" {
 		port = "8080"
 	}

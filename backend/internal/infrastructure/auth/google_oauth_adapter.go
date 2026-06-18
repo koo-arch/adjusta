@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
-	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	"golang.org/x/oauth2"
 )
 
@@ -16,11 +15,11 @@ func NewGoogleOAuthGateway() *GoogleOAuthGateway {
 }
 
 func (g *GoogleOAuthGateway) AuthCodeURL(state string) string {
-	return googleOAuth.GetGoogleAuthConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	return infraGoogleOAuth.GetConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
 
 func (g *GoogleOAuthGateway) Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
-	token, err := googleOAuth.GetGoogleAuthConfig().Exchange(ctx, code)
+	token, err := infraGoogleOAuth.GetConfig().Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
@@ -31,31 +30,6 @@ func (g *GoogleOAuthGateway) Exchange(ctx context.Context, code string) (*appmod
 		RefreshToken: token.RefreshToken,
 		Expiry:       token.Expiry,
 		Scope:        tokenScope(token),
-	}, nil
-}
-
-type GoogleUserInfoFetcher struct{}
-
-func NewGoogleUserInfoFetcher() *GoogleUserInfoFetcher {
-	return &GoogleUserInfoFetcher{}
-}
-
-func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
-	userInfo, err := googleUserInfo.FetchGoogleUserInfo(ctx, &oauth2.Token{
-		AccessToken:  token.AccessToken,
-		TokenType:    token.TokenType,
-		RefreshToken: token.RefreshToken,
-		Expiry:       token.Expiry,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &appmodel.GoogleUserProfile{
-		GoogleID: userInfo.GoogleID,
-		Email:    userInfo.Email,
-		Name:     userInfo.Name,
-		Picture:  userInfo.Picture,
 	}, nil
 }
 

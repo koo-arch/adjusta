@@ -1,4 +1,4 @@
-package userinfo
+package auth
 
 import (
 	"context"
@@ -6,20 +6,33 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
-	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	"golang.org/x/oauth2"
 )
 
-type UserInfo struct {
+type googleUserInfo struct {
 	GoogleID string `json:"sub"`
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Picture  string `json:"picture"`
 }
 
-func FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*UserInfo, error) {
-	client := oauth.GoogleOAuthConfig.Client(ctx, token)
+type GoogleUserInfoFetcher struct{}
+
+func NewGoogleUserInfoFetcher() *GoogleUserInfoFetcher {
+	return &GoogleUserInfoFetcher{}
+}
+
+func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+	client := infraGoogleOAuth.GetConfig().Client(ctx, &oauth2.Token{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+	})
+
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
 		log.Printf("failed to fetch user info: %v", err)
@@ -31,7 +44,6 @@ func FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*UserInfo, e
 		}
 	}()
 
-	// レスポンスのステータスコードが200以外の場合はエラー
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("failed to fetch user info: %s", resp.Status)
 		switch resp.StatusCode {
@@ -46,10 +58,15 @@ func FetchGoogleUserInfo(ctx context.Context, token *oauth2.Token) (*UserInfo, e
 		}
 	}
 
-	var userInfo UserInfo
+	var userInfo googleUserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return &userInfo, nil
+	return &appmodel.GoogleUserProfile{
+		GoogleID: userInfo.GoogleID,
+		Email:    userInfo.Email,
+		Name:     userInfo.Name,
+		Picture:  userInfo.Picture,
+	}, nil
 }

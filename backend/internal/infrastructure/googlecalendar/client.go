@@ -1,11 +1,11 @@
-package calendar
+package googlecalendar
 
 import (
 	"context"
 	"time"
 
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
-	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -17,20 +17,20 @@ type CalendarList struct {
 	Primary    bool   `json:"primary"`
 }
 
-type Calendar struct {
+type Client struct {
 	Service *calendar.Service
 }
 
-func NewCalendar(ctx context.Context, token *oauth2.Token) (*Calendar, error) {
-	service, err := calendar.NewService(ctx, option.WithTokenSource(oauth.GoogleOAuthConfig.TokenSource(ctx, token)))
+func NewClient(ctx context.Context, token *oauth2.Token) (*Client, error) {
+	service, err := calendar.NewService(ctx, option.WithTokenSource(infraGoogleOAuth.GetConfig().TokenSource(ctx, token)))
 	if err != nil {
 		return nil, err
 	}
 
-	return &Calendar{Service: service}, nil
+	return &Client{Service: service}, nil
 }
 
-func (c *Calendar) FetchCalendarList() ([]*CalendarList, error) {
+func (c *Client) FetchCalendarList() ([]*CalendarList, error) {
 	calendarList, err := c.Service.CalendarList.List().Do()
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (c *Calendar) FetchCalendarList() ([]*CalendarList, error) {
 	return calendars, nil
 }
 
-func (c *Calendar) CreateCalendar(summary string) (*CalendarList, error) {
+func (c *Client) CreateCalendar(summary string) (*CalendarList, error) {
 	created, err := c.Service.Calendars.Insert(&calendar.Calendar{
 		Summary: summary,
 	}).Do()
@@ -64,7 +64,7 @@ func (c *Calendar) CreateCalendar(summary string) (*CalendarList, error) {
 	}, nil
 }
 
-func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*appmodel.GoogleEvent, error) {
+func (c *Client) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*appmodel.GoogleEvent, error) {
 	events, err := c.Service.Events.List(calendarID).
 		TimeMin(startTime.Format(time.RFC3339)).
 		TimeMax(endTime.Format(time.RFC3339)).
@@ -77,7 +77,6 @@ func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) 
 	var eventsList []*appmodel.GoogleEvent
 
 	for _, item := range events.Items {
-		// nilチェックを追加
 		var start, end string
 		if item.Start != nil {
 			start = item.Start.DateTime
@@ -106,7 +105,7 @@ func (c *Calendar) FetchEvents(calendarID string, startTime, endTime time.Time) 
 	return eventsList, nil
 }
 
-func (c *Calendar) FetchEvent(calendarID, eventID string) (*calendar.Event, error) {
+func (c *Client) FetchEvent(calendarID, eventID string) (*calendar.Event, error) {
 	event, err := c.Service.Events.Get(calendarID, eventID).Do()
 	if err != nil {
 		return nil, err
@@ -115,7 +114,7 @@ func (c *Calendar) FetchEvent(calendarID, eventID string) (*calendar.Event, erro
 	return event, nil
 }
 
-func (c *Calendar) InsertEvent(calendarID string, event *calendar.Event) (*calendar.Event, error) {
+func (c *Client) InsertEvent(calendarID string, event *calendar.Event) (*calendar.Event, error) {
 	event, err := c.Service.Events.Insert(calendarID, event).Do()
 	if err != nil {
 		return nil, err
@@ -124,7 +123,7 @@ func (c *Calendar) InsertEvent(calendarID string, event *calendar.Event) (*calen
 	return event, nil
 }
 
-func (c *Calendar) UpdateEvent(calendarID, eventID string, event *calendar.Event) (*calendar.Event, error) {
+func (c *Client) UpdateEvent(calendarID, eventID string, event *calendar.Event) (*calendar.Event, error) {
 	event, err := c.Service.Events.Update(calendarID, eventID, event).Do()
 	if err != nil {
 		return nil, err
@@ -133,7 +132,7 @@ func (c *Calendar) UpdateEvent(calendarID, eventID string, event *calendar.Event
 	return event, nil
 }
 
-func (c *Calendar) DeleteEvent(calendarID, eventID string) error {
+func (c *Client) DeleteEvent(calendarID, eventID string) error {
 	err := c.Service.Events.Delete(calendarID, eventID).Do()
 	if err != nil {
 		return err

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
+	infraTransaction "github.com/koo-arch/adjusta-backend/internal/infrastructure/transaction"
 )
 
 type UnitOfWork interface {
@@ -29,9 +29,9 @@ func (u *EntUnitOfWork) Do(ctx context.Context, fn func(repos Repositories) erro
 		return err
 	}
 
-	tx := transaction.Wrap(entTx)
+	tx := infraTransaction.Wrap(entTx)
 	txErr := fn(u.repos.WithTx(tx))
-	transaction.HandleTransaction(tx, &txErr)
+	infraTransaction.Handle(tx, &txErr)
 
 	return txErr
 }

@@ -4,10 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/cache"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
-	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
+	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
@@ -28,7 +27,7 @@ type AuthSessionService interface {
 }
 
 type CalendarSyncService interface {
-	SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*customCalendar.CalendarList, error)
+	SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleCalendarList, error)
 }
 
 type EventService interface {
@@ -45,7 +44,7 @@ type EventService interface {
 }
 
 type Dependencies struct {
-	Cache                 *cache.Cache
+	Cache                 *infraCache.Cache
 	SessionAuthenticator  SessionAuthenticator
 	AccountProfileUsecase AccountProfileService
 	AuthSessionUsecase    AuthSessionService
@@ -54,7 +53,7 @@ type Dependencies struct {
 }
 
 type Server struct {
-	Cache                 *cache.Cache
+	Cache                 *infraCache.Cache
 	SessionAuthenticator  SessionAuthenticator
 	AccountProfileUsecase AccountProfileService
 	AuthSessionUsecase    AuthSessionService

@@ -9,7 +9,6 @@ import (
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
-	customCalendar "github.com/koo-arch/adjusta-backend/internal/google/calendar"
 )
 
 type UserReader interface {
@@ -27,8 +26,8 @@ type GoogleTokenProvider interface {
 }
 
 type CalendarService interface {
-	FetchCalendarList() ([]*customCalendar.CalendarList, error)
-	CreateCalendar(summary string) (*customCalendar.CalendarList, error)
+	FetchCalendarList() ([]*appmodel.GoogleCalendarList, error)
+	CreateCalendar(summary string) (*appmodel.GoogleCalendarList, error)
 }
 
 type CalendarServiceFactory interface {
