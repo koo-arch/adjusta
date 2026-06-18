@@ -1,5 +1,5 @@
 import { getDefaultStore } from 'jotai/vanilla';
-import { authErrorAtom } from '@/atoms/error';
+import { authErrorAtom } from '@/features/auth/store/error';
 
 type QueryValue = string | number | boolean | Date | null | undefined;
 

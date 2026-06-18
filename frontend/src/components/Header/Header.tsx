@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import UserButton from '../UserButton';
+import UserButton from '@/features/auth/components/UserButton';
 import DraftRegisterButton from '@/features/events/draft/components/DraftRegisterButton';
 import { usePathname } from 'next/navigation';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
