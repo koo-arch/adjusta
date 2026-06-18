@@ -17,9 +17,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/configs"
 	opCookie "github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	googleOAuth "github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	googleUserInfo "github.com/koo-arch/adjusta-backend/internal/google/userinfo"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
 	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/calendar"
 	infraEvents "github.com/koo-arch/adjusta-backend/internal/infrastructure/events"
@@ -29,7 +27,6 @@ import (
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
-	"golang.org/x/oauth2"
 
 	_ "github.com/koo-arch/adjusta-backend/ent/runtime"
 	_ "github.com/lib/pq"
@@ -75,15 +72,12 @@ func main() {
 	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
 		googleTokenManager,
-		usecaseAccount.UserInfoFetcherFunc(fetchGoogleUserProfile),
+		infraAuth.NewGoogleUserInfoFetcher(),
 	)
 	authSessionUsecase := usecaseAuth.NewSessionUsecase(
 		authService,
-		usecaseAuth.OAuthGatewayFuncs{
-			AuthCodeURLFn: buildGoogleAuthURL,
-			ExchangeFn:    exchangeGoogleAuthToken,
-		},
-		usecaseAuth.UserInfoFetcherFunc(fetchGoogleUserProfile),
+		infraAuth.NewGoogleOAuthGateway(),
+		infraAuth.NewGoogleUserInfoFetcher(),
 	)
 	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(
 		infraCalendar.NewCalendarSyncUserReader(repos.User),
@@ -171,49 +165,4 @@ func main() {
 		log.Fatalf("failed to run server: %v", err)
 	}
 
-}
-
-func exchangeGoogleAuthToken(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
-	token, err := googleOAuth.GetGoogleAuthConfig().Exchange(ctx, code)
-	if err != nil {
-		return nil, err
-	}
-
-	scope := token.Extra("scope")
-	scopeValue, ok := scope.(string)
-	var tokenScope *string
-	if ok && scopeValue != "" {
-		tokenScope = &scopeValue
-	}
-
-	return &appmodel.GoogleAuthToken{
-		AccessToken:  token.AccessToken,
-		TokenType:    token.TokenType,
-		RefreshToken: token.RefreshToken,
-		Expiry:       token.Expiry,
-		Scope:        tokenScope,
-	}, nil
-}
-
-func buildGoogleAuthURL(state string) string {
-	return googleOAuth.GetGoogleAuthConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
-}
-
-func fetchGoogleUserProfile(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
-	userInfo, err := googleUserInfo.FetchGoogleUserInfo(ctx, &oauth2.Token{
-		AccessToken:  token.AccessToken,
-		TokenType:    token.TokenType,
-		RefreshToken: token.RefreshToken,
-		Expiry:       token.Expiry,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &appmodel.GoogleUserProfile{
-		GoogleID: userInfo.GoogleID,
-		Email:    userInfo.Email,
-		Name:     userInfo.Name,
-		Picture:  userInfo.Picture,
-	}, nil
 }
