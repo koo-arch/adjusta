@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
-import type { ConfirmForm, ConfirmFormErrors } from '@/features/events/detail/schema';
-import { buildFormErrorsFromAPIError, emptyFormErrors, type FormErrors } from '@/lib/form/errors';
-import { confirmEvent } from '@/features/events/detail/api/confirmEvent';
+import type { ConfirmFormErrors } from '@/features/events/detail/schema';
+import { emptyFormErrors, type FormErrors } from '@/lib/form/errors';
+import { confirmEvent, type ConfirmEventInput } from '@/features/events/detail/api/confirmEvent';
 import {
     buildDraftEventListQueryKey,
     buildEventDetailQueryKey,
@@ -20,50 +20,54 @@ const createEmptyConfirmMutationErrors = (): FormErrors<ConfirmMutationFieldKey>
 export const useConfirmEventMutation = (eventID: string) => {
     const queryClient = useQueryClient();
     const [errors, setErrors] = useState<FormErrors<ConfirmMutationFieldKey>>(createEmptyConfirmMutationErrors);
-    const [confirmed, setConfirmed] = useState(false);
 
     const mutation = useMutation({
-        mutationFn: async (payload: ConfirmForm) => {
-            await confirmEvent(eventID, payload);
-        },
+        mutationFn: async (payload: ConfirmEventInput) => confirmEvent(eventID, payload),
         onMutate: () => {
             setErrors(createEmptyConfirmMutationErrors());
-            setConfirmed(false);
         },
-        onSuccess: async () => {
+        onSuccess: async (result) => {
+            if (!result.ok) {
+                if (result.type === 'validation') {
+                    setErrors({
+                        formErrors: [],
+                        fieldErrors: result.errors,
+                    });
+                    return;
+                }
+
+                setErrors(result.errors);
+                return;
+            }
+
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: buildEventDetailQueryKey(eventID) }),
                 queryClient.invalidateQueries({ queryKey: buildDraftEventListQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildNeedsActionDraftsQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildUpcomingEventsQueryKey() }),
             ]);
-            setConfirmed(true);
             toast.success('日程を確定しました');
         },
-        onError: (error) => {
-            setErrors(buildFormErrorsFromAPIError<ConfirmMutationFieldKey>(error, '日程の確定に失敗しました。時間をおいて再度お試しください。'));
-            setConfirmed(false);
+        onError: () => {
+            setErrors({
+                formErrors: ['日程の確定に失敗しました。時間をおいて再度お試しください。'],
+                fieldErrors: {},
+            });
         },
     });
 
-    const submit = async (draft: ConfirmForm): Promise<boolean> => {
-        try {
-            await mutation.mutateAsync(draft);
-            return true;
-        } catch {
-            return false;
-        }
+    const submit = async (draft: ConfirmEventInput): Promise<boolean> => {
+        const result = await mutation.mutateAsync(draft);
+        return result.ok;
     };
 
     const reset = () => {
         setErrors(createEmptyConfirmMutationErrors());
-        setConfirmed(false);
         mutation.reset();
     };
 
     return {
         errors,
-        confirmed,
         submit,
         reset,
         isPending: mutation.isPending,

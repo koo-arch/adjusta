@@ -1,11 +1,29 @@
 import { z } from 'zod';
 import dayjs from 'dayjs';
 
+const buildDateSchema = (requiredMessage: string, invalidMessage: string) =>
+    z.preprocess((value) => {
+        if (value == null || value === '') {
+            return undefined;
+        }
+
+        if (value instanceof Date) {
+            return value;
+        }
+
+        if (typeof value === 'string' && value.length > 0) {
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? value : parsed;
+        }
+
+        return value;
+    }, z.date({ required_error: requiredMessage, invalid_type_error: invalidMessage }));
+
 export const ConfirmDateSchema = z.object({
     id: z.string().nullable(),
     google_event_id: z.string().optional(),
-    start: z.date().or(z.string().transform((val) => new Date(val))), // string を Date に変換
-    end: z.date().or(z.string().transform((val) => new Date(val))), // string を Date に変換
+    start: buildDateSchema('開始日時は必須です', '開始日時は不正な形式です'),
+    end: buildDateSchema('終了日時は必須です', '終了日時は不正な形式です'),
     priority: z.number(),
 }).refine(
     (args) => {

@@ -9,10 +9,8 @@ import { formatJaDateSpan } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { EventDraftDetail } from '@/features/events/types';
 import { useConfirmEventMutation } from '@/features/events/detail/hooks/useConfirmEventMutation';
-import { buildZodFieldErrors } from '@/lib/validation/zod';
 import { MdEditCalendar } from 'react-icons/md';
 import { FaRegCalendarCheck } from 'react-icons/fa6';
-import { ConfirmFormSchema, type ConfirmFormErrors } from '@/features/events/detail/schema';
 
 interface ConfirmButtonProps {
     eventID: string;
@@ -43,12 +41,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
     const [isOpen, setIsOpen] = useState(false);
     const [isDropdownSelected, setIsDropdownSelected] = useState(true);
     const [confirmDate, setConfirmDate] = useState<ConfirmDateInput>(buildEmptyConfirmDate(confirmedGoogleEventID));
-    const [clientErrors, setClientErrors] = useState<ConfirmFormErrors>({});
-
-    const errors = {
-        ...confirmEventMutation.errors.fieldErrors,
-        ...clientErrors,
-    };
+    const errors = confirmEventMutation.errors.fieldErrors;
 
     const selectedProposedDate = useMemo(
         () => proposedDates.find((date) => date.id === confirmDate.id) ?? null,
@@ -60,7 +53,6 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
     };
 
     const resetConfirmDate = () => {
-        setClientErrors({});
         setConfirmDate(buildEmptyConfirmDate(confirmedGoogleEventID));
         resetMutationErrorState();
     };
@@ -71,7 +63,6 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
     };
 
     const handleSelectProposedDate = (date: EventDraftDetail['proposed_dates'][number] | null) => {
-        setClientErrors((prev) => ({ ...prev, confirm_date: undefined }));
         resetMutationErrorState();
 
         if (!date) {
@@ -89,29 +80,16 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
     };
 
     const handleSubmit = async () => {
-        if (isDropdownSelected && !selectedProposedDate) {
-            setClientErrors({ confirm_date: '日程を選択してください' });
-            return;
-        }
-
-        const payload = {
+        const confirmed = await confirmEventMutation.submit({
             confirm_date: {
                 id: confirmDate.id,
                 google_event_id: confirmDate.google_event_id,
-                start: confirmDate.start as Date,
-                end: confirmDate.end as Date,
+                start: confirmDate.start,
+                end: confirmDate.end,
                 priority: confirmDate.priority,
             },
-        };
-
-        const result = ConfirmFormSchema.safeParse(payload);
-        if (!result.success) {
-            setClientErrors(buildZodFieldErrors<keyof ConfirmFormErrors>(result.error));
-            return;
-        }
-
-        setClientErrors({});
-        const confirmed = await confirmEventMutation.submit(result.data);
+            selectionMode: isDropdownSelected ? 'dropdown' : 'manual',
+        });
         if (confirmed) {
             setIsOpen(false);
         }
@@ -187,7 +165,6 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                             selected={confirmDate.start}
                             onChange={(date) => {
                                 setConfirmDate((prev) => ({ ...prev, start: date }));
-                                setClientErrors((prev) => ({ ...prev, 'confirm_date.start': undefined }));
                                 resetMutationErrorState();
                             }}
                             error={!!errors['confirm_date.start']}
@@ -198,7 +175,6 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                             selected={confirmDate.end}
                             onChange={(date) => {
                                 setConfirmDate((prev) => ({ ...prev, end: date }));
-                                setClientErrors((prev) => ({ ...prev, 'confirm_date.end': undefined }));
                                 resetMutationErrorState();
                             }}
                             error={!!errors['confirm_date.end']}

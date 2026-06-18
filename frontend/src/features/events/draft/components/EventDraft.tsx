@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { Provider, useAtomValue, useSetAtom } from 'jotai';
+import { Provider, useAtomValue } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,21 +10,15 @@ import {
     sendSelectedDatesAtomFamily,
     titleAtomFamily,
 } from '@/features/events/store/calendar';
-import { setClientEventFormErrorsAtomFamily } from '@/features/events/store/errors';
 import EventForm from '@/features/events/components/form/EventForm';
 import { useCreateDraftMutation } from '@/features/events/hooks/useCreateDraftMutation';
-import { buildZodFieldErrors } from '@/lib/validation/zod';
-import {
-    EventDraftFormSchema,
-    type EventFormErrors,
-} from '@/features/events/schema';
+import type { EventDraftForm } from '@/features/events/schema';
 
 const draftFormScope = 'draft';
 
 const EventDraftContent: React.FC = () => {
     const router = useRouter();
     const createDraftMutation = useCreateDraftMutation(draftFormScope);
-    const setClientErrors = useSetAtom(setClientEventFormErrorsAtomFamily(draftFormScope));
 
     useHydrateAtoms([
         [titleAtomFamily(draftFormScope), ''],
@@ -41,7 +35,7 @@ const EventDraftContent: React.FC = () => {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const payload = {
+        const payload: EventDraftForm = {
             form_type: 'draft' as const,
             title,
             description,
@@ -49,14 +43,7 @@ const EventDraftContent: React.FC = () => {
             selected_dates: selectedDates,
         };
 
-        const result = EventDraftFormSchema.safeParse(payload);
-        if (!result.success) {
-            setClientErrors(buildZodFieldErrors<keyof EventFormErrors>(result.error));
-            return;
-        }
-
-        setClientErrors({});
-        const createdDraftID = await createDraftMutation.submit(result.data);
+        const createdDraftID = await createDraftMutation.submit(payload);
         if (createdDraftID) {
             router.push(`/schedule/draft/${createdDraftID}`);
         }

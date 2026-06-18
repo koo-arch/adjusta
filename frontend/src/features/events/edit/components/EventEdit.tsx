@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { Provider, useAtomValue, useSetAtom } from 'jotai';
+import { Provider, useAtomValue } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import Link from 'next/link';
 import {
@@ -11,16 +11,11 @@ import {
     titleAtomFamily,
 } from '@/features/events/store/calendar';
 import { isConfirmedAtomFamily } from '@/features/events/store/confirmation';
-import { setClientEventFormErrorsAtomFamily } from '@/features/events/store/errors';
 import { useUpdateDraftMutation } from '@/features/events/edit/hooks/useUpdateDraftMutation';
 import { useFetchEventDetail } from '@/features/events/hooks/useFetchEventDetail';
-import { buildZodFieldErrors } from '@/lib/validation/zod';
 import EventForm from '@/features/events/components/form/EventForm';
 import type { EventDraftDetail } from '@/features/events/types';
-import {
-    EventUpdateFormSchema,
-    type EventFormErrors,
-} from '@/features/events/schema';
+import type { EventUpdateForm } from '@/features/events/schema';
 
 interface LoadedEventEditProps {
     eventID: string;
@@ -29,7 +24,6 @@ interface LoadedEventEditProps {
 
 const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDetail }) => {
     const updateDraftMutation = useUpdateDraftMutation(eventID);
-    const setClientErrors = useSetAtom(setClientEventFormErrorsAtomFamily(eventID));
 
     useHydrateAtoms([
         [titleAtomFamily(eventID), eventDetail.title],
@@ -48,7 +42,7 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const payload = {
+        const payload: EventUpdateForm = {
             id: eventDetail.id,
             form_type: 'edit' as const,
             title,
@@ -58,14 +52,7 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
             proposed_dates: proposedDates,
         };
 
-        const result = EventUpdateFormSchema.safeParse(payload);
-        if (!result.success) {
-            setClientErrors(buildZodFieldErrors<keyof EventFormErrors>(result.error));
-            return;
-        }
-
-        setClientErrors({});
-        await updateDraftMutation.submit(result.data);
+        await updateDraftMutation.submit(payload);
     };
 
     return (
