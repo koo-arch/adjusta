@@ -20,7 +20,8 @@ type SessionAuthenticator interface {
 	DeleteSession(ctx context.Context, sessionToken string) error
 }
 
-type OAuthExchanger interface {
+type OAuthGateway interface {
+	AuthCodeURL(state string) string
 	Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error)
 }
 
@@ -28,10 +29,17 @@ type UserInfoFetcher interface {
 	FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
 }
 
-type OAuthExchangerFunc func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error)
+type OAuthGatewayFuncs struct {
+	AuthCodeURLFn func(state string) string
+	ExchangeFn    func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error)
+}
 
-func (f OAuthExchangerFunc) Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
-	return f(ctx, code)
+func (f OAuthGatewayFuncs) AuthCodeURL(state string) string {
+	return f.AuthCodeURLFn(state)
+}
+
+func (f OAuthGatewayFuncs) Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+	return f.ExchangeFn(ctx, code)
 }
 
 type UserInfoFetcherFunc func(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
@@ -42,20 +50,24 @@ func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *app
 
 type SessionUsecase struct {
 	authenticator SessionAuthenticator
-	oauthConfig   OAuthExchanger
+	oauth         OAuthGateway
 	userInfo      UserInfoFetcher
 }
 
-func NewSessionUsecase(authenticator SessionAuthenticator, oauthConfig OAuthExchanger, userInfo UserInfoFetcher) *SessionUsecase {
+func NewSessionUsecase(authenticator SessionAuthenticator, oauth OAuthGateway, userInfo UserInfoFetcher) *SessionUsecase {
 	return &SessionUsecase{
 		authenticator: authenticator,
-		oauthConfig:   oauthConfig,
+		oauth:         oauth,
 		userInfo:      userInfo,
 	}
 }
 
+func (uc *SessionUsecase) GoogleLoginURL(state string) string {
+	return uc.oauth.AuthCodeURL(state)
+}
+
 func (uc *SessionUsecase) CompleteGoogleSignIn(ctx context.Context, code string) (*GoogleSignInResult, error) {
-	oauthToken, err := uc.oauthConfig.Exchange(ctx, code)
+	oauthToken, err := uc.oauth.Exchange(ctx, code)
 	if err != nil {
 		log.Printf("failed to exchange oauth token: %v", err)
 		return nil, internalErrors.NewInternalError("OAuthトークンの取得に失敗しました")

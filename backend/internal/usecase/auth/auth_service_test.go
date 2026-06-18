@@ -180,6 +180,7 @@ func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
 		},
 		tx,
 		&fakeSessionStore{},
+		time.Hour,
 	)
 
 	gotUser, err := service.ProcessUserSignIn(ctx, profile, token)
@@ -260,6 +261,7 @@ func TestAuthServiceSignInWithGoogleCreatesSessionInTransaction(t *testing.T) {
 		},
 		tx,
 		&fakeSessionStore{},
+		time.Hour,
 	)
 
 	session, gotUser, err := service.SignInWithGoogle(ctx, profile, token)
@@ -316,6 +318,7 @@ func TestAuthServiceAuthenticateSessionDeletesExpiredSession(t *testing.T) {
 				return nil
 			},
 		},
+		time.Hour,
 	)
 
 	gotUser, err := service.AuthenticateSession(ctx, "expired-session")

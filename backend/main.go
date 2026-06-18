@@ -65,10 +65,12 @@ func main() {
 	repos := infraRepository.NewRepositories(client)
 	uow := infraRepository.NewUnitOfWork(client, repos)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
+	sessionLifetime := time.Duration(opCookie.DefaultCookieOptions().MaxAge) * time.Second
 	authService := usecaseAuth.NewAuthService(
 		infraAuth.NewAuthReader(repos.User, repos.Account),
 		infraAuth.NewAuthTransaction(uow),
 		infraAuth.NewAuthSessionStore(repos.Session),
+		sessionLifetime,
 	)
 	googleTokenManager := googleOAuth.NewTokenManager(repos.Account)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
@@ -77,7 +79,10 @@ func main() {
 	)
 	authSessionUsecase := usecaseAuth.NewSessionUsecase(
 		authService,
-		usecaseAuth.OAuthExchangerFunc(exchangeGoogleAuthToken),
+		usecaseAuth.OAuthGatewayFuncs{
+			AuthCodeURLFn: buildGoogleAuthURL,
+			ExchangeFn:    exchangeGoogleAuthToken,
+		},
 		usecaseAuth.UserInfoFetcherFunc(fetchGoogleUserProfile),
 	)
 	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(
@@ -188,6 +193,10 @@ func exchangeGoogleAuthToken(ctx context.Context, code string) (*appmodel.Google
 		Expiry:       token.Expiry,
 		Scope:        tokenScope,
 	}, nil
+}
+
+func buildGoogleAuthURL(state string) string {
+	return googleOAuth.GetGoogleAuthConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
 
 func fetchGoogleUserProfile(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {

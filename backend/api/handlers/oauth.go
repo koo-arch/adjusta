@@ -10,8 +10,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/configs"
 	"github.com/koo-arch/adjusta-backend/cookie"
-	"github.com/koo-arch/adjusta-backend/internal/google/oauth"
-	"golang.org/x/oauth2"
 )
 
 type OauthHandler struct {
@@ -32,7 +30,7 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 		return
 	}
 
-	url := oauth.GetGoogleAuthConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	url := oh.handler.Server.AuthSessionUsecase.GoogleLoginURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 

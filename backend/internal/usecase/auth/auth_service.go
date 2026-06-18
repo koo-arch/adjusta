@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	opCookie "github.com/koo-arch/adjusta-backend/cookie"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
@@ -15,16 +14,18 @@ import (
 )
 
 type AuthService struct {
-	reader   SignInReader
-	tx       SignInTransaction
-	sessions SessionStore
+	reader          SignInReader
+	tx              SignInTransaction
+	sessions        SessionStore
+	sessionLifetime time.Duration
 }
 
-func NewAuthService(reader SignInReader, tx SignInTransaction, sessions SessionStore) *AuthService {
+func NewAuthService(reader SignInReader, tx SignInTransaction, sessions SessionStore, sessionLifetime time.Duration) *AuthService {
 	return &AuthService{
-		reader:   reader,
-		tx:       tx,
-		sessions: sessions,
+		reader:          reader,
+		tx:              tx,
+		sessions:        sessions,
+		sessionLifetime: sessionLifetime,
 	}
 }
 
@@ -40,7 +41,7 @@ func (am *AuthService) SignInWithGoogle(ctx context.Context, userInfo *appmodel.
 	)
 
 	sessionToken := uuid.NewString()
-	expiresAt := repoSession.ExpiresAtFrom(time.Now(), sessionLifetime())
+	expiresAt := repoSession.ExpiresAtFrom(time.Now(), am.sessionLifetime)
 
 	err = am.tx.Do(ctx, func(store SignInStore) error {
 		var err error
@@ -101,7 +102,7 @@ func (am *AuthService) AuthenticateSession(ctx context.Context, sessionToken str
 		return nil, internalErrors.NewUnauthorizedError("セッションの有効期限が切れています")
 	}
 
-	if _, err := am.sessions.UpdateSessionExpiry(ctx, storedSession.ID, repoSession.ExpiresAtFrom(now, sessionLifetime())); err != nil {
+	if _, err := am.sessions.UpdateSessionExpiry(ctx, storedSession.ID, repoSession.ExpiresAtFrom(now, am.sessionLifetime)); err != nil {
 		log.Printf("failed to update session expiry: %v", err)
 	}
 
@@ -131,10 +132,6 @@ func buildUserMutationOptions(userInfo *appmodel.GoogleUserProfile) UserMutation
 		Name:      nullableString(userInfo.Name),
 		AvatarURL: nullableString(userInfo.Picture),
 	}
-}
-
-func sessionLifetime() time.Duration {
-	return time.Duration(opCookie.DefaultCookieOptions().MaxAge) * time.Second
 }
 
 func buildAccountMutationOptions(userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) AccountMutation {

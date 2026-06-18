@@ -69,10 +69,16 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 				return nil
 			},
 		},
-		OAuthExchangerFunc(func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
-			exchangedCode = code
-			return token, nil
-		}),
+		OAuthGatewayFuncs{
+			AuthCodeURLFn: func(state string) string {
+				t.Fatalf("auth code url should not be called")
+				return ""
+			},
+			ExchangeFn: func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+				exchangedCode = code
+				return token, nil
+			},
+		},
 		UserInfoFetcherFunc(func(ctx context.Context, gotToken *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
 			fetchedToken = gotToken
 			return profile, nil
@@ -94,5 +100,40 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	}
 	if result.SessionToken != "session-token" || result.UserEmail != profile.Email {
 		t.Fatalf("unexpected result: %#v", result)
+	}
+}
+
+func TestSessionUsecaseGoogleLoginURL(t *testing.T) {
+	t.Parallel()
+
+	usecase := NewSessionUsecase(
+		&fakeSessionAuthenticator{
+			signInWithGoogleFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
+				t.Fatalf("sign in should not be called")
+				return nil, nil, nil
+			},
+			deleteSessionFn: func(ctx context.Context, sessionToken string) error {
+				t.Fatalf("delete session should not be called")
+				return nil
+			},
+		},
+		OAuthGatewayFuncs{
+			AuthCodeURLFn: func(state string) string {
+				return "https://example.com/oauth?state=" + state
+			},
+			ExchangeFn: func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+				t.Fatalf("exchange should not be called")
+				return nil, nil
+			},
+		},
+		UserInfoFetcherFunc(func(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+			t.Fatalf("fetch user info should not be called")
+			return nil, nil
+		}),
+	)
+
+	got := usecase.GoogleLoginURL("oauth-state")
+	if got != "https://example.com/oauth?state=oauth-state" {
+		t.Fatalf("unexpected login url: %q", got)
 	}
 }
