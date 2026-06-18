@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import Providers from "./providers";
-import ToastProvider from "./ToastProvider";
 import AuthErrorModal from "@/features/auth/components/AuthErrorModal";
 import { Inter } from "next/font/google";
 import 'react-datepicker/dist/react-datepicker.css';
@@ -27,16 +26,14 @@ export default function RootLayout({
     >
       <body className={inter.className}>
         <Providers>
-          <ToastProvider>
-            <ThemeProvider
-              defaultTheme="system"
-              enableSystem
-            >
-              <Header />
-              {children}
-              <AuthErrorModal />
-            </ThemeProvider>
-          </ToastProvider>
+          <ThemeProvider
+            defaultTheme="system"
+            enableSystem
+          >
+            <Header />
+            {children}
+            <AuthErrorModal />
+          </ThemeProvider>
         </Providers>
       </body>
     </html>
