@@ -13,10 +13,18 @@ export const useDeleteDraftMutation = (eventID: string) => {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async () => {
-            await deleteDraftEvent(eventID);
-        },
-        onSuccess: async () => {
+        mutationFn: async () => deleteDraftEvent(eventID),
+        onSuccess: async (result) => {
+            if (!result.ok) {
+                if (result.type === 'request') {
+                    toast.error(result.errors.formErrors[0] ?? 'イベントの削除に失敗しました。時間をおいて再度お試しください。');
+                    return;
+                }
+
+                toast.error('イベントの削除に失敗しました。時間をおいて再度お試しください。');
+                return;
+            }
+
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: buildEventDetailQueryKey(eventID) }),
                 queryClient.invalidateQueries({ queryKey: buildDraftEventListQueryKey() }),
@@ -31,12 +39,8 @@ export const useDeleteDraftMutation = (eventID: string) => {
     });
 
     const submit = async (): Promise<boolean> => {
-        try {
-            await mutation.mutateAsync();
-            return true;
-        } catch {
-            return false;
-        }
+        const result = await mutation.mutateAsync();
+        return result.ok;
     };
 
     return {
