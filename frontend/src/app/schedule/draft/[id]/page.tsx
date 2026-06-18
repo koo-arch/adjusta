@@ -1,12 +1,14 @@
 import React from 'react';
-import EventDetail from '@/features/events/detail/EventDetail';
+import EventDetailPageContainer from '@/features/events/detail/containers/EventDetailPageContainer';
 
-const DraftDetailPage = () => {
-    return (
-        <div className="px-4 max-w-screen-lg mx-auto">
-            <EventDetail />
-        </div>
-    );
+interface DraftDetailPageProps {
+    params: {
+        id: string;
+    };
+}
+
+const DraftDetailPage = ({ params }: DraftDetailPageProps) => {
+    return <EventDetailPageContainer eventID={params.id} />;
 };
 
 export default DraftDetailPage;

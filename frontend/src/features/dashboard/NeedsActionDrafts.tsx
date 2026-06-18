@@ -1,8 +1,8 @@
 'use client'
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useFetchNeedsActionDrafts } from '@/hooks/event/useFetchNeedsActionDrafts';
-import MiniEventCard from '@/features/events/MiniEventCard';
+import { useFetchNeedsActionDrafts } from '@/features/events/hooks/useFetchNeedsActionDrafts';
+import MiniEventCard from '@/features/events/components/list/MiniEventCard';
 import BoardSlider from './BoardSlider';
 import EmptyStateCard from './EmptyStateCard';
 

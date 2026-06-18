@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import UserButton from '../UserButton';
-import DraftRegisterButton from '@/features/events/DraftRegisterButton';
+import DraftRegisterButton from '@/features/events/draft/components/DraftRegisterButton';
 import { usePathname } from 'next/navigation';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/20/solid';

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAtomValue } from 'jotai';
-import { allEventsAtom } from '@/atoms/calendar';
+import { allEventsAtom } from '@/features/events/store/calendar';
 import Calendar from '@/features/calendar/Calendar';
 import type { EventClickArg } from '@fullcalendar/core';
 import Modal from '@/components/Modal/Modal';

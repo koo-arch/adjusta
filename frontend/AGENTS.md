@@ -9,11 +9,41 @@
 - Server Component と Client Component の責務を分ける。
 - server data、form/draft state、UI state を混同しない。
 
+## Directory Rules
+- `src/app/*` にはルーティングとページエントリのみを置く。
+- `src/features/<domain>/<feature>/*` を機能単位の実装場所とする。
+- `src/features/<...>/api/*` には API 呼び出し関数を置く。
+- `src/features/<...>/hooks/*` には `useQuery` / `useMutation` フックを置く。
+- `src/features/<...>/containers/*` にはページ接続層を置く。Server Component 主体で扱う。
+- `src/features/<...>/components/*` には表示責務中心の UI を置く。
+- `src/features/<...>/store/*` には Jotai atoms を置く。
+- `src/features/<...>/queryKeys.ts` には TanStack Query の query key 定義を置く。
+- `src/components/ui/*` には shadcn/ui ベースの共通 UI を置く。
+- `src/components/common/*` には複数 feature で使う共通部品を置く。
+
 ## Components
 - 画面単位の container と再利用可能な UI component を分ける。
 - UI component はできるだけ props で制御する。
 - business logic を presentation component に入れすぎない。
 - 既存の component / style / naming に合わせる。
+
+## Container Rules
+- `containers/*` はページ/機能の接続層として扱う。
+- `containers` の責務は、ルート引数の受け取りと feature への受け渡しに限定する。
+- `containers` では、秘匿不要データの prefetch を行ってよい。
+- `containers` では、`HydrationBoundary` による dehydrated state の受け渡しを行ってよい。
+- `containers` では、初期 UI 状態を Jotai に橋渡しする薄いラッパーを置いてよい。
+- `containers` では mutation を行わない。
+- 認証必須データ・ユーザー固有データ・秘匿データは server prefetch しない。
+- prefetch する query key は `queryKeys.ts` の builder を使い、`useQuery` 側と一致させる。
+
+## Component Rules
+- 1コンポーネント1責務を基本にする。
+- データ取得や状態接続を含むロジックは `hooks` または `containers` に置く。
+- 表示中心の UI は `components` に置く。
+- feature 内再利用は feature 配下の `components` に留める。
+- feature 横断で再利用が必要な場合のみ `src/components/common` へ昇格する。
+- shadcn/ui のラッパーに業務ロジックを載せすぎない。
 
 ## State Management
 - 不要な `useEffect` は避ける。
@@ -21,6 +51,21 @@
 - form 送信方式は React Hook Form 固定にしない。
 - `useActionState`, server actions, mutation, event handler などから画面に合うものを選ぶ。
 - URL に保持すべき state と component 内 state を区別する。
+
+## useEffect Policy
+- `useEffect` は原則使用しない。escape hatch 扱いとする。
+- データ取得は TanStack Query または Server Component の prefetch で行う。
+- 派生値は render 時の計算で解決し、必要な場合のみ `useMemo` を使う。
+- ユーザー操作起点の処理は event handler / action に寄せる。
+- `useEffect` を使ってよいのは、DOM API 連携・購読/解除・タイマーなど副作用が不可避な場合のみとする。
+- `useEffect` を使う場合は、なぜ不可避かをコードコメントで1行残す。
+
+## Jotai Policy
+- Jotai は、複数コンポーネントにまたがるクライアント状態をシンプルに共有・更新するために利用する。
+- Jotai は、`useEffect` 依存の状態同期を減らすためにも利用する。
+- 状態遷移は atom、特に write-only atom / derived atom で表現し、`useEffect` での後追い同期を避ける。
+- フォーム途中状態・UI状態・ステップ遷移などのクライアント状態は Jotai に置く。
+- Query 結果から必要な値を UI 都合で保持する場合は、最小限の派生状態のみ atom に持つ。
 
 ## Validation
 - frontend validation は UX 用とする。

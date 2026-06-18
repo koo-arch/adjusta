@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
 import { toast } from 'react-toastify';
-import { allEventsAtom } from '@/atoms/calendar';
+import { allEventsAtom } from '@/features/events/store/calendar';
 import { StyleWrapper } from './style';
 import FullCalendar from '@fullcalendar/react';
 import type { ToolbarInput, DateRangeInput, EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
@@ -13,10 +13,10 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import jaLocale from '@fullcalendar/core/locales/ja';
 import momentPlugin from '@fullcalendar/moment';
 import { useFetchGoogleEvent } from '@/hooks/calendar/useFetchGoogleEvent';
-import { useSearchEvents } from '@/hooks/event/useSearchEvents';
+import { useSearchEvents } from '@/features/events/hooks/useSearchEvents';
 import { renderDayCell, renderDayHeader, renderSlotLabel } from './render';
 import type { CalendarEvent } from './type';
-import type { EventDraftDetail } from '@/hooks/event/type';
+import type { EventDraftDetail } from '@/features/events/types';
 
 
 interface CalendarProps<T extends CalendarEvent> {

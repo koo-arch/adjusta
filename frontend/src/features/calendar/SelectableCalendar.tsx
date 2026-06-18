@@ -6,8 +6,8 @@ import Calendar from './Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
 import PopupMenu from '@/components/PopupMenu';
 import type { CalendarEvent } from './type';
-import type { EventDraftDetail } from '@/hooks/event/type';
-import type { ProposedDate, SelectedDate } from '@/features/events/form-state';
+import type { EventDraftDetail } from '@/features/events/types';
+import type { ProposedDate, SelectedDate } from '@/features/events/store/dates';
 
 type DateSelectInfo = {
     id: string;
