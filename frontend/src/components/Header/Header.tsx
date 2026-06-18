@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import UserButton from '@/features/auth/components/UserButton';
 import DraftRegisterButton from '@/features/events/draft/components/DraftRegisterButton';
@@ -16,37 +16,47 @@ const classNames = (...classes: string[]) => {
     return classes.filter(Boolean).join(' ')
 }
 
+const subscribePageScroll = (onStoreChange: () => void) => {
+    if (typeof window === 'undefined') {
+        return () => {};
+    }
+
+    let frameId: number | null = null;
+    const onScroll = () => {
+        if (frameId != null) {
+            return;
+        }
+
+        frameId = window.requestAnimationFrame(() => {
+            frameId = null;
+            onStoreChange();
+        });
+    };
+
+    window.addEventListener('scroll', onScroll);
+    return () => {
+        window.removeEventListener('scroll', onScroll);
+        if (frameId != null) {
+            window.cancelAnimationFrame(frameId);
+        }
+    };
+};
+
+const getHasPageShadow = () => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    return window.scrollY > 0;
+};
+
 const Header: React.FC = () => {
-    const [hasShadow, setHasShadow] = useState(false);
     const pathname = usePathname();
-
-    // スクロール時の影を制御する
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 0) {
-                setHasShadow(true);
-            } else {
-                setHasShadow(false);
-            }
-        };
-
-        let ticking = false;
-
-        const onScroll = () => {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    handleScroll();
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        };
-
-        window.addEventListener('scroll', onScroll);
-        return () => {
-            window.removeEventListener('scroll', onScroll);
-        };
-    }, []);
+    const hasShadow = useSyncExternalStore(
+        subscribePageScroll,
+        getHasPageShadow,
+        () => false,
+    );
 
     const isActived = (href: string) => pathname === href || (href === '/' && pathname === '/dashboard');
 

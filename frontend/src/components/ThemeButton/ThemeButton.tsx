@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTheme } from 'next-themes';
 import IconButton from '@/components/IconButton';
 import { MoonIcon, SunIcon } from '@heroicons/react/20/solid';
@@ -10,12 +10,9 @@ interface ThemeButtonProps {
 }
 
 const ThemeButton: React.FC<ThemeButtonProps> = ({ className }) => {
-    const { theme, setTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-    
-    useEffect(() => setMounted(true), [])
+    const { resolvedTheme, setTheme } = useTheme();
 
-    if (!mounted) return (
+    if (!resolvedTheme) return (
         <Image
             src="data:image/svg+xml;base64,PHN2ZyBzdHJva2U9IiNGRkZGRkYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMCIgdmlld0JveD0iMCAwIDI0IDI0IiBoZWlnaHQ9IjIwMHB4IiB3aWR0aD0iMjAwcHgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiB4PSIyIiB5PSIyIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIyIj48L3JlY3Q+PC9zdmc+Cg=="
             width={36}
@@ -32,9 +29,9 @@ const ThemeButton: React.FC<ThemeButtonProps> = ({ className }) => {
             iconColor="clear"
             iconSize='lg'
             className={className}
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
         >
-            {theme === 'light' ? <SunIcon /> : <MoonIcon />}
+            {resolvedTheme === 'light' ? <SunIcon /> : <MoonIcon />}
         </IconButton>
     )
 }

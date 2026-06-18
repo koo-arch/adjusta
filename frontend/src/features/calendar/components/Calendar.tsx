@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
 import { toast } from 'react-toastify';
 import { allEventsAtom } from '@/features/events/store/calendar';
-import { StyleWrapper } from '../style';
+import { StyleWrapper } from './style';
 import FullCalendar from '@fullcalendar/react';
 import type { ToolbarInput, DateRangeInput, EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
@@ -14,7 +14,7 @@ import jaLocale from '@fullcalendar/core/locales/ja';
 import momentPlugin from '@fullcalendar/moment';
 import { useFetchGoogleCalendarEvents } from '@/features/calendar/hooks/useFetchGoogleCalendarEvents';
 import { useSearchEvents } from '@/features/events/hooks/useSearchEvents';
-import { renderDayCell, renderDayHeader, renderSlotLabel } from '../render';
+import { renderDayCell, renderDayHeader, renderSlotLabel } from './render';
 import type { CalendarEvent } from '../types';
 import type { EventDraftDetail } from '@/features/events/types';
 
