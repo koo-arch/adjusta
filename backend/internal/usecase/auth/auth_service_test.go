@@ -32,6 +32,7 @@ type fakeSignInStore struct {
 	updateUserFn    func(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repoUser.User, error)
 	createAccountFn func(ctx context.Context, userID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error)
 	updateAccountFn func(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error)
+	createSessionFn func(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error)
 }
 
 func (f *fakeSignInStore) CreateUser(ctx context.Context, email string, opt UserMutation) (*repoUser.User, error) {
@@ -48,6 +49,10 @@ func (f *fakeSignInStore) CreateAccount(ctx context.Context, userID uuid.UUID, o
 
 func (f *fakeSignInStore) UpdateAccount(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error) {
 	return f.updateAccountFn(ctx, accountID, opt)
+}
+
+func (f *fakeSignInStore) CreateSession(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
+	return f.createSessionFn(ctx, userID, sessionToken, expiresAt)
 }
 
 type fakeSignInTransaction struct {
@@ -156,6 +161,10 @@ func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
 				t.Fatalf("update account should not be called")
 				return nil, nil
 			},
+			createSessionFn: func(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
+				t.Fatalf("create session should not be called")
+				return nil, nil
+			},
 		},
 	}
 
@@ -182,6 +191,92 @@ func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
 	}
 	if !tx.called || !createUserCalled || !createAccountCalled {
 		t.Fatalf("expected transaction and create operations to be called")
+	}
+}
+
+func TestAuthServiceSignInWithGoogleCreatesSessionInTransaction(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	profile := &appmodel.GoogleUserProfile{
+		GoogleID: "google-user-id",
+		Email:    "user@example.com",
+		Name:     "Adjusta User",
+		Picture:  "https://example.com/avatar.png",
+	}
+	token := &appmodel.GoogleAuthToken{
+		AccessToken:  "access-token",
+		TokenType:    "Bearer",
+		RefreshToken: "refresh-token",
+		Expiry:       time.Now().Add(time.Hour).UTC(),
+	}
+
+	var createdSessionUserID uuid.UUID
+
+	tx := &fakeSignInTransaction{
+		store: &fakeSignInStore{
+			createUserFn: func(ctx context.Context, email string, opt UserMutation) (*repoUser.User, error) {
+				return &repoUser.User{
+					ID:    userID,
+					Email: email,
+				}, nil
+			},
+			updateUserFn: func(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repoUser.User, error) {
+				t.Fatalf("update user should not be called")
+				return nil, nil
+			},
+			createAccountFn: func(ctx context.Context, gotUserID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error) {
+				return &repoAccount.Account{ID: uuid.New(), UserID: gotUserID}, nil
+			},
+			updateAccountFn: func(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error) {
+				t.Fatalf("update account should not be called")
+				return nil, nil
+			},
+			createSessionFn: func(ctx context.Context, gotUserID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
+				createdSessionUserID = gotUserID
+				if sessionToken == "" {
+					t.Fatalf("expected session token to be set")
+				}
+				return &repoSession.Session{
+					ID:           uuid.New(),
+					UserID:       gotUserID,
+					SessionToken: sessionToken,
+					ExpiresAt:    expiresAt,
+				}, nil
+			},
+		},
+	}
+
+	service := NewAuthService(
+		&fakeSignInReader{
+			findUserByEmailFn: func(ctx context.Context, email string) (*repoUser.User, error) {
+				return nil, repoerr.ErrNotFound
+			},
+			findAccountByUserIDFn: func(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {
+				t.Fatalf("find account should not be called when user is missing")
+				return nil, nil
+			},
+		},
+		tx,
+		&fakeSessionStore{},
+	)
+
+	session, gotUser, err := service.SignInWithGoogle(ctx, profile, token)
+	if err != nil {
+		t.Fatalf("SignInWithGoogle returned error: %v", err)
+	}
+	if !tx.called {
+		t.Fatalf("expected transaction to be called")
+	}
+	if gotUser == nil || gotUser.ID != userID {
+		t.Fatalf("unexpected user: %#v", gotUser)
+	}
+	if session == nil || session.UserID != userID {
+		t.Fatalf("unexpected session: %#v", session)
+	}
+	if createdSessionUserID != userID {
+		t.Fatalf("unexpected session user id: %s", createdSessionUserID)
 	}
 }
 

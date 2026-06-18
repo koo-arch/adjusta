@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
@@ -17,8 +16,7 @@ type GoogleSignInResult struct {
 }
 
 type SessionAuthenticator interface {
-	ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error)
-	CreateSession(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error)
+	SignInWithGoogle(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error)
 	DeleteSession(ctx context.Context, sessionToken string) error
 }
 
@@ -69,16 +67,10 @@ func (uc *SessionUsecase) CompleteGoogleSignIn(ctx context.Context, code string)
 		return nil, internalErrors.NormalizeAPIError(err, "ユーザー情報の取得に失敗しました")
 	}
 
-	u, err := uc.authenticator.ProcessUserSignIn(ctx, userInfo, oauthToken)
+	entSession, u, err := uc.authenticator.SignInWithGoogle(ctx, userInfo, oauthToken)
 	if err != nil {
 		log.Printf("failed to create or update user: %v", err)
 		return nil, internalErrors.NormalizeAPIError(err, "ユーザーの作成または更新に失敗しました")
-	}
-
-	entSession, err := uc.authenticator.CreateSession(ctx, u.ID)
-	if err != nil {
-		log.Printf("failed to create app session: %v", err)
-		return nil, internalErrors.NormalizeAPIError(err, "ログインセッションの作成に失敗しました")
 	}
 
 	return &GoogleSignInResult{

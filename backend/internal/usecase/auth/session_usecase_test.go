@@ -12,17 +12,12 @@ import (
 )
 
 type fakeSessionAuthenticator struct {
-	processUserSignInFn func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error)
-	createSessionFn     func(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error)
-	deleteSessionFn     func(ctx context.Context, sessionToken string) error
+	signInWithGoogleFn func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error)
+	deleteSessionFn    func(ctx context.Context, sessionToken string) error
 }
 
-func (f *fakeSessionAuthenticator) ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error) {
-	return f.processUserSignInFn(ctx, userInfo, oauthToken)
-}
-
-func (f *fakeSessionAuthenticator) CreateSession(ctx context.Context, userID uuid.UUID) (*repoSession.Session, error) {
-	return f.createSessionFn(ctx, userID)
+func (f *fakeSessionAuthenticator) SignInWithGoogle(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
+	return f.signInWithGoogleFn(ctx, userInfo, oauthToken)
 }
 
 func (f *fakeSessionAuthenticator) DeleteSession(ctx context.Context, sessionToken string) error {
@@ -50,27 +45,23 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	var exchangedCode string
 	var fetchedToken *appmodel.GoogleAuthToken
 	var signedInProfile *appmodel.GoogleUserProfile
-	var createdSessionUserID uuid.UUID
 
 	usecase := NewSessionUsecase(
 		&fakeSessionAuthenticator{
-			processUserSignInFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error) {
+			signInWithGoogleFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
 				signedInProfile = userInfo
 				if oauthToken != token {
 					t.Fatalf("unexpected oauth token: %#v", oauthToken)
 				}
-				return &repoUser.User{
-					ID:    userID,
-					Email: userInfo.Email,
-				}, nil
-			},
-			createSessionFn: func(ctx context.Context, gotUserID uuid.UUID) (*repoSession.Session, error) {
-				createdSessionUserID = gotUserID
-				return &repoSession.Session{
+				session := &repoSession.Session{
 					ID:           uuid.New(),
-					UserID:       gotUserID,
+					UserID:       userID,
 					SessionToken: "session-token",
 					ExpiresAt:    time.Now().Add(time.Hour),
+				}
+				return session, &repoUser.User{
+					ID:    userID,
+					Email: userInfo.Email,
 				}, nil
 			},
 			deleteSessionFn: func(ctx context.Context, sessionToken string) error {
@@ -100,9 +91,6 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	}
 	if signedInProfile != profile {
 		t.Fatalf("unexpected signed in profile: %#v", signedInProfile)
-	}
-	if createdSessionUserID != userID {
-		t.Fatalf("unexpected session user id: %s", createdSessionUserID)
 	}
 	if result.SessionToken != "session-token" || result.UserEmail != profile.Email {
 		t.Fatalf("unexpected result: %#v", result)

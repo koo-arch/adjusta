@@ -33,6 +33,7 @@ type SignInStore interface {
 	UpdateUser(ctx context.Context, userID uuid.UUID, opt UserMutation) (*repoUser.User, error)
 	CreateAccount(ctx context.Context, userID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error)
 	UpdateAccount(ctx context.Context, accountID uuid.UUID, opt AccountMutation) (*repoAccount.Account, error)
+	CreateSession(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error)
 }
 
 type SignInTransaction interface {

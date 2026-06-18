@@ -45,6 +45,7 @@ func (t *authTransaction) Do(ctx context.Context, fn func(store usecaseAuth.Sign
 		return fn(&authStore{
 			userRepo:    repos.User,
 			accountRepo: repos.Account,
+			sessionRepo: repos.Session,
 		})
 	})
 }
@@ -52,6 +53,7 @@ func (t *authTransaction) Do(ctx context.Context, fn func(store usecaseAuth.Sign
 type authStore struct {
 	userRepo    repoUser.UserRepository
 	accountRepo repoAccount.AccountRepository
+	sessionRepo repoSession.SessionRepository
 }
 
 func (s *authStore) CreateUser(ctx context.Context, email string, opt usecaseAuth.UserMutation) (*repoUser.User, error) {
@@ -86,6 +88,10 @@ func (s *authStore) UpdateAccount(ctx context.Context, accountID uuid.UUID, opt 
 		ExpiresAt:    opt.ExpiresAt,
 		Scope:        opt.Scope,
 	})
+}
+
+func (s *authStore) CreateSession(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
+	return s.sessionRepo.Create(ctx, userID, sessionToken, expiresAt)
 }
 
 type authSessionStore struct {
