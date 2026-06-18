@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
 import { atomFamily, atomWithReset } from 'jotai/utils';
-import type { CalendarEvent } from '@/features/calendar/type';
+import type { CalendarEvent } from '@/features/calendar/types';
 import {
     buildLocalCalendarEvents,
     buildSendProposedDates,

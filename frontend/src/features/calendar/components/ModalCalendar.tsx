@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAtomValue } from 'jotai';
 import { allEventsAtom } from '@/features/events/store/calendar';
-import Calendar from '@/features/calendar/Calendar';
+import Calendar from '@/features/calendar/components/Calendar';
 import type { EventClickArg } from '@fullcalendar/core';
 import Modal from '@/components/Modal/Modal';
-import type { CalendarEvent } from '@/features/calendar/type';
+import type { CalendarEvent } from '@/features/calendar/types';
 import { CalendarDaysIcon, MapPinIcon } from "@heroicons/react/20/solid";
 import { formatJaDateSpan } from '@/lib/date/format';
 

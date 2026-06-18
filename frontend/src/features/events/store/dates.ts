@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '@/features/calendar/type';
+import type { CalendarEvent } from '@/features/calendar/types';
 import type { EventProposedDate } from '@/features/events/types';
 import { validateUUID } from '@/lib/validation/uuid';
 import type { SendSelectedDate } from '../schema';

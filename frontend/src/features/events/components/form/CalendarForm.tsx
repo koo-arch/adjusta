@@ -7,7 +7,7 @@ import {
     selectedDatesAtomFamily,
     selectedEventsAtomFamily,
 } from '@/features/events/store/calendar';
-import SelectableCalendar from '@/features/calendar/SelectableCalendar';
+import SelectableCalendar from '@/features/calendar/components/SelectableCalendar';
 import type { EventDraftDetail } from '@/features/events/types';
 import { clearEditedEventFieldStateAtomFamily } from '@/features/events/store/errors';
 

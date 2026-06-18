@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
 import { toast } from 'react-toastify';
 import { allEventsAtom } from '@/features/events/store/calendar';
-import { StyleWrapper } from './style';
+import { StyleWrapper } from '../style';
 import FullCalendar from '@fullcalendar/react';
 import type { ToolbarInput, DateRangeInput, EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
@@ -12,10 +12,10 @@ import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import jaLocale from '@fullcalendar/core/locales/ja';
 import momentPlugin from '@fullcalendar/moment';
-import { useFetchGoogleEvent } from '@/hooks/calendar/useFetchGoogleEvent';
+import { useFetchGoogleCalendarEvents } from '@/features/calendar/hooks/useFetchGoogleCalendarEvents';
 import { useSearchEvents } from '@/features/events/hooks/useSearchEvents';
-import { renderDayCell, renderDayHeader, renderSlotLabel } from './render';
-import type { CalendarEvent } from './type';
+import { renderDayCell, renderDayHeader, renderSlotLabel } from '../render';
+import type { CalendarEvent } from '../types';
 import type { EventDraftDetail } from '@/features/events/types';
 
 
@@ -44,13 +44,14 @@ const Calendar = <T extends CalendarEvent>({
     eventResize,
     editEvent,
 }: CalendarProps<T>) => {
-    const { events, isLoading: isGoogleEventLoading, error: googleEventError } = useFetchGoogleEvent();
-    const { searchEvents, isLoading: isSearchLoading, error: searchError } = useSearchEvents({ status: "active" });
+    const { events, isLoading: isGoogleEventLoading } = useFetchGoogleCalendarEvents();
+    const { searchEvents, isLoading: isSearchLoading } = useSearchEvents({ status: "active" });
     const [allEvents, setAllEvents] = useAtom(allEventsAtom);
     const confirmedGoogleEventID = editEvent?.confirmed_google_event_id ?? editEvent?.google_event_id;
 
     const warningToastId = 'google-calendar-warning';
 
+    // FullCalendar へ渡す表示イベント一覧を、取得済みデータと編集中のローカル状態から合成する。
     useEffect(() => {
         if (isGoogleEventLoading || isSearchLoading) return;
 
@@ -86,6 +87,7 @@ const Calendar = <T extends CalendarEvent>({
         setAllEvents(allEvents);
     }, [events, searchEvents, isGoogleEventLoading, isSearchLoading, editEvent, confirmedGoogleEventID, setAllEvents, selectedEvents]);
 
+    // Google Calendar API から部分的な取得失敗が返ったときだけ警告トーストを出す。
     useEffect(() => {
         if (events?.warning?.failed_calendars) {
             toast.warn(`取得に失敗したカレンダーがあります: ${events.warning.failed_calendars.join(', ')}`,{

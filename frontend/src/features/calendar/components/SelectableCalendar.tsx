@@ -2,10 +2,10 @@
 import React, { useState, useRef } from 'react';
 import type { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
-import Calendar from './Calendar';
+import Calendar from '@/features/calendar/components/Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
 import PopupMenu from '@/components/PopupMenu';
-import type { CalendarEvent } from './type';
+import type { CalendarEvent } from '@/features/calendar/types';
 import type { EventDraftDetail } from '@/features/events/types';
 import type { ProposedDate, SelectedDate } from '@/features/events/store/dates';
 

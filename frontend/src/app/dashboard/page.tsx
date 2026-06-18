@@ -1,5 +1,5 @@
 import React from 'react';
-import ModalCalendar from '@/features/calendar/ModalCalendar';
+import ModalCalendar from '@/features/calendar/components/ModalCalendar';
 import UpcomingEvents from '@/features/dashboard/UpcomingEvents';
 import NeedsActionDrafts from '@/features/dashboard/NeedsActionDrafts';
 
