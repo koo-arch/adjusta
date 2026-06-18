@@ -1,5 +1,5 @@
 import React from 'react';
-import UserInfo from '@/features/auth/UserInfo';
+import UserInfo from '@/features/auth/components/UserInfo';
 
 const AccountPage = () => {
     return (

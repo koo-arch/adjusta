@@ -1,5 +1,5 @@
 import React from 'react';
-import LoginButton from '@/features/auth/LoginButton';
+import LoginButton from '@/features/auth/components/LoginButton';
 import scheduleManage from '../../../public/images/schedule_manage.jpg';
 import Card from '@/components/Card';
 

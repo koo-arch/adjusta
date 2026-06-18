@@ -2,8 +2,8 @@
 import React from 'react';
 import Image from 'next/image';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
-import { useLogout } from '@/hooks/auth/useLogout';
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useLogout } from '@/features/auth/hooks/useLogout';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/react/20/solid';
 
 interface UserButtonProps {
@@ -11,7 +11,7 @@ interface UserButtonProps {
 }
 
 const UserButton: React.FC<UserButtonProps> = ({ classNames }) => {
-    const handleLogout = useLogout();
+    const { logout } = useLogout();
     const { isAuthenticated, user, isLoading } = useAuth();
 
     if (isLoading) return null;
@@ -52,7 +52,9 @@ const UserButton: React.FC<UserButtonProps> = ({ classNames }) => {
                         {({ focus }) => (
                             <a
                                 className={classNames(focus ? 'bg-gray-100' : '', 'flex items-center px-4 py-2 text-sm text-gray-700')}
-                                onClick={handleLogout}
+                                onClick={() => {
+                                    void logout();
+                                }}
                             >
                                 <ArrowRightStartOnRectangleIcon className="h-5 w-5 mr-2 text-gray-500" />
                                 ログアウト

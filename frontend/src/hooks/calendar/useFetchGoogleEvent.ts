@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import type {  GoogleCalendarResponse } from './type';
-import { useAuth } from '../auth/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 const fetchGoogleEvents = async () => {
     const response = await apiClient.get<GoogleCalendarResponse>('/api/calendar/list');

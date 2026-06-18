@@ -1,7 +1,7 @@
 'use client'
 import React from 'react';
 import IconButton from '@/components/IconButton';
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { PlusIcon } from '@heroicons/react/20/solid';
 
 const DraftRegisterButton = () => {

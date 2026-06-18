@@ -4,11 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { authErrorAtom } from '@/atoms/error';
 import Modal from '@/components/Modal';
-import { useLogout } from '@/hooks/auth/useLogout';
+import { useLogout } from '@/features/auth/hooks/useLogout';
 
 const AuthErrorModal = () => {
     const router = useRouter();
-    const logout = useLogout();
+    const { logout } = useLogout();
     const [{ isOpen, message }, setAuthError] = useAtom(authErrorAtom);
 
     return (
@@ -16,7 +16,7 @@ const AuthErrorModal = () => {
             isOpen={isOpen}
             onClose={() => {
                 setAuthError({ isOpen: false, message: '' });
-                logout();
+                void logout();
                 router.push('/login');
             }}  
             title="認証エラー"

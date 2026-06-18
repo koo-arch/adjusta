@@ -1,7 +1,7 @@
 'use client'
 import React from 'react';
 import Image from 'next/image';
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 const UserInfo: React.FC = () => {
     const { user, isAuthenticated } = useAuth();

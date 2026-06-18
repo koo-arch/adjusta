@@ -2,7 +2,7 @@
 import React from 'react'
 import Button from '@/components/Button';
 import Image from 'next/image';
-import { useLogin } from '@/hooks/auth/useLogin';
+import { useLogin } from '@/features/auth/hooks/useLogin';
 
 const LoginButton: React.FC = () => {
     const loginHandler = useLogin();

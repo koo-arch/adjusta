@@ -1,7 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query';
 import type { SearchParams } from '../types';
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { searchDraftEvents } from '@/features/events/api/searchDraftEvents';
 import { buildDraftEventSearchQueryKey } from '@/features/events/queryKeys';
 

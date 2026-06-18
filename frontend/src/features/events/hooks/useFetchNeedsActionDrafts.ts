@@ -1,6 +1,6 @@
 'use client'
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { fetchNeedsActionDrafts } from '@/features/events/api/fetchNeedsActionDrafts';
 import { buildNeedsActionDraftsQueryKey } from '@/features/events/queryKeys';
 
