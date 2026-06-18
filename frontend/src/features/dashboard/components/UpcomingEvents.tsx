@@ -3,12 +3,12 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useFetchUpcomingEvents } from '@/features/events/hooks/useFetchUpcomingEvents';
 import MiniEventCard from '@/features/events/components/list/MiniEventCard';
-import BoardSlider from './BoardSlider';
-import EmptyStateCard from './EmptyStateCard';
+import BoardSlider from '@/features/dashboard/components/BoardSlider';
+import EmptyStateCard from '@/features/dashboard/components/EmptyStateCard';
 
 const UpcomingEvents: React.FC = () => {
     const router = useRouter();
-    const { upcomingEvents, isLoading, error } = useFetchUpcomingEvents();
+    const { upcomingEvents, isLoading } = useFetchUpcomingEvents();
 
     if (isLoading) {
         return <p>Loading...</p>;

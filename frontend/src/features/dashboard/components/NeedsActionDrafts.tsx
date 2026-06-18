@@ -3,12 +3,12 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useFetchNeedsActionDrafts } from '@/features/events/hooks/useFetchNeedsActionDrafts';
 import MiniEventCard from '@/features/events/components/list/MiniEventCard';
-import BoardSlider from './BoardSlider';
-import EmptyStateCard from './EmptyStateCard';
+import BoardSlider from '@/features/dashboard/components/BoardSlider';
+import EmptyStateCard from '@/features/dashboard/components/EmptyStateCard';
 
 const NeedsActionDrafts: React.FC = () => {
     const router = useRouter();
-    const { needsActionDrafts, isLoading, error } = useFetchNeedsActionDrafts();
+    const { needsActionDrafts, isLoading } = useFetchNeedsActionDrafts();
 
     if (isLoading) {
         return <p>Loading...</p>;

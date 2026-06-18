@@ -1,13 +1,8 @@
 import React from 'react';
-import Calendar from '@/features/calendar/components/Calendar';
+import SchedulePageContainer from '@/features/calendar/containers/SchedulePageContainer';
 
 const SchedulePage = () => {
-    return (
-        <div>
-            <h1>Schedule</h1>
-            <Calendar />
-        </div>
-    )
-}
+    return <SchedulePageContainer />;
+};
 
 export default SchedulePage;
