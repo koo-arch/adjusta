@@ -25,7 +25,7 @@ func NewAuthReader(userRepo repoUser.UserRepository, accountRepo repoAccount.Acc
 }
 
 func (r *authReader) FindUserByEmail(ctx context.Context, email string) (*repoUser.User, error) {
-	return r.userRepo.FindByEmail(ctx, email, repoUser.UserQueryOptions{})
+	return r.userRepo.FindByEmail(ctx, email)
 }
 
 func (r *authReader) FindAccountByUserID(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {

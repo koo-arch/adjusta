@@ -12,7 +12,6 @@ import (
 )
 
 type UserRepository = repoUser.UserRepository
-type UserQueryOptions = repoUser.UserQueryOptions
 type UserMutationOptions = repoUser.UserMutationOptions
 
 type UserRepositoryImpl struct {
@@ -25,7 +24,7 @@ func NewUserRepository(client *ent.Client) *UserRepositoryImpl {
 	}
 }
 
-func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*repoUser.User, error) {
+func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repoUser.User, error) {
 	userEntity, err := r.client.User.Query().
 		Where(user.IDEQ(id)).
 		Only(ctx)
@@ -35,7 +34,7 @@ func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQue
 	return toModelUser(userEntity), nil
 }
 
-func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*repoUser.User, error) {
+func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*repoUser.User, error) {
 	userEntity, err := r.client.User.Query().
 		Where(user.EmailEQ(email)).
 		Only(ctx)

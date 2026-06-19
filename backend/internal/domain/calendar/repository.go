@@ -27,7 +27,7 @@ type CalendarMutationOptions struct {
 }
 
 type CalendarRepository interface {
-	Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*Calendar, error)
+	Read(ctx context.Context, id uuid.UUID) (*Calendar, error)
 	FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*Calendar, error)
 	FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*Calendar, error)
 	FindByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*Calendar, error)

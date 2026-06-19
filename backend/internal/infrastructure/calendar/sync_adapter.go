@@ -21,7 +21,7 @@ func NewCalendarSyncUserReader(userRepo repoUser.UserRepository) usecaseCalendar
 }
 
 func (r *calendarSyncUserReader) GetByID(ctx context.Context, userID uuid.UUID) (*repoUser.User, error) {
-	return r.userRepo.Read(ctx, userID, repoUser.UserQueryOptions{})
+	return r.userRepo.Read(ctx, userID)
 }
 
 type calendarSyncTransaction struct {
@@ -83,7 +83,7 @@ func (s *calendarSyncStore) ListUserCalendarRelations(ctx context.Context, userI
 
 	relations := make([]*usecaseCalendar.UserCalendarRelationRecord, 0, len(userCalendars))
 	for _, userCalendar := range userCalendars {
-		calendar, err := s.repos.Calendar.Read(ctx, userCalendar.CalendarID, repoCalendar.CalendarQueryOptions{})
+		calendar, err := s.repos.Calendar.Read(ctx, userCalendar.CalendarID)
 		if err != nil {
 			return nil, err
 		}

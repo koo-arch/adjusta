@@ -27,7 +27,7 @@ func NewCalendarRepository(client *ent.Client) *CalendarRepositoryImpl {
 	}
 }
 
-func (r *CalendarRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*repoCalendar.Calendar, error) {
+func (r *CalendarRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repoCalendar.Calendar, error) {
 	findCalendar := r.client.Calendar.Query()
 	entity, err := findCalendar.Where(calendar.IDEQ(id)).Only(ctx)
 	if err != nil {

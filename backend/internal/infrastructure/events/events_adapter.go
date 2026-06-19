@@ -112,7 +112,7 @@ func (s *eventTxStore) FindEventByID(ctx context.Context, userID, eventID uuid.U
 }
 
 func (s *eventTxStore) ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
-	calendar, err := s.repos.Calendar.Read(ctx, calendarID, repoCalendar.CalendarQueryOptions{})
+	calendar, err := s.repos.Calendar.Read(ctx, calendarID)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func findAdjustaCandidateCalendarRecord(ctx context.Context, repos infraReposito
 			continue
 		}
 
-		calendar, err := repos.Calendar.Read(ctx, userCalendar.CalendarID, repoCalendar.CalendarQueryOptions{})
+		calendar, err := repos.Calendar.Read(ctx, userCalendar.CalendarID)
 		if err != nil {
 			return nil, err
 		}
