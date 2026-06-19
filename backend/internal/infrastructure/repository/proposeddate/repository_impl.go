@@ -45,16 +45,6 @@ func (r *ProposedDateRepositoryImpl) FilterByEventID(ctx context.Context, eventI
 	return toProposedDates(entities), nil
 }
 
-func (r *ProposedDateRepositoryImpl) ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*repoProposedDate.ProposedDate, error) {
-	entities, err := r.client.ProposedDate.Query().
-		Where(proposeddate.Not(proposeddate.HasEventWith(event.IDEQ(eventID)))).
-		All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return toProposedDates(entities), nil
-}
-
 func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDateCreateOptions, eventID uuid.UUID) (*repoProposedDate.ProposedDate, error) {
 	proposedDateCreate := r.client.ProposedDate.Create()
 

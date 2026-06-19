@@ -50,6 +50,12 @@ type EventRecord struct {
 	ProposedDates          []*ProposedDateRecord
 }
 
+type SelectedDate struct {
+	Start    time.Time
+	End      time.Time
+	Priority int
+}
+
 type PrimaryCalendarFinder interface {
 	FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
 }
@@ -75,7 +81,7 @@ type EventTxStore interface {
 	UpdateEvent(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error)
 	SoftDeleteEvent(ctx context.Context, id uuid.UUID) error
 	ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*ProposedDateRecord, error)
-	CreateProposedDates(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error)
+	CreateProposedDates(ctx context.Context, selectedDates []SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error)
 	UpdateProposedDate(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error)
 	DeleteProposedDate(ctx context.Context, id uuid.UUID) error
 	CreateProposedDate(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error)

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
@@ -164,7 +163,7 @@ func (s *eventTxStore) ListProposedDatesByEvent(ctx context.Context, eventID uui
 	return toProposedDateRecords(dates), nil
 }
 
-func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*usecaseEvents.ProposedDateRecord, error) {
+func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []usecaseEvents.SelectedDate, eventID uuid.UUID) ([]*usecaseEvents.ProposedDateRecord, error) {
 	dates, err := s.repos.ProposedDate.CreateBulk(ctx, toProposedDateCreateOptionsList(selectedDates), eventID)
 	if err != nil {
 		return nil, err
@@ -230,7 +229,7 @@ func toProposedDateCreateOptions(opt usecaseEvents.ProposedDateMutation) (repoPr
 	}, nil
 }
 
-func toProposedDateCreateOptionsList(selectedDates []appmodel.SelectedDate) []repoProposedDate.ProposedDateCreateOptions {
+func toProposedDateCreateOptionsList(selectedDates []usecaseEvents.SelectedDate) []repoProposedDate.ProposedDateCreateOptions {
 	opts := make([]repoProposedDate.ProposedDateCreateOptions, 0, len(selectedDates))
 	for _, selectedDate := range selectedDates {
 		status := domainvalue.ProposedDateStatusActive

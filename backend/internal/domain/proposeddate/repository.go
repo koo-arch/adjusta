@@ -35,7 +35,6 @@ type ProposedDateUpdateOptions struct {
 type ProposedDateRepository interface {
 	Read(ctx context.Context, id uuid.UUID) (*ProposedDate, error)
 	FilterByEventID(ctx context.Context, eventID uuid.UUID) ([]*ProposedDate, error)
-	ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*ProposedDate, error)
 	Create(ctx context.Context, opt ProposedDateCreateOptions, eventID uuid.UUID) (*ProposedDate, error)
 	Update(ctx context.Context, id uuid.UUID, opt ProposedDateUpdateOptions) (*ProposedDate, error)
 	Delete(ctx context.Context, id uuid.UUID) error

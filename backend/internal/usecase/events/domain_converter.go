@@ -44,11 +44,14 @@ func toDomainConfirmationDraftDate(date appmodel.ConfirmDate) (domainEvent.Draft
 	}, nil
 }
 
-func assignSelectedDatePriorities(dates []appmodel.SelectedDate) []appmodel.SelectedDate {
-	assigned := make([]appmodel.SelectedDate, 0, len(dates))
+func assignSelectedDatePriorities(dates []appmodel.SelectedDate) []SelectedDate {
+	assigned := make([]SelectedDate, 0, len(dates))
 	for i, date := range dates {
-		date.Priority = domainEvent.PriorityForOrder(i, len(dates))
-		assigned = append(assigned, date)
+		assigned = append(assigned, SelectedDate{
+			Start:    date.Start,
+			End:      date.End,
+			Priority: domainEvent.PriorityForOrder(i, len(dates)),
+		})
 	}
 	return assigned
 }

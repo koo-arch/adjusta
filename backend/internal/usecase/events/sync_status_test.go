@@ -23,7 +23,7 @@ type fakeEventTxStore struct {
 	updateEventFn                  func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error)
 	softDeleteEventFn              func(ctx context.Context, id uuid.UUID) error
 	listProposedDatesByEventFn     func(ctx context.Context, eventID uuid.UUID) ([]*ProposedDateRecord, error)
-	createProposedDatesFn          func(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error)
+	createProposedDatesFn          func(ctx context.Context, selectedDates []SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error)
 	updateProposedDateFn           func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error)
 	deleteProposedDateFn           func(ctx context.Context, id uuid.UUID) error
 	createProposedDateFn           func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error)
@@ -89,7 +89,7 @@ func (f *fakeEventTxStore) ListProposedDatesByEvent(ctx context.Context, eventID
 	return f.listProposedDatesByEventFn(ctx, eventID)
 }
 
-func (f *fakeEventTxStore) CreateProposedDates(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error) {
+func (f *fakeEventTxStore) CreateProposedDates(ctx context.Context, selectedDates []SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error) {
 	if f.createProposedDatesFn == nil {
 		f.unexpected("CreateProposedDates")
 	}
@@ -182,7 +182,7 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						SyncStatus:  domainvalue.SyncStatusPending,
 					}, nil
 				},
-				createProposedDatesFn: func(ctx context.Context, selectedDates []appmodel.SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
@@ -286,7 +286,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 					t.Fatalf("UpdateEvent should not be called when candidate sync is disabled")
 					return nil, nil
 				},
-				createProposedDatesFn: func(ctx context.Context, selectedDates []appmodel.SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
@@ -371,7 +371,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 						SyncStatus:  domainvalue.SyncStatusNotSynced,
 					}, nil
 				},
-				createProposedDatesFn: func(ctx context.Context, selectedDates []appmodel.SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
 					return []*ProposedDateRecord{
 						{
 							ID:         dateID,
