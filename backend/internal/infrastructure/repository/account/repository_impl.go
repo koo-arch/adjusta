@@ -8,7 +8,6 @@ import (
 	entAccount "github.com/koo-arch/adjusta-backend/ent/account"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type AccountRepository = repoAccount.AccountRepository
@@ -22,10 +21,6 @@ func NewAccountRepository(client *ent.Client) *AccountRepositoryImpl {
 	return &AccountRepositoryImpl{
 		client: client,
 	}
-}
-
-func (r *AccountRepositoryImpl) WithTx(tx transaction.Tx) AccountRepository {
-	return &AccountRepositoryImpl{client: tx.Client()}
 }
 
 func (r *AccountRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repoAccount.Account, error) {

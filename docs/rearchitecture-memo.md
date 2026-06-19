@@ -37,7 +37,7 @@
 | ProposedDate の状態 | `proposed_dates` は `google_event_id`、`status`、`priority` を持ち、`status` は `active` / `confirmed` / `not_selected` / `cancelled` を取る | `proposed_dates` は docs に沿った状態語彙、`google_event_id`、priority を持つ形へ移行済み | この差分は概ね解消済み。状態遷移のさらなる domain 集約は継続課題 |
 | 日程確定ロジック | 確定日程を明示的に状態遷移させ、非選択候補も識別する | 確定候補を `confirmed`、非選択候補を `not_selected` として扱う流れへ寄ってきている | docs にかなり近づいたが、状態遷移ルールの domain 集約は継続課題 |
 | 同期状態管理 | Event / ProposedDate に `sync_status`、`last_synced_at`、`last_sync_error` を持たせる | `events` / `proposed_dates` の両方に同期状態系カラムを導入済みで、create / update / finalize / detail access sync で更新している | 同期失敗の保持と再同期前提は整ってきた。再試行ポリシーや運用ルールは継続課題 |
-| バックエンドの層構成 | DDD を意識し、domain は ent に依存しない。repository interface は domain 側に置く | repository interface の domain 側移設、repository 実装の infrastructure 側集約、usecase ごとの port 分離は進んでいる | `WithTx(transaction.Tx)` や shared model の残りなど、domain の純化は継続課題 |
+| バックエンドの層構成 | DDD を意識し、domain は ent に依存しない。repository interface は domain 側に置く | repository interface の domain 側移設、repository 実装の infrastructure 側集約、usecase ごとの port 分離は進んでいる。transaction は UoW / infrastructure 側に閉じ込め、domain repository から `WithTx(...)` を除去済み | shared model の残りなど、domain の純化は継続課題 |
 | フロントエンド連携前提 | API 型の重複を避け、server data と draft state を分離する | event API 型は `status` / `sync_status` / `confirmed_google_event_id` 前提へ追従済み | server data と draft state の責務分離、互換項目の整理は継続課題 |
 
 ---
@@ -219,8 +219,8 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 |---|---|---:|---|---|
 | interface | `backend/api/handlers` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 85% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている | `api/server.go` は interface と composition root の境界にある。所有者チェックの責務位置は docs の記述と実装でまだ解釈余地がある |
 | application | `backend/internal/usecase` `backend/internal/appmodel` `backend/internal/errors` | 80% 前後 | usecase ごとの port 分離、transaction orchestration、Google Calendar 連携の orchestration、イベント詳細アクセス時の候補予定再同期が進んでいる | usecase が shared model にまだ依存しており、usecase 専用 DTO / domain model への分離は未完 |
-| domain | `backend/internal/domain` `backend/internal/domainvalue` | 70% 前後 | repository interface の移動、priority / confirm ルール抽出、`events.confirmed_google_event_id` 正本化が進んでいる | `WithTx(transaction.Tx)` のような技術寄り要素が残る。状態遷移や同期方針の一部はまだ usecase 側にある |
-| infrastructure | `backend/internal/infrastructure` `backend/ent` | 85% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる | ローカル DB で旧列・旧 index をどう落とすか、migration / drop 方針の整理が残る |
+| domain | `backend/internal/domain` `backend/internal/domainvalue` | 75% 前後 | repository interface の移動、priority / confirm ルール抽出、`events.confirmed_google_event_id` 正本化、transaction 技術要素の domain interface からの除去が進んでいる | 状態遷移や同期方針の一部はまだ usecase 側にある |
+| infrastructure | `backend/internal/infrastructure` `backend/ent` | 85% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる。tx 付き repository の組み立ても infrastructure に集約された | ローカル DB で旧列・旧 index をどう落とすか、migration / drop 方針の整理が残る |
 
 #### 5.4.2 現在の補助的な位置づけ
 
@@ -228,7 +228,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - `backend/api/server.go` は interface 層が usecase 群へ依存するための依存束ねとして扱う
 - `backend/internal/repositorymodel` は application / infrastructure 間の暫定 shared model として機能している
 - `backend/internal/google/*` は実質 infrastructure であり、将来的には `internal/infrastructure` 配下へ寄せる余地がある
-- `backend/cookie` `backend/cache` `backend/configs` `backend/internal/transaction` は技術依存の補助モジュールとして infrastructure 寄りに扱う
+- `backend/cookie` `backend/cache` `backend/configs` は技術依存の補助モジュールとして infrastructure 寄りに扱う
 
 #### 5.4.3 この時点で解消できた差分
 
@@ -249,7 +249,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - frontend middleware と protected data fetch は session 主体に寄ってきたが、backend の auth usecase / callback / logout 全体の整理は継続課題
 - `backend/internal/repositorymodel` への依存を薄くし、usecase ごとの入出力定義へ寄せる
 - proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる
-- `internal/google` `cookie` `cache` `configs` `internal/transaction` の物理配置を、最終的な infrastructure 方針に合わせて整理する
+- `cookie` `cache` `configs` の残りの物理配置や naming を、最終的な infrastructure 方針に合わせて整理する
 - frontend では API server data と draft state の責務分離をさらに進める
 
 #### 5.4.5 次の作業候補

@@ -16,7 +16,6 @@ import (
 	infraSession "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/session"
 	infraUser "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/user"
 	infraUserCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/usercalendar"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type Repositories struct {
@@ -38,17 +37,5 @@ func NewRepositories(client *ent.Client) Repositories {
 		Session:      infraSession.NewSessionRepository(client),
 		User:         infraUser.NewUserRepository(client),
 		UserCalendar: infraUserCalendar.NewUserCalendarRepository(client),
-	}
-}
-
-func (r Repositories) WithTx(tx transaction.Tx) Repositories {
-	return Repositories{
-		Account:      r.Account.WithTx(tx),
-		Calendar:     r.Calendar.WithTx(tx),
-		Event:        r.Event.WithTx(tx),
-		ProposedDate: r.ProposedDate.WithTx(tx),
-		Session:      r.Session.WithTx(tx),
-		User:         r.User.WithTx(tx),
-		UserCalendar: r.UserCalendar.WithTx(tx),
 	}
 }

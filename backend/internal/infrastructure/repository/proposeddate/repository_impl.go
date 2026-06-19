@@ -12,7 +12,6 @@ import (
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type ProposedDateRepository = repoProposedDate.ProposedDateRepository
@@ -26,10 +25,6 @@ func NewProposedDateRepository(client *ent.Client) *ProposedDateRepositoryImpl {
 	return &ProposedDateRepositoryImpl{
 		client: client,
 	}
-}
-
-func (r *ProposedDateRepositoryImpl) WithTx(tx transaction.Tx) ProposedDateRepository {
-	return &ProposedDateRepositoryImpl{client: tx.Client()}
 }
 
 func (r *ProposedDateRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repoProposedDate.ProposedDate, error) {

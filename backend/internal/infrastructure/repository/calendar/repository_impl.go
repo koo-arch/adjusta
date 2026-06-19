@@ -11,7 +11,6 @@ import (
 	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type CalendarRepository = repoCalendar.CalendarRepository
@@ -26,10 +25,6 @@ func NewCalendarRepository(client *ent.Client) *CalendarRepositoryImpl {
 	return &CalendarRepositoryImpl{
 		client: client,
 	}
-}
-
-func (r *CalendarRepositoryImpl) WithTx(tx transaction.Tx) CalendarRepository {
-	return &CalendarRepositoryImpl{client: tx.Client()}
 }
 
 func (r *CalendarRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*repoCalendar.Calendar, error) {

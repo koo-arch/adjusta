@@ -60,7 +60,7 @@ func main() {
 
 	cacheStore := infraCache.NewCache()
 	repos := infraRepository.NewRepositories(client)
-	uow := infraRepository.NewUnitOfWork(client, repos)
+	uow := infraRepository.NewUnitOfWork(client)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
 	sessionLifetime := time.Duration(infraCookie.DefaultCookieOptions().MaxAge) * time.Second
 	authService := usecaseAuth.NewAuthService(

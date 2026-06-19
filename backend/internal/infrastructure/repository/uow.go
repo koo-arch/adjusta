@@ -13,13 +13,11 @@ type UnitOfWork interface {
 
 type EntUnitOfWork struct {
 	client *ent.Client
-	repos  Repositories
 }
 
-func NewUnitOfWork(client *ent.Client, repos Repositories) *EntUnitOfWork {
+func NewUnitOfWork(client *ent.Client) *EntUnitOfWork {
 	return &EntUnitOfWork{
 		client: client,
-		repos:  repos,
 	}
 }
 
@@ -29,9 +27,8 @@ func (u *EntUnitOfWork) Do(ctx context.Context, fn func(repos Repositories) erro
 		return err
 	}
 
-	tx := infraTransaction.Wrap(entTx)
-	txErr := fn(u.repos.WithTx(tx))
-	infraTransaction.Handle(tx, &txErr)
+	txErr := fn(NewRepositories(entTx.Client()))
+	infraTransaction.Handle(entTx, &txErr)
 
 	return txErr
 }

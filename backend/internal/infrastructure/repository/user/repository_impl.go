@@ -9,7 +9,6 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/user"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type UserRepository = repoUser.UserRepository
@@ -24,10 +23,6 @@ func NewUserRepository(client *ent.Client) *UserRepositoryImpl {
 	return &UserRepositoryImpl{
 		client: client,
 	}
-}
-
-func (r *UserRepositoryImpl) WithTx(tx transaction.Tx) UserRepository {
-	return &UserRepositoryImpl{client: tx.Client()}
 }
 
 func (r *UserRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*repoUser.User, error) {

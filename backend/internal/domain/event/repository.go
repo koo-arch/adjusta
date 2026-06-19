@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type EventCreateOptions struct {
@@ -41,7 +40,6 @@ type EventQueryOptions struct {
 }
 
 type EventRepository interface {
-	WithTx(tx transaction.Tx) EventRepository
 	Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
 	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*Event, error)
 	FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventQueryOptions) (*Event, error)

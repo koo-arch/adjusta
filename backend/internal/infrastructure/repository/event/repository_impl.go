@@ -12,7 +12,6 @@ import (
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type EventRepository = repoEvent.EventRepository
@@ -27,10 +26,6 @@ func NewEventRepository(client *ent.Client) *EventRepositoryImpl {
 	return &EventRepositoryImpl{
 		client: client,
 	}
-}
-
-func (r *EventRepositoryImpl) WithTx(tx transaction.Tx) EventRepository {
-	return &EventRepositoryImpl{client: tx.Client()}
 }
 
 func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {

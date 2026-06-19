@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type ProposedDateQueryOptions struct {
@@ -24,7 +23,6 @@ type ProposedDateQueryOptions struct {
 }
 
 type ProposedDateRepository interface {
-	WithTx(tx transaction.Tx) ProposedDateRepository
 	Read(ctx context.Context, id uuid.UUID) (*ProposedDate, error)
 	FilterByEventID(ctx context.Context, eventID uuid.UUID) ([]*ProposedDate, error)
 	ExclusionEventID(ctx context.Context, eventID uuid.UUID) ([]*ProposedDate, error)

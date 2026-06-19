@@ -10,7 +10,6 @@ import (
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type SessionRepository = repoSession.SessionRepository
@@ -24,10 +23,6 @@ func NewSessionRepository(client *ent.Client) *SessionRepositoryImpl {
 	return &SessionRepositoryImpl{
 		client: client,
 	}
-}
-
-func (r *SessionRepositoryImpl) WithTx(tx transaction.Tx) SessionRepository {
-	return &SessionRepositoryImpl{client: tx.Client()}
 }
 
 func (r *SessionRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt SessionQueryOptions) (*repoSession.Session, error) {

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type UserQueryOptions struct{}
@@ -15,7 +14,6 @@ type UserMutationOptions struct {
 }
 
 type UserRepository interface {
-	WithTx(tx transaction.Tx) UserRepository
 	Read(ctx context.Context, id uuid.UUID, opt UserQueryOptions) (*User, error)
 	FindByEmail(ctx context.Context, email string, opt UserQueryOptions) (*User, error)
 	Create(ctx context.Context, email string, opt UserMutationOptions) (*User, error)

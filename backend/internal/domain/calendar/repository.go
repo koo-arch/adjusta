@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
-	"github.com/koo-arch/adjusta-backend/internal/transaction"
 )
 
 type CalendarQueryOptions struct {
@@ -28,7 +27,6 @@ type CalendarMutationOptions struct {
 }
 
 type CalendarRepository interface {
-	WithTx(tx transaction.Tx) CalendarRepository
 	Read(ctx context.Context, id uuid.UUID, opt CalendarQueryOptions) (*Calendar, error)
 	FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*Calendar, error)
 	FindByFields(ctx context.Context, userID uuid.UUID, opt CalendarQueryOptions) (*Calendar, error)
