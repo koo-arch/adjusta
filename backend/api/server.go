@@ -9,6 +9,7 @@ import (
 	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
+	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -27,7 +28,7 @@ type AuthSessionService interface {
 }
 
 type CalendarSyncService interface {
-	SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleCalendarList, error)
+	SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseCalendar.CalendarRecord, error)
 }
 
 type EventService interface {

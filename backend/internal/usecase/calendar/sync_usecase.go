@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	domainUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
@@ -36,7 +35,7 @@ func NewSyncUsecase(
 	}
 }
 
-func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleCalendarList, error) {
+func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*CalendarRecord, error) {
 	entUser, err := uc.userReader.GetByID(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get user info for account: %s, %v", email, err)
@@ -73,7 +72,7 @@ func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID
 	return calendars, nil
 }
 
-func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService CalendarService, calendars []*appmodel.GoogleCalendarList, entUser *repoUser.User) ([]*appmodel.GoogleCalendarList, error) {
+func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService CalendarService, calendars []*CalendarRecord, entUser *repoUser.User) ([]*CalendarRecord, error) {
 	syncedCalendars := calendars
 
 	err := uc.tx.Do(ctx, func(store SyncStore) error {
@@ -91,7 +90,7 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService Calenda
 		if adjustaCandidate != nil {
 			adjustaCandidateID = adjustaCandidate.CalendarID
 			if findIncomingCalendarByID(calendars, adjustaCandidateID) == nil {
-				syncedCalendars = append(append([]*appmodel.GoogleCalendarList{}, calendars...), adjustaCandidate)
+				syncedCalendars = append(append([]*CalendarRecord{}, calendars...), adjustaCandidate)
 			}
 		}
 
@@ -145,9 +144,9 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 	calendarService CalendarService,
 	store SyncStore,
 	userID uuid.UUID,
-	calendars []*appmodel.GoogleCalendarList,
+	calendars []*CalendarRecord,
 	relations []*UserCalendarRelationRecord,
-) (*appmodel.GoogleCalendarList, error) {
+) (*CalendarRecord, error) {
 	existingRelation := findRelationByRole(relations, domainvalue.UserCalendarRoleAdjustaCandidate)
 	syncProposedDates := resolveAdjustaCandidateSyncProposedDates(existingRelation)
 
@@ -237,7 +236,7 @@ func findRelationByRole(relations []*UserCalendarRelationRecord, role domainvalu
 	return nil
 }
 
-func findIncomingCalendarByID(calendars []*appmodel.GoogleCalendarList, calendarID string) *appmodel.GoogleCalendarList {
+func findIncomingCalendarByID(calendars []*CalendarRecord, calendarID string) *CalendarRecord {
 	for _, cal := range calendars {
 		if cal.CalendarID == calendarID {
 			return cal
@@ -246,7 +245,7 @@ func findIncomingCalendarByID(calendars []*appmodel.GoogleCalendarList, calendar
 	return nil
 }
 
-func findAdjustaCandidateCalendar(calendars []*appmodel.GoogleCalendarList) *appmodel.GoogleCalendarList {
+func findAdjustaCandidateCalendar(calendars []*CalendarRecord) *CalendarRecord {
 	for _, cal := range calendars {
 		if cal.Primary {
 			continue

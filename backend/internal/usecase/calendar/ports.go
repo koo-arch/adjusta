@@ -25,9 +25,15 @@ type GoogleTokenProvider interface {
 	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
 }
 
+type CalendarRecord struct {
+	CalendarID string
+	Summary    string
+	Primary    bool
+}
+
 type CalendarService interface {
-	FetchCalendarList() ([]*appmodel.GoogleCalendarList, error)
-	CreateCalendar(summary string) (*appmodel.GoogleCalendarList, error)
+	FetchCalendarList() ([]*CalendarRecord, error)
+	CreateCalendar(summary string) (*CalendarRecord, error)
 }
 
 type CalendarServiceFactory interface {

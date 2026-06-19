@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	domainUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
@@ -24,14 +23,14 @@ func (t *fakeSyncTransaction) Do(ctx context.Context, fn func(store SyncStore) e
 }
 
 type fakeCalendarService struct {
-	createCalendarFn func(summary string) (*appmodel.GoogleCalendarList, error)
+	createCalendarFn func(summary string) (*CalendarRecord, error)
 }
 
-func (s *fakeCalendarService) FetchCalendarList() ([]*appmodel.GoogleCalendarList, error) {
+func (s *fakeCalendarService) FetchCalendarList() ([]*CalendarRecord, error) {
 	return nil, nil
 }
 
-func (s *fakeCalendarService) CreateCalendar(summary string) (*appmodel.GoogleCalendarList, error) {
+func (s *fakeCalendarService) CreateCalendar(summary string) (*CalendarRecord, error) {
 	if s.createCalendarFn == nil {
 		return nil, errors.New("unexpected create calendar call")
 	}
@@ -132,11 +131,11 @@ func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *test
 	})
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*appmodel.GoogleCalendarList, error) {
+		createCalendarFn: func(summary string) (*CalendarRecord, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*appmodel.GoogleCalendarList{
+	}, []*CalendarRecord{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
 		{CalendarID: "reference-cal", Summary: "Reference", Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
@@ -241,17 +240,17 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 	})
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*appmodel.GoogleCalendarList, error) {
+		createCalendarFn: func(summary string) (*CalendarRecord, error) {
 			if summary != domainUserCalendar.AdjustaCandidateCalendarSummary {
 				t.Fatalf("unexpected candidate calendar summary: %s", summary)
 			}
-			return &appmodel.GoogleCalendarList{
+			return &CalendarRecord{
 				CalendarID: "recreated-adjusta-candidate",
 				Summary:    summary,
 				Primary:    false,
 			}, nil
 		},
-	}, []*appmodel.GoogleCalendarList{
+	}, []*CalendarRecord{
 		{CalendarID: "current-primary", Summary: "Current Primary", Primary: true},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {
@@ -335,11 +334,11 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 	})
 
 	calendars, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*appmodel.GoogleCalendarList, error) {
+		createCalendarFn: func(summary string) (*CalendarRecord, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*appmodel.GoogleCalendarList{
+	}, []*CalendarRecord{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {
@@ -406,11 +405,11 @@ func TestSyncCalendarReusesIncomingAdjustaCandidateCalendar(t *testing.T) {
 	})
 
 	calendars, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*appmodel.GoogleCalendarList, error) {
+		createCalendarFn: func(summary string) (*CalendarRecord, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*appmodel.GoogleCalendarList{
+	}, []*CalendarRecord{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
 		{CalendarID: "managed-candidate", Summary: domainUserCalendar.AdjustaCandidateCalendarSummary, Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
@@ -485,11 +484,11 @@ func TestSyncCalendarPreservesAdjustaCandidateSyncSetting(t *testing.T) {
 	})
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*appmodel.GoogleCalendarList, error) {
+		createCalendarFn: func(summary string) (*CalendarRecord, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*appmodel.GoogleCalendarList{
+	}, []*CalendarRecord{
 		{CalendarID: "managed-candidate", Summary: domainUserCalendar.AdjustaCandidateCalendarSummary, Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {
