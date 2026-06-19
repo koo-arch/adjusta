@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
@@ -64,11 +63,11 @@ func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calend
 	}
 
 	if existingGoogleEventID == nil || *existingGoogleEventID == "" {
-		eventReq := &appmodel.EventDraftCreation{
+		eventReq := EventDraft{
 			Title:       title,
 			Location:    location,
 			Description: description,
-			SelectedDates: []appmodel.SelectedDate{
+			Dates: []EventDate{
 				{
 					Start: start,
 					End:   end,
