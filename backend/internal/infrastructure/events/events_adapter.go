@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -164,7 +165,7 @@ func (s *eventTxStore) ListProposedDatesByEvent(ctx context.Context, eventID uui
 }
 
 func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*usecaseEvents.ProposedDateRecord, error) {
-	dates, err := s.repos.ProposedDate.CreateBulk(ctx, selectedDates, eventID)
+	dates, err := s.repos.ProposedDate.CreateBulk(ctx, toProposedDateCreateOptionsList(selectedDates), eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +173,7 @@ func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []
 }
 
 func (s *eventTxStore) UpdateProposedDate(ctx context.Context, id uuid.UUID, opt usecaseEvents.ProposedDateMutation) (*usecaseEvents.ProposedDateRecord, error) {
-	date, err := s.repos.ProposedDate.Update(ctx, id, toProposedDateQueryOptions(opt))
+	date, err := s.repos.ProposedDate.Update(ctx, id, toProposedDateUpdateOptions(opt))
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +185,12 @@ func (s *eventTxStore) DeleteProposedDate(ctx context.Context, id uuid.UUID) err
 }
 
 func (s *eventTxStore) CreateProposedDate(ctx context.Context, opt usecaseEvents.ProposedDateMutation, eventID uuid.UUID) (*usecaseEvents.ProposedDateRecord, error) {
-	date, err := s.repos.ProposedDate.Create(ctx, toProposedDateQueryOptions(opt), eventID)
+	createOpt, err := toProposedDateCreateOptions(opt)
+	if err != nil {
+		return nil, err
+	}
+
+	date, err := s.repos.ProposedDate.Create(ctx, createOpt, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -207,8 +213,39 @@ func toEventQueryOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventQu
 	}
 }
 
-func toProposedDateQueryOptions(opt usecaseEvents.ProposedDateMutation) repoProposedDate.ProposedDateQueryOptions {
-	return repoProposedDate.ProposedDateQueryOptions{
+func toProposedDateCreateOptions(opt usecaseEvents.ProposedDateMutation) (repoProposedDate.ProposedDateCreateOptions, error) {
+	if opt.Start == nil || opt.End == nil || opt.Priority == nil {
+		return repoProposedDate.ProposedDateCreateOptions{}, errors.New("start, end, and priority are required to create proposed date")
+	}
+
+	return repoProposedDate.ProposedDateCreateOptions{
+		GoogleEventID: opt.GoogleEventID,
+		StartTime:     *opt.Start,
+		EndTime:       *opt.End,
+		Priority:      *opt.Priority,
+		Status:        opt.Status,
+		SyncStatus:    opt.SyncStatus,
+		LastSyncedAt:  opt.LastSyncedAt,
+		LastSyncError: opt.LastSyncError,
+	}, nil
+}
+
+func toProposedDateCreateOptionsList(selectedDates []appmodel.SelectedDate) []repoProposedDate.ProposedDateCreateOptions {
+	opts := make([]repoProposedDate.ProposedDateCreateOptions, 0, len(selectedDates))
+	for _, selectedDate := range selectedDates {
+		status := domainvalue.ProposedDateStatusActive
+		opts = append(opts, repoProposedDate.ProposedDateCreateOptions{
+			StartTime: selectedDate.Start,
+			EndTime:   selectedDate.End,
+			Priority:  selectedDate.Priority,
+			Status:    &status,
+		})
+	}
+	return opts
+}
+
+func toProposedDateUpdateOptions(opt usecaseEvents.ProposedDateMutation) repoProposedDate.ProposedDateUpdateOptions {
+	return repoProposedDate.ProposedDateUpdateOptions{
 		GoogleEventID:      opt.GoogleEventID,
 		StartTime:          opt.Start,
 		EndTime:            opt.End,

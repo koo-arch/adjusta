@@ -8,14 +8,14 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
 
 type ProposedDateRepository = repoProposedDate.ProposedDateRepository
-type ProposedDateQueryOptions = repoProposedDate.ProposedDateQueryOptions
+type ProposedDateCreateOptions = repoProposedDate.ProposedDateCreateOptions
+type ProposedDateUpdateOptions = repoProposedDate.ProposedDateUpdateOptions
 
 type ProposedDateRepositoryImpl struct {
 	client *ent.Client
@@ -55,15 +55,25 @@ func (r *ProposedDateRepositoryImpl) ExclusionEventID(ctx context.Context, event
 	return toProposedDates(entities), nil
 }
 
-func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDateQueryOptions, eventID uuid.UUID) (*repoProposedDate.ProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDateCreateOptions, eventID uuid.UUID) (*repoProposedDate.ProposedDate, error) {
 	proposedDateCreate := r.client.ProposedDate.Create()
 
 	proposedDateCreate = proposedDateCreate.
-		SetStartTime(*opt.StartTime).
-		SetEndTime(*opt.EndTime).
-		SetPriority(*opt.Priority).
+		SetStartTime(opt.StartTime).
+		SetEndTime(opt.EndTime).
+		SetPriority(opt.Priority).
 		SetEventID(eventID)
 
+	proposedDateCreate = applyProposedDateCreateOptions(proposedDateCreate, opt)
+
+	entity, err := proposedDateCreate.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toProposedDate(entity), nil
+}
+
+func applyProposedDateCreateOptions(proposedDateCreate *ent.ProposedDateCreate, opt ProposedDateCreateOptions) *ent.ProposedDateCreate {
 	if opt.GoogleEventID != nil {
 		proposedDateCreate = proposedDateCreate.SetGoogleEventID(*opt.GoogleEventID)
 	}
@@ -80,14 +90,10 @@ func (r *ProposedDateRepositoryImpl) Create(ctx context.Context, opt ProposedDat
 		proposedDateCreate = proposedDateCreate.SetLastSyncError(*opt.LastSyncError)
 	}
 
-	entity, err := proposedDateCreate.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return toProposedDate(entity), nil
+	return proposedDateCreate
 }
 
-func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt ProposedDateQueryOptions) (*repoProposedDate.ProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt ProposedDateUpdateOptions) (*repoProposedDate.ProposedDate, error) {
 	proposedDateUpdate := r.client.ProposedDate.UpdateOneID(id)
 
 	if opt.StartTime != nil {
@@ -154,18 +160,19 @@ func (r *ProposedDateRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) 
 	return infraerr.MapNotFound(err)
 }
 
-func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, selectedDates []appmodel.SelectedDate, eventID uuid.UUID) ([]*repoProposedDate.ProposedDate, error) {
+func (r *ProposedDateRepositoryImpl) CreateBulk(ctx context.Context, opts []ProposedDateCreateOptions, eventID uuid.UUID) ([]*repoProposedDate.ProposedDate, error) {
 	var proposedDateCreates []*ent.ProposedDateCreate
 
-	for _, selectedDate := range selectedDates {
+	for _, opt := range opts {
 		proposedDateCreate := r.client.ProposedDate.Create()
 
 		proposedDateCreate = proposedDateCreate.
-			SetStartTime(selectedDate.Start).
-			SetEndTime(selectedDate.End).
-			SetPriority(selectedDate.Priority).
-			SetStatus(proposeddate.Status(domainvalue.ProposedDateStatusActive)).
+			SetStartTime(opt.StartTime).
+			SetEndTime(opt.EndTime).
+			SetPriority(opt.Priority).
 			SetEventID(eventID)
+
+		proposedDateCreate = applyProposedDateCreateOptions(proposedDateCreate, opt)
 
 		proposedDateCreates = append(proposedDateCreates, proposedDateCreate)
 	}
