@@ -33,7 +33,8 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, eventReq)
+		confirmation := toConfirmationRequest(eventReq.ConfirmDate)
+		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
 		if err != nil {
 			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
 			if syncErr := uc.recordEventSyncFailure(ctx, store, storedEvent.ID, err); syncErr != nil {
@@ -44,7 +45,7 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 			return nil
 		}
 
-		if err := uc.confirmEventDate(ctx, store, googleEventID, eventReq, storedEvent); err != nil {
+		if err := uc.confirmEventDate(ctx, store, googleEventID, confirmation, storedEvent); err != nil {
 			log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 			return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 		}
@@ -62,11 +63,11 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 	return nil
 }
 
-func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *EventRecord, eventReq *appmodel.ConfirmEvent) (*string, error) {
+func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *EventRecord, confirmation ConfirmationRequest) (*string, error) {
 	existingGoogleEventID := domainEvent.ResolveReusableGoogleEventID(
-		eventReq.ConfirmDate.ID,
+		confirmation.ID,
 		storedEvent.ConfirmedGoogleEventID,
-		eventReq.ConfirmDate.GoogleEventID,
+		confirmation.GoogleEventID,
 	)
 
 	googleEventID, err := uc.googleCalendar.UpsertEvent(
@@ -77,8 +78,8 @@ func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, cale
 		storedEvent.Title,
 		storedEvent.Location,
 		storedEvent.Description,
-		*eventReq.ConfirmDate.Start,
-		*eventReq.ConfirmDate.End,
+		*confirmation.Start,
+		*confirmation.End,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upsert google event: %w", err)
@@ -87,8 +88,8 @@ func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, cale
 	return &googleEventID, nil
 }
 
-func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, googleEventID *string, eventReq *appmodel.ConfirmEvent, storedEvent *EventRecord) error {
-	confirmDate, err := toDomainConfirmationDraftDate(eventReq.ConfirmDate)
+func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, googleEventID *string, confirmation ConfirmationRequest, storedEvent *EventRecord) error {
+	confirmDate, err := toDomainConfirmationRequest(confirmation)
 	if err != nil {
 		return err
 	}
@@ -103,8 +104,8 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 		return internalErrors.NewBadRequestError("確定候補日程が不正です")
 	}
 
-	confirmDateID := eventReq.ConfirmDate.ID
-	if eventReq.ConfirmDate.ID == nil {
+	confirmDateID := confirmation.ID
+	if confirmation.ID == nil {
 		confirmedStatus := domainvalue.ProposedDateStatusConfirmed
 		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(
 			&changeSet.Create.Start,
@@ -120,7 +121,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 		confirmDateID = &storedDate.ID
 	}
 
-	if eventReq.ConfirmDate.ID != nil {
+	if confirmation.ID != nil {
 		confirmedStatus := domainvalue.ProposedDateStatusConfirmed
 		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(
 			nil,
@@ -129,7 +130,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, store EventTxStore, goo
 			&confirmedStatus,
 		))
 
-		if _, err := store.UpdateProposedDate(ctx, *eventReq.ConfirmDate.ID, dateOptions); err != nil {
+		if _, err := store.UpdateProposedDate(ctx, *confirmation.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date error: %w", err)
 		}
 	}

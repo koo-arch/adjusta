@@ -56,6 +56,14 @@ type SelectedDate struct {
 	Priority int
 }
 
+type ConfirmationRequest struct {
+	ID            *uuid.UUID
+	GoogleEventID string
+	Start         *time.Time
+	End           *time.Time
+	Priority      int
+}
+
 type PrimaryCalendarFinder interface {
 	FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
 }

@@ -31,7 +31,17 @@ func toDomainDraftDateList(dates []appmodel.ProposedDate) ([]domainEvent.DraftPr
 	return converted, nil
 }
 
-func toDomainConfirmationDraftDate(date appmodel.ConfirmDate) (domainEvent.DraftProposedDate, error) {
+func toConfirmationRequest(date appmodel.ConfirmDate) ConfirmationRequest {
+	return ConfirmationRequest{
+		ID:            date.ID,
+		GoogleEventID: date.GoogleEventID,
+		Start:         date.Start,
+		End:           date.End,
+		Priority:      date.Priority,
+	}
+}
+
+func toDomainConfirmationRequest(date ConfirmationRequest) (domainEvent.DraftProposedDate, error) {
 	if date.Start == nil || date.End == nil {
 		return domainEvent.DraftProposedDate{}, internalErrors.NewBadRequestError("確定候補日程が不正です")
 	}

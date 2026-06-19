@@ -69,17 +69,14 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 			}
 
-			confirmDate := appmodel.ConfirmDate{
+			confirmation := ConfirmationRequest{
 				ID:       eventReq.ProposedDates[0].ID,
 				Start:    eventReq.ProposedDates[0].Start,
 				End:      eventReq.ProposedDates[0].End,
 				Priority: eventReq.ProposedDates[0].Priority,
 			}
-			confirmEvent := appmodel.ConfirmEvent{
-				ConfirmDate: confirmDate,
-			}
 
-			googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, &confirmEvent)
+			googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
 			if err != nil {
 				log.Printf("failed to handle google event for account: %s, error: %v", email, err)
 				if syncErr := uc.recordEventSyncFailure(ctx, store, storedEvent.ID, err); syncErr != nil {
@@ -90,7 +87,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				return nil
 			}
 
-			if err := uc.confirmEventDate(ctx, store, googleEventID, &confirmEvent, storedEvent); err != nil {
+			if err := uc.confirmEventDate(ctx, store, googleEventID, confirmation, storedEvent); err != nil {
 				log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 				return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 			}
