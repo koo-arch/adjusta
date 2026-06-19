@@ -20,7 +20,7 @@ func NewAuthMiddleware(middleware *Middleware) *AuthMiddleware {
 func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
-		sessionToken, ok := session.Get("session_token").(string)
+		sessionToken, ok := session.Get(infraCookie.SessionTokenKey).(string)
 		if !ok || sessionToken == "" {
 			am.clearSession(c)
 			respond.Unauthorized(c, "認証情報がありません")
@@ -40,7 +40,7 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 
 		c.Set("user_id", authenticatedUser.ID)
 		c.Set("email", authenticatedUser.Email)
-		c.Set("session_token", sessionToken)
+		c.Set(infraCookie.SessionTokenKey, sessionToken)
 		c.Next()
 	}
 }
@@ -51,5 +51,5 @@ func (am *AuthMiddleware) clearSession(c *gin.Context) {
 	if err := session.Save(); err != nil {
 		log.Printf("failed to clear session cookie: %v", err)
 	}
-	infraCookie.DeleteCookie(c, "session")
+	infraCookie.DeleteCookie(c, infraCookie.SessionCookieName)
 }

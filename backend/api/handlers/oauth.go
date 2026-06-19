@@ -23,7 +23,7 @@ func NewOauthHandler(handler *Handler) *OauthHandler {
 func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 	session := sessions.Default(c)
 	state := uuid.NewString()
-	session.Set("oauth_state", state)
+	session.Set(infraCookie.OAuthStateKey, state)
 	if err := session.Save(); err != nil {
 		log.Printf("failed to save oauth state: %v", err)
 		respond.Internal(c, "認証状態の保存に失敗しました")
@@ -36,7 +36,7 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 
 func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 	session := sessions.Default(c)
-	sessionToken, _ := session.Get("session_token").(string)
+	sessionToken, _ := session.Get(infraCookie.SessionTokenKey).(string)
 
 	authSessionUsecase := oh.handler.Server.AuthSessionUsecase
 	if err := authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
@@ -51,7 +51,7 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 		return
 	}
 
-	infraCookie.DeleteCookie(c, "session")
+	infraCookie.DeleteCookie(c, infraCookie.SessionCookieName)
 
 	respond.OKMessage(c, "logged out")
 }
@@ -67,7 +67,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		expectedState, ok := session.Get("oauth_state").(string)
+		expectedState, ok := session.Get(infraCookie.OAuthStateKey).(string)
 		if !ok || expectedState == "" || state != expectedState {
 			log.Printf("invalid oauth state")
 			respond.BadRequest(c, "stateが不正です")
@@ -83,8 +83,8 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		session.Delete("oauth_state")
-		session.Set("session_token", signInResult.SessionToken)
+		session.Delete(infraCookie.OAuthStateKey)
+		session.Set(infraCookie.SessionTokenKey, signInResult.SessionToken)
 		if err := session.Save(); err != nil {
 			log.Printf("failed to save session token for account: %s, error: %v", signInResult.UserEmail, err)
 			respond.Internal(c, "セッションの保存に失敗しました")

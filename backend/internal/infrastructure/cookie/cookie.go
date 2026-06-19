@@ -8,6 +8,12 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
+const (
+	SessionCookieName = "session"
+	SessionTokenKey   = "session_token"
+	OAuthStateKey     = "oauth_state"
+)
+
 func init() {
 	configs.LoadEnv()
 }

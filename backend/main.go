@@ -116,7 +116,7 @@ func main() {
 
 	store := cookie.NewStore([]byte(infraConfigs.GetEnv("SESSION_SECRET")))
 	store.Options(infraCookie.DefaultCookieOptions())
-	router.Use(sessions.Sessions("session", store))
+	router.Use(sessions.Sessions(infraCookie.SessionCookieName, store))
 
 	handler := handlers.NewHandler(server)
 	accountHandler := handlers.NewAccountHandler(handler)
