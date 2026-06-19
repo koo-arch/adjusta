@@ -47,7 +47,7 @@ func (r *eventReader) ListCalendarsByUser(ctx context.Context, userID uuid.UUID)
 }
 
 func (r *eventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt usecaseEvents.EventSearchOptions) ([]*usecaseEvents.EventRecord, error) {
-	events, err := r.repos.Event.SearchEvents(ctx, userID, calendarID, toEventQueryOptions(opt))
+	events, err := r.repos.Event.SearchEvents(ctx, userID, calendarID, toEventSearchOptions(opt))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r *eventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.
 }
 
 func (r *eventReader) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
-	event, err := r.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventQueryOptions{
+	event, err := r.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventReadOptions{
 		WithProposedDates: withProposedDates,
 	})
 	if err != nil {
@@ -102,7 +102,7 @@ func (s *eventTxStore) FindAdjustaCandidateCalendar(ctx context.Context, userID 
 }
 
 func (s *eventTxStore) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
-	event, err := s.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventQueryOptions{
+	event, err := s.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventReadOptions{
 		WithProposedDates: withProposedDates,
 	})
 	if err != nil {
@@ -132,7 +132,7 @@ func (s *eventTxStore) CreateEvent(ctx context.Context, userID, primaryCalendarI
 }
 
 func (s *eventTxStore) UpdateEvent(ctx context.Context, id uuid.UUID, opt usecaseEvents.EventMutation) (*usecaseEvents.EventRecord, error) {
-	event, err := s.repos.Event.Update(ctx, id, repoEvent.EventQueryOptions{
+	event, err := s.repos.Event.Update(ctx, id, repoEvent.EventUpdateOptions{
 		Title:                  opt.Title,
 		Location:               opt.Location,
 		Description:            opt.Description,
@@ -196,8 +196,8 @@ func (s *eventTxStore) CreateProposedDate(ctx context.Context, opt usecaseEvents
 	return toProposedDateRecord(date), nil
 }
 
-func toEventQueryOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventQueryOptions {
-	return repoEvent.EventQueryOptions{
+func toEventSearchOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventSearchOptions {
+	return repoEvent.EventSearchOptions{
 		Title:                opt.Title,
 		Location:             opt.Location,
 		Description:          opt.Description,

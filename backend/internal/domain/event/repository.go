@@ -14,7 +14,19 @@ type EventCreateOptions struct {
 	Description string
 }
 
-type EventQueryOptions struct {
+type EventReadOptions struct {
+	WithProposedDates bool
+}
+
+type EventFilterOptions struct {
+	WithProposedDates  bool
+	EventOffset        int
+	EventLimit         int
+	ProposedDateOffset int
+	ProposedDateLimit  int
+}
+
+type EventSearchOptions struct {
 	Title                  *string
 	Location               *string
 	Description            *string
@@ -22,10 +34,6 @@ type EventQueryOptions struct {
 	SyncStatus             *domainvalue.SyncStatus
 	ConfirmedDateID        *uuid.UUID
 	ConfirmedGoogleEventID *string
-	LastSyncedAt           *time.Time
-	ClearLastSyncedAt      bool
-	LastSyncError          *string
-	ClearLastSyncError     bool
 	WithProposedDates      bool
 	EventOffset            int
 	EventLimit             int
@@ -39,14 +47,28 @@ type EventQueryOptions struct {
 	SortOrder              string
 }
 
+type EventUpdateOptions struct {
+	Title                  *string
+	Location               *string
+	Description            *string
+	Status                 *domainvalue.EventStatus
+	SyncStatus             *domainvalue.SyncStatus
+	ConfirmedDateID        *uuid.UUID
+	ConfirmedGoogleEventID *string
+	LastSyncedAt           *time.Time
+	ClearLastSyncedAt      bool
+	LastSyncError          *string
+	ClearLastSyncError     bool
+}
+
 type EventRepository interface {
-	Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
-	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*Event, error)
-	FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventQueryOptions) (*Event, error)
+	Read(ctx context.Context, id uuid.UUID, opt EventReadOptions) (*Event, error)
+	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventFilterOptions) ([]*Event, error)
+	FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventReadOptions) (*Event, error)
 	Create(ctx context.Context, userID uuid.UUID, opt EventCreateOptions, primaryCalendarID uuid.UUID) (*Event, error)
-	Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*Event, error)
+	Update(ctx context.Context, id uuid.UUID, opt EventUpdateOptions) (*Event, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error
-	SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventQueryOptions) ([]*Event, error)
+	SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventSearchOptions) ([]*Event, error)
 }

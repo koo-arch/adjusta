@@ -16,7 +16,10 @@ import (
 
 type EventRepository = repoEvent.EventRepository
 type EventCreateOptions = repoEvent.EventCreateOptions
-type EventQueryOptions = repoEvent.EventQueryOptions
+type EventFilterOptions = repoEvent.EventFilterOptions
+type EventReadOptions = repoEvent.EventReadOptions
+type EventSearchOptions = repoEvent.EventSearchOptions
+type EventUpdateOptions = repoEvent.EventUpdateOptions
 
 type EventRepositoryImpl struct {
 	client *ent.Client
@@ -28,7 +31,7 @@ func NewEventRepository(client *ent.Client) *EventRepositoryImpl {
 	}
 }
 
-func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {
+func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventReadOptions) (*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	if opt.WithProposedDates {
@@ -42,7 +45,7 @@ func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventQ
 	return toEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventQueryOptions) ([]*repoEvent.Event, error) {
+func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventFilterOptions) ([]*repoEvent.Event, error) {
 	filterEvent := r.client.Event.Query()
 
 	filterEvent = filterEvent.Where(event.PrimaryCalendarIDEQ(calendarID))
@@ -74,7 +77,7 @@ func (r *EventRepositoryImpl) FilterByCalendarID(ctx context.Context, calendarID
 	return toEvents(entities), nil
 }
 
-func (r *EventRepositoryImpl) FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {
+func (r *EventRepositoryImpl) FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventReadOptions) (*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	if opt.WithProposedDates {
@@ -110,7 +113,7 @@ func (r *EventRepositoryImpl) Create(ctx context.Context, userID uuid.UUID, opt 
 	return toEvent(entity), nil
 }
 
-func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt EventQueryOptions) (*repoEvent.Event, error) {
+func (r *EventRepositoryImpl) Update(ctx context.Context, id uuid.UUID, opt EventUpdateOptions) (*repoEvent.Event, error) {
 	eventUpdate := r.client.Event.UpdateOneID(id)
 
 	if opt.Title != nil {
@@ -183,7 +186,7 @@ func (r *EventRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
 	return infraerr.MapNotFound(err)
 }
 
-func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventQueryOptions) ([]*repoEvent.Event, error) {
+func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
 	query = query.Where(
