@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
@@ -137,7 +136,7 @@ func TestFetchAllGoogleEventsReturnsPartialContent(t *testing.T) {
 	calendars := []*CalendarRecord{
 		{ID: uuid.New(), GoogleCalendarID: "cal-1", Summary: "Primary"},
 	}
-	events := []*appmodel.GoogleEvent{
+	events := []*FetchedGoogleEvent{
 		{ID: "event-1", Summary: "Google event"},
 	}
 

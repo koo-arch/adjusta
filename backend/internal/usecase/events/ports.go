@@ -133,6 +133,16 @@ type NeedsActionDraftOutput struct {
 	NeedsAttention bool
 }
 
+type FetchedGoogleEvent struct {
+	ID          string
+	Summary     string
+	Description string
+	Location    string
+	ColorID     string
+	Start       string
+	End         string
+}
+
 type ConfirmationRequest struct {
 	ID            *uuid.UUID
 	GoogleEventID string
@@ -218,7 +228,7 @@ type ProposedDateMutation struct {
 }
 
 type GoogleEventFetchResult struct {
-	Events          []*appmodel.GoogleEvent
+	Events          []*FetchedGoogleEvent
 	FailedCalendars []string
 }
 

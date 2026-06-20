@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
@@ -32,7 +31,7 @@ type CalendarSyncService interface {
 }
 
 type EventService interface {
-	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleEvent, error)
+	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseEvents.FetchedGoogleEvent, error)
 	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseEvents.EventDraftDetailOutput, error)
 	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*usecaseEvents.EventDraftDetailOutput, error)
 	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*usecaseEvents.EventDraftDetailOutput, error)

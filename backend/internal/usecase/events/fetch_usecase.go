@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleEvent, error) {
+func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*FetchedGoogleEvent, error) {
 	now := time.Now()
 	startTime := now.AddDate(0, -2, 0)
 	endTime := now.AddDate(1, 0, 0)

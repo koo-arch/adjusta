@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/googleapi"
@@ -16,7 +15,7 @@ import (
 type GoogleCalendarManager struct{}
 
 type FetchResult struct {
-	Events          []*appmodel.GoogleEvent
+	Events          []*FetchedEvent
 	FailedCalendars []string
 }
 
@@ -37,7 +36,7 @@ func NewGoogleCalendarManager() *GoogleCalendarManager {
 }
 
 func (gcm *GoogleCalendarManager) FetchEventsFromCalendars(calendarService *Client, calendars []*repoCalendar.Calendar, startTime, endTime time.Time) (*FetchResult, error) {
-	var events []*appmodel.GoogleEvent
+	var events []*FetchedEvent
 	var failedCalendars []string
 	var wg sync.WaitGroup
 	var mu sync.Mutex

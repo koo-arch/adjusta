@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
@@ -64,7 +63,7 @@ func (c *Client) CreateCalendar(summary string) (*CalendarList, error) {
 	}, nil
 }
 
-func (c *Client) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*appmodel.GoogleEvent, error) {
+func (c *Client) FetchEvents(calendarID string, startTime, endTime time.Time) ([]*FetchedEvent, error) {
 	events, err := c.Service.Events.List(calendarID).
 		TimeMin(startTime.Format(time.RFC3339)).
 		TimeMax(endTime.Format(time.RFC3339)).
@@ -74,7 +73,7 @@ func (c *Client) FetchEvents(calendarID string, startTime, endTime time.Time) ([
 		return nil, err
 	}
 
-	var eventsList []*appmodel.GoogleEvent
+	var eventsList []*FetchedEvent
 
 	for _, item := range events.Items {
 		var start, end string
@@ -90,7 +89,7 @@ func (c *Client) FetchEvents(calendarID string, startTime, endTime time.Time) ([
 				end = item.End.Date
 			}
 		}
-		event := &appmodel.GoogleEvent{
+		event := &FetchedEvent{
 			ID:          item.Id,
 			Summary:     item.Summary,
 			Description: item.Description,

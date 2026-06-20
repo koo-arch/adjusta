@@ -34,9 +34,28 @@ func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calend
 	}
 
 	return &usecaseEvents.GoogleEventFetchResult{
-		Events:          result.Events,
+		Events:          toFetchedGoogleEvents(result.Events),
 		FailedCalendars: result.FailedCalendars,
 	}, normalizeGoogleAPIError(err)
+}
+
+func toFetchedGoogleEvents(events []*FetchedEvent) []*usecaseEvents.FetchedGoogleEvent {
+	outputs := make([]*usecaseEvents.FetchedGoogleEvent, 0, len(events))
+	for _, event := range events {
+		if event == nil {
+			continue
+		}
+		outputs = append(outputs, &usecaseEvents.FetchedGoogleEvent{
+			ID:          event.ID,
+			Summary:     event.Summary,
+			Description: event.Description,
+			Location:    event.Location,
+			ColorID:     event.ColorID,
+			Start:       event.Start,
+			End:         event.End,
+		})
+	}
+	return outputs
 }
 
 func toCalendars(calendars []*usecaseEvents.CalendarRecord) []*repoCalendar.Calendar {

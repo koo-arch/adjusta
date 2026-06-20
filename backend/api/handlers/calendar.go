@@ -177,6 +177,30 @@ func toNeedsActionDraftResponses(events []usecaseEvents.NeedsActionDraftOutput) 
 	return responses
 }
 
+func toGoogleEventResponse(event *usecaseEvents.FetchedGoogleEvent) *dto.GoogleEvent {
+	if event == nil {
+		return nil
+	}
+
+	return &dto.GoogleEvent{
+		ID:          event.ID,
+		Summary:     event.Summary,
+		Description: event.Description,
+		Location:    event.Location,
+		ColorID:     event.ColorID,
+		Start:       event.Start,
+		End:         event.End,
+	}
+}
+
+func toGoogleEventResponses(events []*usecaseEvents.FetchedGoogleEvent) []*dto.GoogleEvent {
+	responses := make([]*dto.GoogleEvent, 0, len(events))
+	for _, event := range events {
+		responses = append(responses, toGoogleEventResponse(event))
+	}
+	return responses
+}
+
 func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
@@ -192,7 +216,7 @@ func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 		accountsEvents, err := eventUsecase.FetchAllGoogleEvents(ctx, userid, email)
 		if err, ok := err.(*errors.APIError); ok && err.Kind == errors.KindPartial {
 			respond.Partial(c, gin.H{
-				"events":  accountsEvents,
+				"events":  toGoogleEventResponses(accountsEvents),
 				"warning": err.Details,
 			})
 			return
@@ -204,7 +228,7 @@ func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 		}
 
 		respond.OK(c, gin.H{
-			"events": accountsEvents,
+			"events": toGoogleEventResponses(accountsEvents),
 		})
 	}
 }
