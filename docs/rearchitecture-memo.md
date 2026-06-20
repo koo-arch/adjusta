@@ -249,6 +249,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - events の API request DTO を `backend/api/dto` へ移し、validation / handler が interface 層の DTO を扱う形に寄せた
 - events の draft / upcoming / needs-action response は usecase output と API response DTO に分け、`appmodel` からイベント API 入出力の責務をさらに剥がした
 - Google Calendar event list response も usecase output と API response DTO に分け、`appmodel/event.go` を削除した
+- events usecase の port 周辺型を `ports.go` / `records.go` / `requests.go` / `outputs.go` / `mutations.go` / `query.go` に分け、interface と DTO / Record / mutation の見通しを改善した
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた

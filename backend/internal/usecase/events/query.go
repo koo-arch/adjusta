@@ -16,3 +16,17 @@ type SearchDraftQuery struct {
 	EndTimeGTE   *time.Time
 	EndTimeLTE   *time.Time
 }
+
+type EventSearchOptions struct {
+	WithProposedDates bool
+	Title             *string
+	Location          *string
+	Description       *string
+	Status            *domainvalue.EventStatus
+	StartTimeGTE      *time.Time
+	StartTimeLTE      *time.Time
+	EndTimeGTE        *time.Time
+	EndTimeLTE        *time.Time
+	SortBy            string
+	SortOrder         string
+}
