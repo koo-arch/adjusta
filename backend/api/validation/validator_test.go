@@ -3,15 +3,15 @@ package validation
 import (
 	"testing"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/api/dto"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
 func TestFinalizeValidationReturnsValidationAPIErrorForMissingDates(t *testing.T) {
 	t.Parallel()
 
-	err := FinalizeValidation(&appmodel.ConfirmEvent{
-		ConfirmDate: appmodel.ConfirmDate{},
+	err := FinalizeValidation(&dto.ConfirmEvent{
+		ConfirmDate: dto.ConfirmDate{},
 	})
 	if err == nil {
 		t.Fatal("expected validation error")
@@ -35,9 +35,9 @@ func TestFinalizeValidationReturnsValidationAPIErrorForMissingDates(t *testing.T
 func TestUpdateEventValidationHandlesNilProposedDateBounds(t *testing.T) {
 	t.Parallel()
 
-	err := UpdateEventValidation(&appmodel.EventDraftUpdate{
+	err := UpdateEventValidation(&dto.EventDraftUpdate{
 		Title: "event",
-		ProposedDates: []appmodel.ProposedDate{
+		ProposedDates: []dto.ProposedDate{
 			{},
 		},
 	})

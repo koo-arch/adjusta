@@ -1,10 +1,10 @@
 package validation
 
 import (
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/api/dto"
 )
 
-func CreateEventValidation(eventDraft *appmodel.EventDraftCreation) error {
+func CreateEventValidation(eventDraft *dto.EventDraftCreation) error {
 	validationErrors := NewValidationErrors()
 
 	// 基本情報のバリデーション
@@ -32,7 +32,7 @@ func CreateEventValidation(eventDraft *appmodel.EventDraftCreation) error {
 	return nil
 }
 
-func UpdateEventValidation(eventDraft *appmodel.EventDraftUpdate) error {
+func UpdateEventValidation(eventDraft *dto.EventDraftUpdate) error {
 	validationErrors := NewValidationErrors()
 
 	// 基本情報のバリデーション

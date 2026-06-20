@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/api/dto"
 	"github.com/koo-arch/adjusta-backend/api/queryparser"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/validation"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	"github.com/koo-arch/adjusta-backend/internal/errors"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
@@ -40,7 +40,7 @@ func parseEventIDParam(c *gin.Context) (uuid.UUID, bool) {
 	return eventID, true
 }
 
-func toDraftCreationRequest(eventDraft *appmodel.EventDraftCreation) usecaseEvents.DraftCreationRequest {
+func toDraftCreationRequest(eventDraft *dto.EventDraftCreation) usecaseEvents.DraftCreationRequest {
 	selectedDates := make([]usecaseEvents.SelectedDate, 0, len(eventDraft.SelectedDates))
 	for _, date := range eventDraft.SelectedDates {
 		selectedDates = append(selectedDates, usecaseEvents.SelectedDate{
@@ -58,7 +58,7 @@ func toDraftCreationRequest(eventDraft *appmodel.EventDraftCreation) usecaseEven
 	}
 }
 
-func toDraftUpdateRequest(eventDraft *appmodel.EventDraftUpdate) usecaseEvents.DraftUpdateRequest {
+func toDraftUpdateRequest(eventDraft *dto.EventDraftUpdate) usecaseEvents.DraftUpdateRequest {
 	proposedDates := make([]usecaseEvents.ProposedDateRequest, 0, len(eventDraft.ProposedDates))
 	for _, date := range eventDraft.ProposedDates {
 		proposedDates = append(proposedDates, usecaseEvents.ProposedDateRequest{
@@ -253,7 +253,7 @@ func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		var eventDraft *appmodel.EventDraftCreation
+		var eventDraft *dto.EventDraftCreation
 		if err := c.ShouldBindJSON(&eventDraft); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return
@@ -292,7 +292,7 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		var confirmEvent *appmodel.ConfirmEvent
+		var confirmEvent *dto.ConfirmEvent
 		if err := c.ShouldBindJSON(&confirmEvent); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return
@@ -340,7 +340,7 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		var eventDraft *appmodel.EventDraftUpdate
+		var eventDraft *dto.EventDraftUpdate
 		if err := c.ShouldBindJSON(&eventDraft); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return

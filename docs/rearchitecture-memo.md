@@ -217,7 +217,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 | 層 | 現在の主な配置 | 到達度の目安 | できていること | 主な残課題 |
 |---|---|---:|---|---|
-| interface | `backend/api/handlers` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 85% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている | `api/server.go` は interface と composition root の境界にある。API request / response DTO と usecase input / output の分離は未完 |
+| interface | `backend/api/handlers` `backend/api/dto` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 87% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている。events の request DTO は `api/dto` へ寄せ始めた | `api/server.go` は interface と composition root の境界にある。API response DTO と usecase output の分離は未完 |
 | application | `backend/internal/usecase` `backend/internal/appmodel` `backend/internal/errors` | 82% 前後 | usecase ごとの port 分離、transaction orchestration、Google Calendar 連携の orchestration、イベント詳細アクセス時の候補予定再同期が進んでいる。events port では候補日程作成時の selected date DTO を usecase 側へ切り出し始めた | usecase が API 入出力寄りの shared model にまだ依存しており、usecase 専用 DTO / domain model への分離は未完 |
 | domain | `backend/internal/domain` `backend/internal/domainvalue` | 78% 前後 | repository interface の移動、priority / confirm ルール抽出、`events.confirmed_google_event_id` 正本化、transaction 技術要素の domain interface からの除去、ProposedDate repository の create/update option 分離が進んでいる | 状態遷移や同期方針の一部はまだ usecase 側にある |
 | infrastructure | `backend/internal/infrastructure` `backend/ent` | 85% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる。tx 付き repository の組み立ても infrastructure に集約された | ローカル DB で旧列・旧 index をどう落とすか、migration / drop 方針の整理が残る |
@@ -246,6 +246,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - calendar sync port の Google Calendar list を usecase DTO に寄せ、Google Calendar infrastructure から API DTO 依存を一部除去した
 - events の確定処理では `ConfirmationRequest` を導入し、更新処理が API DTO を組み立て直す流れを除去した
 - events の作成・更新処理では `DraftCreationRequest` / `DraftUpdateRequest` を導入し、handler で API DTO から usecase input へ変換する境界を作り始めた
+- events の API request DTO を `backend/api/dto` へ移し、validation / handler が interface 層の DTO を扱う形に寄せた
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた
