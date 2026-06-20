@@ -33,12 +33,12 @@ type CalendarSyncService interface {
 
 type EventService interface {
 	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.GoogleEvent, error)
-	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.EventDraftDetail, error)
-	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*appmodel.EventDraftDetail, error)
-	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*appmodel.EventDraftDetail, error)
-	FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error)
-	FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error)
-	CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq usecaseEvents.DraftCreationRequest) (*appmodel.EventDraftDetail, error)
+	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseEvents.EventDraftDetailOutput, error)
+	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*usecaseEvents.EventDraftDetailOutput, error)
+	FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*usecaseEvents.EventDraftDetailOutput, error)
+	FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]usecaseEvents.UpcomingEventOutput, error)
+	FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]usecaseEvents.NeedsActionDraftOutput, error)
+	CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq usecaseEvents.DraftCreationRequest) (*usecaseEvents.EventDraftDetailOutput, error)
 	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, confirmation usecaseEvents.ConfirmationRequest) error
 	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq usecaseEvents.DraftUpdateRequest) error
 	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) error

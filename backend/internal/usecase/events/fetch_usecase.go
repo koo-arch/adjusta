@@ -51,7 +51,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 	return result.Events, nil
 }
 
-func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*appmodel.EventDraftDetail, error) {
+func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*EventDraftDetailOutput, error) {
 	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -69,9 +69,9 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	draftedEvents := make([]*appmodel.EventDraftDetail, 0, len(storedEvents))
+	draftedEvents := make([]*EventDraftDetailOutput, 0, len(storedEvents))
 	for _, storedEvent := range storedEvents {
-		draft, err := buildAppEventDraftDetail(storedEvent)
+		draft, err := buildEventDraftDetailOutput(storedEvent)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 	return draftedEvents, nil
 }
 
-func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*appmodel.EventDraftDetail, error) {
+func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*EventDraftDetailOutput, error) {
 	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -107,9 +107,9 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	searchResult := make([]*appmodel.EventDraftDetail, 0, len(storedEvents))
+	searchResult := make([]*EventDraftDetailOutput, 0, len(storedEvents))
 	for _, storedEvent := range storedEvents {
-		draft, err := buildAppEventDraftDetail(storedEvent)
+		draft, err := buildEventDraftDetailOutput(storedEvent)
 		if err != nil {
 			return nil, err
 		}
@@ -119,16 +119,16 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 	return searchResult, nil
 }
 
-func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*appmodel.EventDraftDetail, error) {
+func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*EventDraftDetailOutput, error) {
 	if uc.tx == nil {
 		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.reader, userID, email, eventID)
 		if err != nil {
 			return nil, err
 		}
-		return buildAppEventDraftDetail(storedEvent)
+		return buildEventDraftDetailOutput(storedEvent)
 	}
 
-	var response *appmodel.EventDraftDetail
+	var response *EventDraftDetailOutput
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, store, userID, email, eventID)
@@ -136,7 +136,7 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 			return err
 		}
 
-		response, err = buildAppEventDraftDetail(storedEvent)
+		response, err = buildEventDraftDetailOutput(storedEvent)
 		return err
 	})
 	if err != nil {
@@ -147,7 +147,7 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 	return response, nil
 }
 
-func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error) {
+func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]UpcomingEventOutput, error) {
 	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 		return nil, internalErrors.NewInternalError("イベント取得時にエラーが発生しました")
 	}
 
-	upcomingEvents := make([]appmodel.UpcomingEvent, 0)
+	upcomingEvents := make([]UpcomingEventOutput, 0)
 	for _, storedEvent := range storedEvents {
 		if storedEvent.ProposedDates == nil {
 			log.Printf("No association found between calendar and event")
@@ -178,7 +178,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 
 		for _, storedDate := range storedEvent.ProposedDates {
 			if storedEvent.ConfirmedDateID == storedDate.ID {
-				upcomingEvents = append(upcomingEvents, appmodel.UpcomingEvent{
+				upcomingEvents = append(upcomingEvents, UpcomingEventOutput{
 					ID:                     storedEvent.ID,
 					Title:                  storedEvent.Title,
 					Location:               storedEvent.Location,
@@ -205,7 +205,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 	return upcomingEvents, nil
 }
 
-func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error) {
+func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]NeedsActionDraftOutput, error) {
 	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
 	if err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	needsActionDrafts := make([]appmodel.NeedsActionDraft, 0)
+	needsActionDrafts := make([]NeedsActionDraftOutput, 0)
 	for _, storedEvent := range storedEvents {
 		if storedEvent.ProposedDates == nil {
 			log.Printf("No association found between calendar and event")
@@ -239,7 +239,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		}
 
 		for _, storedDate := range storedEvent.ProposedDates {
-			needsActionDrafts = append(needsActionDrafts, appmodel.NeedsActionDraft{
+			needsActionDrafts = append(needsActionDrafts, NeedsActionDraftOutput{
 				ID:             storedEvent.ID,
 				Title:          storedEvent.Title,
 				Location:       storedEvent.Location,

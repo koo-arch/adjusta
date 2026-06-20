@@ -3,15 +3,14 @@ package events
 import (
 	"sort"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func buildAppProposedDates(storedDates []*ProposedDateRecord) []appmodel.ProposedDate {
-	proposedDates := make([]appmodel.ProposedDate, 0, len(storedDates))
+func buildProposedDateOutputs(storedDates []*ProposedDateRecord) []ProposedDateOutput {
+	proposedDates := make([]ProposedDateOutput, 0, len(storedDates))
 	for _, storedDate := range storedDates {
-		proposedDates = append(proposedDates, appmodel.ProposedDate{
+		proposedDates = append(proposedDates, ProposedDateOutput{
 			ID:            &storedDate.ID,
 			GoogleEventID: storedDate.GoogleEventID,
 			Start:         &storedDate.StartTime,
@@ -31,12 +30,12 @@ func buildAppProposedDates(storedDates []*ProposedDateRecord) []appmodel.Propose
 	return proposedDates
 }
 
-func buildAppEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDetail, error) {
+func buildEventDraftDetailOutput(storedEvent *EventRecord) (*EventDraftDetailOutput, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return &appmodel.EventDraftDetail{
+	return &EventDraftDetailOutput{
 		ID:                     storedEvent.ID,
 		Title:                  storedEvent.Title,
 		Location:               storedEvent.Location,
@@ -48,6 +47,6 @@ func buildAppEventDraftDetail(storedEvent *EventRecord) (*appmodel.EventDraftDet
 		ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
 		LastSyncedAt:           storedEvent.LastSyncedAt,
 		LastSyncError:          storedEvent.LastSyncError,
-		ProposedDates:          buildAppProposedDates(storedEvent.ProposedDates),
+		ProposedDates:          buildProposedDateOutputs(storedEvent.ProposedDates),
 	}, nil
 }

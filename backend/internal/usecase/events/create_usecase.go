@@ -5,13 +5,12 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq DraftCreationRequest) (*appmodel.EventDraftDetail, error) {
-	var response *appmodel.EventDraftDetail
+func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq DraftCreationRequest) (*EventDraftDetailOutput, error) {
+	var response *EventDraftDetailOutput
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
 		storedCalendar, err := uc.loadPrimaryCalendar(ctx, store, userID, email)
@@ -51,7 +50,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			}
 		}
 
-		response = &appmodel.EventDraftDetail{
+		response = &EventDraftDetailOutput{
 			ID:            storedEvent.ID,
 			Title:         storedEvent.Title,
 			Location:      storedEvent.Location,
@@ -59,7 +58,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			Status:        storedEvent.Status,
 			SyncStatus:    storedEvent.SyncStatus,
 			GoogleEventID: domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
-			ProposedDates: buildAppProposedDates(storedDates),
+			ProposedDates: buildProposedDateOutputs(storedDates),
 		}
 
 		return nil

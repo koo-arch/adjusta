@@ -479,7 +479,7 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		t.Fatalf("expected event last sync error to be cleared, got %#v", detail.LastSyncError)
 	}
 
-	datesByID := make(map[uuid.UUID]appmodel.ProposedDate, len(detail.ProposedDates))
+	datesByID := make(map[uuid.UUID]ProposedDateOutput, len(detail.ProposedDates))
 	for _, proposedDate := range detail.ProposedDates {
 		if proposedDate.ID == nil {
 			t.Fatalf("expected proposed date id, got %#v", proposedDate)

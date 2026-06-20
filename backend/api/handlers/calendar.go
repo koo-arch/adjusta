@@ -79,6 +79,104 @@ func toDraftUpdateRequest(eventDraft *dto.EventDraftUpdate) usecaseEvents.DraftU
 	}
 }
 
+func toProposedDateResponse(date usecaseEvents.ProposedDateOutput) dto.ProposedDate {
+	return dto.ProposedDate{
+		ID:            date.ID,
+		GoogleEventID: date.GoogleEventID,
+		Start:         date.Start,
+		End:           date.End,
+		Priority:      date.Priority,
+		Status:        date.Status,
+		SyncStatus:    date.SyncStatus,
+		LastSyncedAt:  date.LastSyncedAt,
+		LastSyncError: date.LastSyncError,
+	}
+}
+
+func toProposedDateResponses(dates []usecaseEvents.ProposedDateOutput) []dto.ProposedDate {
+	responses := make([]dto.ProposedDate, 0, len(dates))
+	for _, date := range dates {
+		responses = append(responses, toProposedDateResponse(date))
+	}
+	return responses
+}
+
+func toEventDraftDetailResponse(event *usecaseEvents.EventDraftDetailOutput) *dto.EventDraftDetail {
+	if event == nil {
+		return nil
+	}
+
+	return &dto.EventDraftDetail{
+		ID:                     event.ID,
+		Title:                  event.Title,
+		Location:               event.Location,
+		Description:            event.Description,
+		Status:                 event.Status,
+		SyncStatus:             event.SyncStatus,
+		ConfirmedDateID:        event.ConfirmedDateID,
+		GoogleEventID:          event.GoogleEventID,
+		ConfirmedGoogleEventID: event.ConfirmedGoogleEventID,
+		LastSyncedAt:           event.LastSyncedAt,
+		LastSyncError:          event.LastSyncError,
+		ProposedDates:          toProposedDateResponses(event.ProposedDates),
+	}
+}
+
+func toEventDraftDetailResponses(events []*usecaseEvents.EventDraftDetailOutput) []*dto.EventDraftDetail {
+	responses := make([]*dto.EventDraftDetail, 0, len(events))
+	for _, event := range events {
+		responses = append(responses, toEventDraftDetailResponse(event))
+	}
+	return responses
+}
+
+func toUpcomingEventResponse(event usecaseEvents.UpcomingEventOutput) dto.UpcomingEvent {
+	return dto.UpcomingEvent{
+		ID:                     event.ID,
+		Title:                  event.Title,
+		Location:               event.Location,
+		Description:            event.Description,
+		Status:                 event.Status,
+		SyncStatus:             event.SyncStatus,
+		ConfirmedDateID:        event.ConfirmedDateID,
+		GoogleEventID:          event.GoogleEventID,
+		ConfirmedGoogleEventID: event.ConfirmedGoogleEventID,
+		LastSyncedAt:           event.LastSyncedAt,
+		LastSyncError:          event.LastSyncError,
+		Start:                  event.Start,
+		End:                    event.End,
+	}
+}
+
+func toUpcomingEventResponses(events []usecaseEvents.UpcomingEventOutput) []dto.UpcomingEvent {
+	responses := make([]dto.UpcomingEvent, 0, len(events))
+	for _, event := range events {
+		responses = append(responses, toUpcomingEventResponse(event))
+	}
+	return responses
+}
+
+func toNeedsActionDraftResponse(event usecaseEvents.NeedsActionDraftOutput) dto.NeedsActionDraft {
+	return dto.NeedsActionDraft{
+		ID:             event.ID,
+		Title:          event.Title,
+		Location:       event.Location,
+		Description:    event.Description,
+		Status:         event.Status,
+		Start:          event.Start,
+		End:            event.End,
+		NeedsAttention: event.NeedsAttention,
+	}
+}
+
+func toNeedsActionDraftResponses(events []usecaseEvents.NeedsActionDraftOutput) []dto.NeedsActionDraft {
+	responses := make([]dto.NeedsActionDraft, 0, len(events))
+	for _, event := range events {
+		responses = append(responses, toNeedsActionDraftResponse(event))
+	}
+	return responses
+}
+
 func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
@@ -130,7 +228,7 @@ func (ch *CalendarHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 			return
 		}
 
-		respond.OK(c, draftedEvents)
+		respond.OK(c, toEventDraftDetailResponses(draftedEvents))
 	}
 }
 
@@ -163,7 +261,7 @@ func (ch *CalendarHandler) SearchEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		respond.OK(c, draftedEvents)
+		respond.OK(c, toEventDraftDetailResponses(draftedEvents))
 	}
 }
 
@@ -187,7 +285,7 @@ func (ch *CalendarHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
 			return
 		}
 
-		respond.OK(c, upcomingEvents)
+		respond.OK(c, toUpcomingEventResponses(upcomingEvents))
 	}
 }
 
@@ -204,14 +302,14 @@ func (ch *CalendarHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
 		eventUsecase := ch.handler.Server.EventUsecase
 
 		daysBefore := 3
-		upcomingEvents, err := eventUsecase.FetchNeedsActionDrafts(ctx, userid, email, daysBefore)
+		needsActionDrafts, err := eventUsecase.FetchNeedsActionDrafts(ctx, userid, email, daysBefore)
 		if err != nil {
 			log.Printf("failed to fetch needs action events: %v", err)
 			respond.Error(c, err, "イベントの取得に失敗しました")
 			return
 		}
 
-		respond.OK(c, upcomingEvents)
+		respond.OK(c, toNeedsActionDraftResponses(needsActionDrafts))
 	}
 }
 
@@ -239,7 +337,7 @@ func (ch *CalendarHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 			return
 		}
 
-		respond.OK(c, draftedEvent)
+		respond.OK(c, toEventDraftDetailResponse(draftedEvent))
 	}
 }
 
@@ -273,7 +371,7 @@ func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		respond.OK(c, response)
+		respond.OK(c, toEventDraftDetailResponse(response))
 	}
 }
 
