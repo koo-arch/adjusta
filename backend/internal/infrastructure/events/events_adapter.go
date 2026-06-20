@@ -77,38 +77,15 @@ func NewEventTransaction(uow infraRepository.UnitOfWork) usecaseEvents.EventTran
 func (t *eventTransaction) Do(ctx context.Context, fn func(store usecaseEvents.EventTxStore) error) error {
 	return t.uow.Do(ctx, func(repos infraRepository.Repositories) error {
 		return fn(&eventTxStore{
-			repos: repos,
+			eventReader: eventReader{
+				repos: repos,
+			},
 		})
 	})
 }
 
 type eventTxStore struct {
-	repos infraRepository.Repositories
-}
-
-func (s *eventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
-	role := domainvalue.UserCalendarRolePrimary
-	calendar, err := s.repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
-		Role: &role,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return toCalendarRecord(calendar), nil
-}
-
-func (s *eventTxStore) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
-	return findAdjustaCandidateCalendarRecord(ctx, s.repos, userID)
-}
-
-func (s *eventTxStore) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*usecaseEvents.EventRecord, error) {
-	event, err := s.repos.Event.FindByIDAndUser(ctx, userID, eventID, repoEvent.EventReadOptions{
-		WithProposedDates: withProposedDates,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return toEventRecord(event), nil
+	eventReader
 }
 
 func (s *eventTxStore) ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*usecaseEvents.CalendarRecord, error) {
@@ -132,19 +109,7 @@ func (s *eventTxStore) CreateEvent(ctx context.Context, userID, primaryCalendarI
 }
 
 func (s *eventTxStore) UpdateEvent(ctx context.Context, id uuid.UUID, opt usecaseEvents.EventMutation) (*usecaseEvents.EventRecord, error) {
-	event, err := s.repos.Event.Update(ctx, id, repoEvent.EventUpdateOptions{
-		Title:                  opt.Title,
-		Location:               opt.Location,
-		Description:            opt.Description,
-		Status:                 opt.Status,
-		SyncStatus:             opt.SyncStatus,
-		ConfirmedDateID:        opt.ConfirmedDateID,
-		ConfirmedGoogleEventID: opt.ConfirmedGoogleEventID,
-		LastSyncedAt:           opt.LastSyncedAt,
-		ClearLastSyncedAt:      opt.ClearLastSyncedAt,
-		LastSyncError:          opt.LastSyncError,
-		ClearLastSyncError:     opt.ClearLastSyncError,
-	})
+	event, err := s.repos.Event.Update(ctx, id, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +137,7 @@ func (s *eventTxStore) CreateProposedDates(ctx context.Context, selectedDates []
 }
 
 func (s *eventTxStore) UpdateProposedDate(ctx context.Context, id uuid.UUID, opt usecaseEvents.ProposedDateMutation) (*usecaseEvents.ProposedDateRecord, error) {
-	date, err := s.repos.ProposedDate.Update(ctx, id, toProposedDateUpdateOptions(opt))
+	date, err := s.repos.ProposedDate.Update(ctx, id, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -213,14 +178,14 @@ func toEventSearchOptions(opt usecaseEvents.EventSearchOptions) repoEvent.EventS
 }
 
 func toProposedDateCreateOptions(opt usecaseEvents.ProposedDateMutation) (repoProposedDate.ProposedDateCreateOptions, error) {
-	if opt.Start == nil || opt.End == nil || opt.Priority == nil {
+	if opt.StartTime == nil || opt.EndTime == nil || opt.Priority == nil {
 		return repoProposedDate.ProposedDateCreateOptions{}, errors.New("start, end, and priority are required to create proposed date")
 	}
 
 	return repoProposedDate.ProposedDateCreateOptions{
 		GoogleEventID: opt.GoogleEventID,
-		StartTime:     *opt.Start,
-		EndTime:       *opt.End,
+		StartTime:     *opt.StartTime,
+		EndTime:       *opt.EndTime,
 		Priority:      *opt.Priority,
 		Status:        opt.Status,
 		SyncStatus:    opt.SyncStatus,
@@ -241,21 +206,6 @@ func toProposedDateCreateOptionsList(selectedDates []usecaseEvents.SelectedDate)
 		})
 	}
 	return opts
-}
-
-func toProposedDateUpdateOptions(opt usecaseEvents.ProposedDateMutation) repoProposedDate.ProposedDateUpdateOptions {
-	return repoProposedDate.ProposedDateUpdateOptions{
-		GoogleEventID:      opt.GoogleEventID,
-		StartTime:          opt.Start,
-		EndTime:            opt.End,
-		Priority:           opt.Priority,
-		Status:             opt.Status,
-		SyncStatus:         opt.SyncStatus,
-		LastSyncedAt:       opt.LastSyncedAt,
-		ClearLastSyncedAt:  opt.ClearLastSyncedAt,
-		LastSyncError:      opt.LastSyncError,
-		ClearLastSyncError: opt.ClearLastSyncError,
-	}
 }
 
 func toCalendarRecord(calendar *repoCalendar.Calendar) *usecaseEvents.CalendarRecord {

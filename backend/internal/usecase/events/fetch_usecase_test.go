@@ -98,11 +98,11 @@ func applyProposedDateMutation(record *ProposedDateRecord, opt ProposedDateMutat
 		googleEventID := *opt.GoogleEventID
 		record.GoogleEventID = &googleEventID
 	}
-	if opt.Start != nil {
-		record.StartTime = *opt.Start
+	if opt.StartTime != nil {
+		record.StartTime = *opt.StartTime
 	}
-	if opt.End != nil {
-		record.EndTime = *opt.End
+	if opt.EndTime != nil {
+		record.EndTime = *opt.EndTime
 	}
 	if opt.Priority != nil {
 		record.Priority = *opt.Priority

@@ -31,8 +31,8 @@ func mergeEventChange(mutation EventMutation, change domainEvent.EventChange) Ev
 func buildProposedDateMutation(change domainEvent.ProposedDateChange) ProposedDateMutation {
 	mutation := ProposedDateMutation{
 		GoogleEventID:      change.GoogleEventID,
-		Start:              change.Start,
-		End:                change.End,
+		StartTime:          change.Start,
+		EndTime:            change.End,
 		Priority:           change.Priority,
 		Status:             change.Status,
 		LastSyncedAt:       change.Sync.LastSyncedAt,
