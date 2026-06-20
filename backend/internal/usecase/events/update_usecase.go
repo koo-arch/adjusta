@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.EventDraftUpdate) error {
+func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq DraftUpdateRequest) error {
 	var committedErr error
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
@@ -69,14 +68,20 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 			}
 
+			confirmDate := eventReq.ProposedDates[0]
+			googleEventID := ""
+			if confirmDate.GoogleEventID != nil {
+				googleEventID = *confirmDate.GoogleEventID
+			}
 			confirmation := ConfirmationRequest{
-				ID:       eventReq.ProposedDates[0].ID,
-				Start:    eventReq.ProposedDates[0].Start,
-				End:      eventReq.ProposedDates[0].End,
-				Priority: eventReq.ProposedDates[0].Priority,
+				ID:            confirmDate.ID,
+				GoogleEventID: googleEventID,
+				Start:         confirmDate.Start,
+				End:           confirmDate.End,
+				Priority:      confirmDate.Priority,
 			}
 
-			googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
+			confirmedGoogleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
 			if err != nil {
 				log.Printf("failed to handle google event for account: %s, error: %v", email, err)
 				if syncErr := uc.recordEventSyncFailure(ctx, store, storedEvent.ID, err); syncErr != nil {
@@ -87,7 +92,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				return nil
 			}
 
-			if err := uc.confirmEventDate(ctx, store, googleEventID, confirmation, storedEvent); err != nil {
+			if err := uc.confirmEventDate(ctx, store, confirmedGoogleEventID, confirmation, storedEvent); err != nil {
 				log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 				return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 			}
@@ -110,7 +115,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 	return nil
 }
 
-func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq *appmodel.EventDraftUpdate, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
+func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq DraftUpdateRequest, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
 	requestedDates, err := toDomainDraftDateList(eventReq.ProposedDates)
 	if err != nil {
 		return err

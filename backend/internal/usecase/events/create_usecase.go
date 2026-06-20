@@ -10,7 +10,7 @@ import (
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftCreation) (*appmodel.EventDraftDetail, error) {
+func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq DraftCreationRequest) (*appmodel.EventDraftDetail, error) {
 	var response *appmodel.EventDraftDetail
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {

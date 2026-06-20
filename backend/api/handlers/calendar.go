@@ -40,6 +40,45 @@ func parseEventIDParam(c *gin.Context) (uuid.UUID, bool) {
 	return eventID, true
 }
 
+func toDraftCreationRequest(eventDraft *appmodel.EventDraftCreation) usecaseEvents.DraftCreationRequest {
+	selectedDates := make([]usecaseEvents.SelectedDate, 0, len(eventDraft.SelectedDates))
+	for _, date := range eventDraft.SelectedDates {
+		selectedDates = append(selectedDates, usecaseEvents.SelectedDate{
+			Start:    date.Start,
+			End:      date.End,
+			Priority: date.Priority,
+		})
+	}
+
+	return usecaseEvents.DraftCreationRequest{
+		Title:         eventDraft.Title,
+		Location:      eventDraft.Location,
+		Description:   eventDraft.Description,
+		SelectedDates: selectedDates,
+	}
+}
+
+func toDraftUpdateRequest(eventDraft *appmodel.EventDraftUpdate) usecaseEvents.DraftUpdateRequest {
+	proposedDates := make([]usecaseEvents.ProposedDateRequest, 0, len(eventDraft.ProposedDates))
+	for _, date := range eventDraft.ProposedDates {
+		proposedDates = append(proposedDates, usecaseEvents.ProposedDateRequest{
+			ID:            date.ID,
+			GoogleEventID: date.GoogleEventID,
+			Start:         date.Start,
+			End:           date.End,
+			Priority:      date.Priority,
+		})
+	}
+
+	return usecaseEvents.DraftUpdateRequest{
+		Title:         eventDraft.Title,
+		Location:      eventDraft.Location,
+		Description:   eventDraft.Description,
+		Status:        eventDraft.Status,
+		ProposedDates: proposedDates,
+	}
+}
+
 func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
@@ -227,7 +266,7 @@ func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, eventDraft)
+		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, toDraftCreationRequest(eventDraft))
 		if err != nil {
 			log.Printf("failed to create events: %v", err)
 			respond.Error(c, err, "イベントの作成に失敗しました")
@@ -314,7 +353,7 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, eventDraft)
+		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, toDraftUpdateRequest(eventDraft))
 		if err != nil {
 			log.Printf("failed to update events: %v", err)
 			respond.Error(c, err, "イベントの更新に失敗しました")

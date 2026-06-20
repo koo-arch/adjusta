@@ -245,6 +245,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - events port の候補日程作成入力を usecase DTO に寄せ、infrastructure events adapter から selected date の appmodel 依存を除去した
 - calendar sync port の Google Calendar list を usecase DTO に寄せ、Google Calendar infrastructure から API DTO 依存を一部除去した
 - events の確定処理では `ConfirmationRequest` を導入し、更新処理が API DTO を組み立て直す流れを除去した
+- events の作成・更新処理では `DraftCreationRequest` / `DraftUpdateRequest` を導入し、handler で API DTO から usecase input へ変換する境界を作り始めた
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた
@@ -253,7 +254,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 - ローカル DB / migration で、削除済み schema 要素に対応する旧列・旧 index をどう落とすか整理する
 - auth の Phase 2 は進行中。session 主体の基盤は入ってきたが、OAuth state / callback / middleware / logout の責務境界と error handling は継続して整理する
-- `backend/internal/appmodel` への依存を薄くし、usecase ごとの入出力定義へ寄せる
+- `backend/internal/appmodel` への依存を薄くし、response 側も usecase ごとの入出力定義へ寄せる
 - `EventTxStore` / `events_adapter.go` のような usecase 専用 store / adapter を薄くし、usecase が domain repository interface を直接扱える形へ寄せる
 - domain model とほぼ同じ usecase Record を見直し、必要なものだけ残す
 - proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる

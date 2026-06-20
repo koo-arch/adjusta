@@ -1,12 +1,11 @@
 package events
 
 import (
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func toDomainDraftDate(date appmodel.ProposedDate) (domainEvent.DraftProposedDate, error) {
+func toDomainDraftDate(date ProposedDateRequest) (domainEvent.DraftProposedDate, error) {
 	if date.Start == nil || date.End == nil {
 		return domainEvent.DraftProposedDate{}, internalErrors.NewBadRequestError("候補日程が不正です")
 	}
@@ -19,7 +18,7 @@ func toDomainDraftDate(date appmodel.ProposedDate) (domainEvent.DraftProposedDat
 	}, nil
 }
 
-func toDomainDraftDateList(dates []appmodel.ProposedDate) ([]domainEvent.DraftProposedDate, error) {
+func toDomainDraftDateList(dates []ProposedDateRequest) ([]domainEvent.DraftProposedDate, error) {
 	converted := make([]domainEvent.DraftProposedDate, 0, len(dates))
 	for _, date := range dates {
 		convertedDate, err := toDomainDraftDate(date)
@@ -29,16 +28,6 @@ func toDomainDraftDateList(dates []appmodel.ProposedDate) ([]domainEvent.DraftPr
 		converted = append(converted, convertedDate)
 	}
 	return converted, nil
-}
-
-func toConfirmationRequest(date appmodel.ConfirmDate) ConfirmationRequest {
-	return ConfirmationRequest{
-		ID:            date.ID,
-		GoogleEventID: date.GoogleEventID,
-		Start:         date.Start,
-		End:           date.End,
-		Priority:      date.Priority,
-	}
 }
 
 func toDomainConfirmationRequest(date ConfirmationRequest) (domainEvent.DraftProposedDate, error) {
@@ -54,7 +43,7 @@ func toDomainConfirmationRequest(date ConfirmationRequest) (domainEvent.DraftPro
 	}, nil
 }
 
-func assignSelectedDatePriorities(dates []appmodel.SelectedDate) []SelectedDate {
+func assignSelectedDatePriorities(dates []SelectedDate) []SelectedDate {
 	assigned := make([]SelectedDate, 0, len(dates))
 	for i, date := range dates {
 		assigned = append(assigned, SelectedDate{

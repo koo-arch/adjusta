@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -218,11 +217,11 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 		nil,
 	)
 
-	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", &appmodel.EventDraftCreation{
+	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", DraftCreationRequest{
 		Title:       "Draft",
 		Location:    "Tokyo",
 		Description: "desc",
-		SelectedDates: []appmodel.SelectedDate{
+		SelectedDates: []SelectedDate{
 			{Start: start, End: end, Priority: 10},
 		},
 	})
@@ -311,11 +310,11 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 		nil,
 	)
 
-	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", &appmodel.EventDraftCreation{
+	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", DraftCreationRequest{
 		Title:       "Draft",
 		Location:    "Tokyo",
 		Description: "desc",
-		SelectedDates: []appmodel.SelectedDate{
+		SelectedDates: []SelectedDate{
 			{Start: start, End: end, Priority: 10},
 		},
 	})
@@ -388,11 +387,11 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 		nil,
 	)
 
-	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", &appmodel.EventDraftCreation{
+	response, err := uc.CreateDraftedEvents(ctx, userID, "user@example.com", DraftCreationRequest{
 		Title:       "Draft",
 		Location:    "Tokyo",
 		Description: "desc",
-		SelectedDates: []appmodel.SelectedDate{
+		SelectedDates: []SelectedDate{
 			{Start: start, End: end, Priority: 10},
 		},
 	})
@@ -491,12 +490,12 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", DraftUpdateRequest{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
 		Status:      domainvalue.StatusActive,
-		ProposedDates: []appmodel.ProposedDate{
+		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &dateID,
 				Start:    &start,
@@ -621,12 +620,12 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", DraftUpdateRequest{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
 		Status:      domainvalue.StatusActive,
-		ProposedDates: []appmodel.ProposedDate{
+		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &keepDateID,
 				Start:    &start,
@@ -751,12 +750,12 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", DraftUpdateRequest{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
 		Status:      domainvalue.StatusActive,
-		ProposedDates: []appmodel.ProposedDate{
+		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &dateID,
 				Start:    &start,
@@ -904,12 +903,12 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 		nil,
 	)
 
-	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", &appmodel.EventDraftUpdate{
+	err := uc.UpdateDraftedEvents(ctx, userID, eventID, "user@example.com", DraftUpdateRequest{
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
 		Status:      domainvalue.StatusActive,
-		ProposedDates: []appmodel.ProposedDate{
+		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &keepDateID,
 				Start:    &start,
