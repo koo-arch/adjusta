@@ -18,7 +18,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 	startTime := now.AddDate(0, -2, 0)
 	endTime := now.AddDate(1, 0, 0)
 
-	googleCalendars, err := uc.reader.ListCalendarsByUser(ctx, userID)
+	googleCalendars, err := uc.repos.Calendar.FilterByUserID(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get google calendars for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
@@ -27,7 +27,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	result, err := uc.googleCalendar.FetchEvents(ctx, userID, googleCalendars, startTime, endTime)
+	result, err := uc.googleCalendar.FetchEvents(ctx, userID, toCalendarRecords(googleCalendars), startTime, endTime)
 	if result == nil {
 		return nil, internalErrors.NormalizeAPIError(err, "Googleカレンダーのイベント取得に失敗しました")
 	}
@@ -51,7 +51,7 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 }
 
 func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*EventDraftDetailOutput, error) {
-	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
 	}
-	storedEvents, err := uc.reader.SearchEvents(ctx, userID, storedCalendar.ID, eventOptions)
+	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
 	if err != nil {
 		log.Printf("failed to get events for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
@@ -81,7 +81,7 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 }
 
 func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*EventDraftDetailOutput, error) {
-	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		EndTimeGTE:        query.EndTimeGTE,
 		EndTimeLTE:        query.EndTimeLTE,
 	}
-	storedEvents, err := uc.reader.SearchEvents(ctx, userID, storedCalendar.ID, eventOptions)
+	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
 	if err != nil {
 		log.Printf("failed to get event for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
@@ -120,7 +120,7 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 
 func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*EventDraftDetailOutput, error) {
 	if uc.tx == nil {
-		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.reader, userID, email, eventID)
+		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.repos, userID, email, eventID)
 		if err != nil {
 			return nil, err
 		}
@@ -129,8 +129,8 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 
 	var response *EventDraftDetailOutput
 
-	err := uc.tx.Do(ctx, func(store EventTxStore) error {
-		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, store, userID, email, eventID)
+	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, repos, userID, email, eventID)
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 }
 
 func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]UpcomingEventOutput, error) {
-	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 		StartTimeLTE:      &startTime,
 	}
 
-	storedEvents, err := uc.reader.SearchEvents(ctx, userID, storedCalendar.ID, eventOptions)
+	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
 	if err != nil {
 		log.Printf("failed to get event for account: %s, error: %v", email, err)
 		return nil, internalErrors.NewInternalError("イベント取得時にエラーが発生しました")
@@ -205,7 +205,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 }
 
 func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]NeedsActionDraftOutput, error) {
-	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.reader, userID, email)
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 		SortOrder:         "desc",
 	}
 
-	storedEvents, err := uc.reader.SearchEvents(ctx, userID, storedCalendar.ID, eventOptions)
+	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
 	if err != nil {
 		log.Printf("failed to get event for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {

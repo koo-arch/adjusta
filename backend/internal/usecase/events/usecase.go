@@ -1,18 +1,18 @@
 package events
 
 type Usecase struct {
-	reader         EventReader
+	repos          EventRepositories
 	tx             EventTransaction
 	googleCalendar GoogleCalendarGateway
 }
 
 func NewUsecase(
-	reader EventReader,
+	repos EventRepositories,
 	tx EventTransaction,
 	googleCalendar GoogleCalendarGateway,
 ) *Usecase {
 	return &Usecase{
-		reader:         reader,
+		repos:          repos,
 		tx:             tx,
 		googleCalendar: googleCalendar,
 	}

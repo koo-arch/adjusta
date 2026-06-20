@@ -19,7 +19,6 @@ import (
 	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/calendar"
 	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
-	infraEvents "github.com/koo-arch/adjusta-backend/internal/infrastructure/events"
 	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
@@ -86,8 +85,13 @@ func main() {
 		infraCalendar.NewCalendarSyncTransaction(uow),
 	)
 	eventUsecase := usecaseEvents.NewUsecase(
-		infraEvents.NewEventReader(repos),
-		infraEvents.NewEventTransaction(uow),
+		usecaseEvents.EventRepositories{
+			Calendar:     repos.Calendar,
+			Event:        repos.Event,
+			ProposedDate: repos.ProposedDate,
+			UserCalendar: repos.UserCalendar,
+		},
+		uow,
 		infraGoogleCalendar.NewEventGateway(googleTokenManager, calendarApp),
 	)
 

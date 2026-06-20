@@ -252,6 +252,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - events usecase の port 周辺型を `ports.go` / `records.go` / `requests.go` / `outputs.go` / `mutations.go` / `query.go` に分け、interface と DTO / Record / mutation の見通しを改善した
 - events adapter では tx store が reader を再利用する形にし、transaction scope 用 store の read 系重複を削減した
 - events usecase の mutation 型は repository update option の alias に寄せ、adapter 側の薄い詰め替えを削減した
+- events usecase の `EventRecord` / `ProposedDateRecord` は domain model alias に寄せ、`EventReader` / `EventTxStore` / `internal/infrastructure/events` package を削除した。usecase は domain repository interface の bundle を直接扱い、transaction は tx scope の repository bundle を渡すだけにした
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた

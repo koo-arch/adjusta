@@ -117,11 +117,11 @@ func (f *fakeEventTxStore) CreateProposedDate(ctx context.Context, opt ProposedD
 }
 
 type fakeEventTransaction struct {
-	store EventTxStore
+	store *fakeEventTxStore
 }
 
-func (f *fakeEventTransaction) Do(ctx context.Context, fn func(store EventTxStore) error) error {
-	return fn(f.store)
+func (f *fakeEventTransaction) DoEvent(ctx context.Context, fn func(repos EventRepositories) error) error {
+	return fn(fakeReposFromTxStore(f.store))
 }
 
 func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
@@ -136,7 +136,7 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 	end := start.Add(time.Hour)
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -251,7 +251,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	var updateProposedDateCalled bool
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -344,7 +344,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 	end := start.Add(time.Hour)
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -421,7 +421,7 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 	var dateMutation ProposedDateMutation
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -539,7 +539,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	var deletedID uuid.UUID
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -666,9 +666,6 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	if createdMutation.SyncStatus == nil || *createdMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
 		t.Fatalf("unexpected created proposed date sync mutation: %#v", createdMutation.SyncStatus)
 	}
-	if !createdMutation.ClearLastSyncError {
-		t.Fatalf("expected created proposed date last sync error to be cleared")
-	}
 }
 
 func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testing.T) {
@@ -686,7 +683,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 	var dateMutation ProposedDateMutation
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -787,7 +784,7 @@ func TestDeleteDraftedEventsMarksPendingBeforeSoftDelete(t *testing.T) {
 	var deleteCalled bool
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -847,7 +844,7 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 	var deletedID uuid.UUID
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -945,7 +942,7 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 	var failureMutation EventMutation
 
 	uc := NewUsecase(
-		nil,
+		EventRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,

@@ -1,10 +1,10 @@
 package events
 
 import (
-	"time"
-
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 )
 
 type CalendarRecord struct {
@@ -16,30 +16,32 @@ type CalendarRecord struct {
 	SyncProposedDates bool
 }
 
-type ProposedDateRecord struct {
-	ID            uuid.UUID
-	EventID       uuid.UUID
-	GoogleEventID *string
-	StartTime     time.Time
-	EndTime       time.Time
-	Priority      int
-	Status        domainvalue.ProposedDateStatus
-	SyncStatus    domainvalue.SyncStatus
-	LastSyncedAt  *time.Time
-	LastSyncError *string
+type ProposedDateRecord = domainProposedDate.ProposedDate
+type EventRecord = domainEvent.Event
+
+func toCalendarRecord(calendar *repoCalendar.Calendar) *CalendarRecord {
+	return toCalendarRecordWithSync(calendar, false)
 }
 
-type EventRecord struct {
-	ID                     uuid.UUID
-	PrimaryCalendarID      uuid.UUID
-	Title                  string
-	Location               string
-	Description            string
-	Status                 domainvalue.EventStatus
-	ConfirmedDateID        uuid.UUID
-	ConfirmedGoogleEventID *string
-	SyncStatus             domainvalue.SyncStatus
-	LastSyncedAt           *time.Time
-	LastSyncError          *string
-	ProposedDates          []*ProposedDateRecord
+func toCalendarRecordWithSync(calendar *repoCalendar.Calendar, syncProposedDates bool) *CalendarRecord {
+	if calendar == nil {
+		return nil
+	}
+
+	return &CalendarRecord{
+		ID:                calendar.ID,
+		GoogleCalendarID:  calendar.GoogleCalendarID,
+		Summary:           calendar.Summary,
+		Description:       calendar.Description,
+		Timezone:          calendar.Timezone,
+		SyncProposedDates: syncProposedDates,
+	}
+}
+
+func toCalendarRecords(calendars []*repoCalendar.Calendar) []*CalendarRecord {
+	records := make([]*CalendarRecord, 0, len(calendars))
+	for _, calendar := range calendars {
+		records = append(records, toCalendarRecord(calendar))
+	}
+	return records
 }

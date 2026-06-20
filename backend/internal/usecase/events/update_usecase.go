@@ -16,16 +16,18 @@ import (
 func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq DraftUpdateRequest) error {
 	var committedErr error
 
-	err := uc.tx.Do(ctx, func(store EventTxStore) error {
-		if _, err := uc.loadPrimaryCalendar(ctx, store, userID, email); err != nil {
+	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+		if _, err := uc.loadPrimaryCalendar(ctx, repos, userID, email); err != nil {
 			return err
 		}
-		candidateCalendar, err := uc.loadAdjustaCandidateCalendar(ctx, store, userID, email)
+		candidateCalendar, err := uc.loadAdjustaCandidateCalendar(ctx, repos, userID, email)
 		if err != nil {
 			return err
 		}
 
-		storedEvent, err := store.FindEventByID(ctx, userID, eventID, false)
+		storedEvent, err := repos.Event.FindByIDAndUser(ctx, userID, eventID, domainEvent.EventReadOptions{
+			WithProposedDates: false,
+		})
 		if err != nil {
 			log.Printf("failed to get event for account: %s, error: %v", email, err)
 			if repoerr.IsNotFound(err) {
@@ -46,7 +48,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				eventOptions = mergeEventChange(eventOptions, domainEvent.NewNotSyncedEventChange(&eventReq.Status))
 			}
 		}
-		storedEvent, err = store.UpdateEvent(ctx, storedEvent.ID, eventOptions)
+		storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, eventOptions)
 		if err != nil {
 			log.Printf("failed to update event for account: %s, error: %v", email, err)
 			if repoerr.IsNotFound(err) {
@@ -55,14 +57,14 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		existingDates, err := store.ListProposedDatesByEvent(ctx, storedEvent.ID)
+		existingDates, err := repos.ProposedDate.FilterByEventID(ctx, storedEvent.ID)
 		if err != nil {
 			log.Printf("failed to get proposed dates for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
 		if eventReq.Status == domainvalue.StatusConfirmed {
-			storedCalendar, err := store.ReadCalendar(ctx, storedEvent.PrimaryCalendarID)
+			storedCalendar, err := repos.Calendar.Read(ctx, storedEvent.PrimaryCalendarID)
 			if err != nil {
 				log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
@@ -84,7 +86,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 			confirmedGoogleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
 			if err != nil {
 				log.Printf("failed to handle google event for account: %s, error: %v", email, err)
-				if syncErr := uc.recordEventSyncFailure(ctx, store, storedEvent.ID, err); syncErr != nil {
+				if syncErr := uc.recordEventSyncFailure(ctx, repos, storedEvent.ID, err); syncErr != nil {
 					log.Printf("failed to mark sync failure for account: %s, error: %v", email, syncErr)
 					return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 				}
@@ -92,13 +94,13 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				return nil
 			}
 
-			if err := uc.confirmEventDate(ctx, store, confirmedGoogleEventID, confirmation, storedEvent); err != nil {
+			if err := uc.confirmEventDate(ctx, repos, confirmedGoogleEventID, confirmation, storedEvent); err != nil {
 				log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 				return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 			}
 		}
 
-		if err := uc.updateProposedDates(ctx, store, eventReq, storedEvent, existingDates, candidateCalendar.SyncProposedDates); err != nil {
+		if err := uc.updateProposedDates(ctx, repos, eventReq, storedEvent, existingDates, candidateCalendar.SyncProposedDates); err != nil {
 			return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 		}
 
@@ -115,7 +117,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 	return nil
 }
 
-func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, eventReq DraftUpdateRequest, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
+func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventRepositories, eventReq DraftUpdateRequest, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
 	requestedDates, err := toDomainDraftDateList(eventReq.ProposedDates)
 	if err != nil {
 		return err
@@ -131,23 +133,27 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, store EventTxStore, 
 
 	for _, date := range changeSet.Updates {
 		dateOptions := buildProposedDateMutation(buildChange(&date.Start, &date.End, &date.Priority, nil))
-		if _, err := store.UpdateProposedDate(ctx, date.ID, dateOptions); err != nil {
+		if _, err := repos.ProposedDate.Update(ctx, date.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date for account: %s, error: %w", date.ID, err)
 		}
 	}
 
 	for _, dateID := range changeSet.Deletes {
-		if _, err := store.UpdateProposedDate(ctx, dateID, buildProposedDateMutation(buildChange(nil, nil, nil, nil))); err != nil {
+		if _, err := repos.ProposedDate.Update(ctx, dateID, buildProposedDateMutation(buildChange(nil, nil, nil, nil))); err != nil {
 			return fmt.Errorf("failed to update proposed date sync state for account: %s, error: %w", dateID, err)
 		}
-		if err := store.DeleteProposedDate(ctx, dateID); err != nil {
+		if err := repos.ProposedDate.SoftDelete(ctx, dateID); err != nil {
 			return fmt.Errorf("failed to delete proposed date for account: %s, error: %w", dateID, err)
 		}
 	}
 
 	for _, date := range changeSet.Creates {
 		dateOptions := buildProposedDateMutation(buildChange(&date.Start, &date.End, &date.Priority, nil))
-		if _, err := store.CreateProposedDate(ctx, dateOptions, storedEvent.ID); err != nil {
+		createOptions, err := toProposedDateCreateOptions(dateOptions)
+		if err != nil {
+			return err
+		}
+		if _, err := repos.ProposedDate.Create(ctx, createOptions, storedEvent.ID); err != nil {
 			return fmt.Errorf("failed to create proposed date for event: %s, error: %w", storedEvent.ID, err)
 		}
 	}

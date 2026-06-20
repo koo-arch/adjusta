@@ -13,12 +13,10 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-type draftedEventDetailFinder interface {
-	FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
-}
-
-func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, finder draftedEventDetailFinder, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
-	storedEvent, err := finder.FindEventByID(ctx, userID, eventID, true)
+func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos EventRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+	storedEvent, err := repos.Event.FindByIDAndUser(ctx, userID, eventID, domainEvent.EventReadOptions{
+		WithProposedDates: true,
+	})
 	if err != nil {
 		log.Printf("failed to get event detail for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
@@ -30,13 +28,13 @@ func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, finder draf
 	return storedEvent, nil
 }
 
-func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, store EventTxStore, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
-	storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, store, userID, email, eventID)
+func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos EventRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+	storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, repos, userID, email, eventID)
 	if err != nil {
 		return nil, err
 	}
 
-	candidateCalendar, err := uc.loadAdjustaCandidateCalendar(ctx, store, userID, email)
+	candidateCalendar, err := uc.loadAdjustaCandidateCalendar(ctx, repos, userID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -44,14 +42,14 @@ func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, store Eve
 		return storedEvent, nil
 	}
 
-	if err := uc.syncProposedDatesOnDetail(ctx, store, userID, email, candidateCalendar.GoogleCalendarID, storedEvent); err != nil {
+	if err := uc.syncProposedDatesOnDetail(ctx, repos, userID, email, candidateCalendar.GoogleCalendarID, storedEvent); err != nil {
 		return nil, err
 	}
 
-	return uc.loadDraftedEventDetailRecord(ctx, store, userID, email, eventID)
+	return uc.loadDraftedEventDetailRecord(ctx, repos, userID, email, eventID)
 }
 
-func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, store EventTxStore, userID uuid.UUID, email, calendarID string, storedEvent *EventRecord) error {
+func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventRepositories, userID uuid.UUID, email, calendarID string, storedEvent *EventRecord) error {
 	var (
 		attemptedSync bool
 		lastSyncErr   error
@@ -78,13 +76,13 @@ func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, store EventTxS
 			lastSyncErr = err
 			log.Printf("failed to sync proposed date on detail for account: %s, event: %s, proposed date: %s, error: %v", email, storedEvent.ID, proposedDate.ID, err)
 
-			if _, updateErr := store.UpdateProposedDate(ctx, proposedDate.ID, buildProposedDateMutation(domainEvent.NewFailedProposedDateChange(err))); updateErr != nil {
+			if _, updateErr := repos.ProposedDate.Update(ctx, proposedDate.ID, buildProposedDateMutation(domainEvent.NewFailedProposedDateChange(err))); updateErr != nil {
 				return fmt.Errorf("failed to mark proposed date sync failure: %w", updateErr)
 			}
 			continue
 		}
 
-		if _, err := store.UpdateProposedDate(ctx, proposedDate.ID, buildProposedDateMutation(domainEvent.NewSyncedProposedDateChange(googleEventID, time.Now()))); err != nil {
+		if _, err := repos.ProposedDate.Update(ctx, proposedDate.ID, buildProposedDateMutation(domainEvent.NewSyncedProposedDateChange(googleEventID, time.Now()))); err != nil {
 			return fmt.Errorf("failed to update proposed date sync success: %w", err)
 		}
 	}
@@ -93,13 +91,13 @@ func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, store EventTxS
 		return nil
 	}
 	if lastSyncErr != nil {
-		if err := uc.recordEventSyncFailure(ctx, store, storedEvent.ID, lastSyncErr); err != nil {
+		if err := uc.recordEventSyncFailure(ctx, repos, storedEvent.ID, lastSyncErr); err != nil {
 			return fmt.Errorf("failed to mark event sync failure: %w", err)
 		}
 		return nil
 	}
 
-	if _, err := store.UpdateEvent(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewSyncedEventSyncChange(time.Now()))); err != nil {
+	if _, err := repos.Event.Update(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewSyncedEventSyncChange(time.Now()))); err != nil {
 		return fmt.Errorf("failed to update event sync success: %w", err)
 	}
 

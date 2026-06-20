@@ -2,13 +2,16 @@ package events
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
+	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 )
 
-func (uc *Usecase) recordEventSyncFailure(ctx context.Context, store EventTxStore, eventID uuid.UUID, syncErr error) error {
-	_, err := store.UpdateEvent(ctx, eventID, mergeEventChange(EventMutation{}, domainEvent.NewFailedEventChange(syncErr)))
+func (uc *Usecase) recordEventSyncFailure(ctx context.Context, repos EventRepositories, eventID uuid.UUID, syncErr error) error {
+	_, err := repos.Event.Update(ctx, eventID, mergeEventChange(EventMutation{}, domainEvent.NewFailedEventChange(syncErr)))
 	return err
 }
 
@@ -26,6 +29,37 @@ func mergeEventChange(mutation EventMutation, change domainEvent.EventChange) Ev
 	mutation.ClearLastSyncError = change.Sync.ClearLastSyncError
 
 	return mutation
+}
+
+func toProposedDateCreateOptions(opt ProposedDateMutation) (repoProposedDate.ProposedDateCreateOptions, error) {
+	if opt.StartTime == nil || opt.EndTime == nil || opt.Priority == nil {
+		return repoProposedDate.ProposedDateCreateOptions{}, errors.New("start, end, and priority are required to create proposed date")
+	}
+
+	return repoProposedDate.ProposedDateCreateOptions{
+		GoogleEventID: opt.GoogleEventID,
+		StartTime:     *opt.StartTime,
+		EndTime:       *opt.EndTime,
+		Priority:      *opt.Priority,
+		Status:        opt.Status,
+		SyncStatus:    opt.SyncStatus,
+		LastSyncedAt:  opt.LastSyncedAt,
+		LastSyncError: opt.LastSyncError,
+	}, nil
+}
+
+func toProposedDateCreateOptionsList(selectedDates []SelectedDate) []repoProposedDate.ProposedDateCreateOptions {
+	opts := make([]repoProposedDate.ProposedDateCreateOptions, 0, len(selectedDates))
+	for _, selectedDate := range selectedDates {
+		status := domainvalue.ProposedDateStatusActive
+		opts = append(opts, repoProposedDate.ProposedDateCreateOptions{
+			StartTime: selectedDate.Start,
+			EndTime:   selectedDate.End,
+			Priority:  selectedDate.Priority,
+			Status:    &status,
+		})
+	}
+	return opts
 }
 
 func buildProposedDateMutation(change domainEvent.ProposedDateChange) ProposedDateMutation {
