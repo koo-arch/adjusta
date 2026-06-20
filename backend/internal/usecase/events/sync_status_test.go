@@ -990,11 +990,9 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 		},
 	)
 
-	err := uc.FinalizeProposedDate(ctx, userID, eventID, "user@example.com", &appmodel.ConfirmEvent{
-		ConfirmDate: appmodel.ConfirmDate{
-			Start: &start,
-			End:   &end,
-		},
+	err := uc.FinalizeProposedDate(ctx, userID, eventID, "user@example.com", ConfirmationRequest{
+		Start: &start,
+		End:   &end,
 	})
 	if !internalErrors.IsKind(err, internalErrors.KindInternal) {
 		t.Fatalf("expected internal error, got %v", err)

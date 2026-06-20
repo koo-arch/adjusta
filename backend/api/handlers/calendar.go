@@ -11,6 +11,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/validation"
 	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	"github.com/koo-arch/adjusta-backend/internal/errors"
+	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
 type CalendarHandler struct {
@@ -266,7 +267,15 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 
 		eventUsecase := ch.handler.Server.EventUsecase
 
-		err = eventUsecase.FinalizeProposedDate(ctx, userid, eventID, email, confirmEvent)
+		confirmation := usecaseEvents.ConfirmationRequest{
+			ID:            confirmEvent.ConfirmDate.ID,
+			GoogleEventID: confirmEvent.ConfirmDate.GoogleEventID,
+			Start:         confirmEvent.ConfirmDate.Start,
+			End:           confirmEvent.ConfirmDate.End,
+			Priority:      confirmEvent.ConfirmDate.Priority,
+		}
+
+		err = eventUsecase.FinalizeProposedDate(ctx, userid, eventID, email, confirmation)
 		if err != nil {
 			log.Printf("failed to finalize event: %v", err)
 			respond.Error(c, err, "イベントの確定に失敗しました")

@@ -39,7 +39,7 @@ type EventService interface {
 	FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.UpcomingEvent, error)
 	FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]appmodel.NeedsActionDraft, error)
 	CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq *appmodel.EventDraftCreation) (*appmodel.EventDraftDetail, error)
-	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.ConfirmEvent) error
+	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, confirmation usecaseEvents.ConfirmationRequest) error
 	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.EventDraftUpdate) error
 	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) error
 }

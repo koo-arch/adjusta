@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq *appmodel.ConfirmEvent) error {
+func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, confirmation ConfirmationRequest) error {
 	var committedErr error
 
 	err := uc.tx.Do(ctx, func(store EventTxStore) error {
@@ -33,7 +32,6 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		confirmation := toConfirmationRequest(eventReq.ConfirmDate)
 		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
 		if err != nil {
 			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
