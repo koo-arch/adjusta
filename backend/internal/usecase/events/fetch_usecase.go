@@ -129,7 +129,7 @@ func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID
 
 	var response *EventDraftDetailOutput
 
-	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, repos, userID, email, eventID)
 		if err != nil {
 			return err

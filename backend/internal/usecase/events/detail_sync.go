@@ -13,7 +13,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos EventRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
 	storedEvent, err := repos.Event.FindByIDAndUser(ctx, userID, eventID, domainEvent.EventReadOptions{
 		WithProposedDates: true,
 	})
@@ -28,7 +28,7 @@ func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos Event
 	return storedEvent, nil
 }
 
-func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos EventRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
 	storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, repos, userID, email, eventID)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos Eve
 	return uc.loadDraftedEventDetailRecord(ctx, repos, userID, email, eventID)
 }
 
-func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventRepositories, userID uuid.UUID, email, calendarID string, storedEvent *EventRecord) error {
+func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email, calendarID string, storedEvent *EventRecord) error {
 	var (
 		attemptedSync bool
 		lastSyncErr   error

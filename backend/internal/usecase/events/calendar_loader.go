@@ -11,7 +11,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, repos EventRepositories, userID uuid.UUID, email string) (*CalendarRecord, error) {
+func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string) (*CalendarRecord, error) {
 	storedCalendar, err := findPrimaryCalendar(ctx, repos, userID)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
@@ -24,7 +24,7 @@ func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, repos EventRepositor
 	return storedCalendar, nil
 }
 
-func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos EventRepositories, userID uuid.UUID, email string) (*CalendarRecord, error) {
+func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string) (*CalendarRecord, error) {
 	storedCalendar, err := findAdjustaCandidateCalendar(ctx, repos, userID)
 	if err != nil {
 		log.Printf("failed to get adjusta candidate calendar for account: %s, error: %v", email, err)
@@ -37,7 +37,7 @@ func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos Event
 	return storedCalendar, nil
 }
 
-func findPrimaryCalendar(ctx context.Context, repos EventRepositories, userID uuid.UUID) (*CalendarRecord, error) {
+func findPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*CalendarRecord, error) {
 	role := domainvalue.UserCalendarRolePrimary
 	calendar, err := repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		Role: &role,
@@ -48,7 +48,7 @@ func findPrimaryCalendar(ctx context.Context, repos EventRepositories, userID uu
 	return toCalendarRecord(calendar), nil
 }
 
-func findAdjustaCandidateCalendar(ctx context.Context, repos EventRepositories, userID uuid.UUID) (*CalendarRecord, error) {
+func findAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*CalendarRecord, error) {
 	userCalendars, err := repos.UserCalendar.FilterByUserID(ctx, userID)
 	if err != nil {
 		return nil, err

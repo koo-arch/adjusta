@@ -16,7 +16,7 @@ type GoogleTokenProvider interface {
 	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
 }
 
-type EventRepositories struct {
+type EventTxRepositories struct {
 	Calendar     repoCalendar.CalendarRepository
 	Event        repoEvent.EventRepository
 	ProposedDate repoProposedDate.ProposedDateRepository
@@ -24,7 +24,7 @@ type EventRepositories struct {
 }
 
 type EventTransaction interface {
-	DoEvent(ctx context.Context, fn func(repos EventRepositories) error) error
+	DoEvent(ctx context.Context, fn func(repos EventTxRepositories) error) error
 }
 
 type GoogleCalendarGateway interface {

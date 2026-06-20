@@ -16,7 +16,7 @@ import (
 func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq DraftUpdateRequest) error {
 	var committedErr error
 
-	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		if _, err := uc.loadPrimaryCalendar(ctx, repos, userID, email); err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 	return nil
 }
 
-func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventRepositories, eventReq DraftUpdateRequest, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
+func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventTxRepositories, eventReq DraftUpdateRequest, storedEvent *EventRecord, existingDates []*ProposedDateRecord, syncProposedDates bool) error {
 	requestedDates, err := toDomainDraftDateList(eventReq.ProposedDates)
 	if err != nil {
 		return err

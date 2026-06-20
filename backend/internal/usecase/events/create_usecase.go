@@ -12,7 +12,7 @@ import (
 func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq DraftCreationRequest) (*EventDraftDetailOutput, error) {
 	var response *EventDraftDetailOutput
 
-	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		storedCalendar, err := uc.loadPrimaryCalendar(ctx, repos, userID, email)
 		if err != nil {
 			return err

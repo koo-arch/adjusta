@@ -120,7 +120,7 @@ type fakeEventTransaction struct {
 	store *fakeEventTxStore
 }
 
-func (f *fakeEventTransaction) DoEvent(ctx context.Context, fn func(repos EventRepositories) error) error {
+func (f *fakeEventTransaction) DoEvent(ctx context.Context, fn func(repos EventTxRepositories) error) error {
 	return fn(fakeReposFromTxStore(f.store))
 }
 
@@ -136,7 +136,7 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 	end := start.Add(time.Hour)
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -251,7 +251,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	var updateProposedDateCalled bool
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -344,7 +344,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 	end := start.Add(time.Hour)
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -421,7 +421,7 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 	var dateMutation ProposedDateMutation
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -539,7 +539,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	var deletedID uuid.UUID
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -683,7 +683,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 	var dateMutation ProposedDateMutation
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -784,7 +784,7 @@ func TestDeleteDraftedEventsMarksPendingBeforeSoftDelete(t *testing.T) {
 	var deleteCalled bool
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -844,7 +844,7 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 	var deletedID uuid.UUID
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -942,7 +942,7 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 	var failureMutation EventMutation
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,

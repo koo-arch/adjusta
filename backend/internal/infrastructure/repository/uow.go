@@ -5,7 +5,6 @@ import (
 
 	"github.com/koo-arch/adjusta-backend/ent"
 	infraTransaction "github.com/koo-arch/adjusta-backend/internal/infrastructure/transaction"
-	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
 type UnitOfWork interface {
@@ -32,15 +31,4 @@ func (u *EntUnitOfWork) Do(ctx context.Context, fn func(repos Repositories) erro
 	infraTransaction.Handle(entTx, &txErr)
 
 	return txErr
-}
-
-func (u *EntUnitOfWork) DoEvent(ctx context.Context, fn func(repos usecaseEvents.EventRepositories) error) error {
-	return u.Do(ctx, func(repos Repositories) error {
-		return fn(usecaseEvents.EventRepositories{
-			Calendar:     repos.Calendar,
-			Event:        repos.Event,
-			ProposedDate: repos.ProposedDate,
-			UserCalendar: repos.UserCalendar,
-		})
-	})
 }

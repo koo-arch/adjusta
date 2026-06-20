@@ -16,7 +16,7 @@ import (
 func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, confirmation ConfirmationRequest) error {
 	var committedErr error
 
-	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		storedEvent, err := repos.Event.FindByIDAndUser(ctx, userID, eventID, domainEvent.EventReadOptions{
 			WithProposedDates: false,
 		})
@@ -88,7 +88,7 @@ func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, cale
 	return &googleEventID, nil
 }
 
-func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventRepositories, googleEventID *string, confirmation ConfirmationRequest, storedEvent *EventRecord) error {
+func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositories, googleEventID *string, confirmation ConfirmationRequest, storedEvent *EventRecord) error {
 	confirmDate, err := toDomainConfirmationRequest(confirmation)
 	if err != nil {
 		return err
@@ -152,7 +152,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventRepositories
 	return nil
 }
 
-func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, repos EventRepositories, proposedDateIDs []uuid.UUID) error {
+func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, repos EventTxRepositories, proposedDateIDs []uuid.UUID) error {
 	notSelected := domainvalue.ProposedDateStatusNotSelected
 	for _, proposedDateID := range proposedDateIDs {
 		if _, err := repos.ProposedDate.Update(ctx, proposedDateID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, &notSelected))); err != nil {

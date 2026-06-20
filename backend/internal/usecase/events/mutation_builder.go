@@ -10,7 +10,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
 )
 
-func (uc *Usecase) recordEventSyncFailure(ctx context.Context, repos EventRepositories, eventID uuid.UUID, syncErr error) error {
+func (uc *Usecase) recordEventSyncFailure(ctx context.Context, repos EventTxRepositories, eventID uuid.UUID, syncErr error) error {
 	_, err := repos.Event.Update(ctx, eventID, mergeEventChange(EventMutation{}, domainEvent.NewFailedEventChange(syncErr)))
 	return err
 }

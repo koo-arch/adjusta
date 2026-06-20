@@ -10,7 +10,7 @@ import (
 )
 
 func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) error {
-	err := uc.tx.DoEvent(ctx, func(repos EventRepositories) error {
+	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		if _, err := uc.loadPrimaryCalendar(ctx, repos, userID, email); err != nil {
 			return err
 		}

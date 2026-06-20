@@ -59,9 +59,9 @@ func (f *fakeGoogleCalendarGateway) UpsertEvent(ctx context.Context, userID uuid
 	return f.upsertEventFn(ctx, userID, calendarID, existingGoogleEventID, title, location, description, start, end)
 }
 
-func fakeReposFromReader(reader *fakeEventReader) EventRepositories {
+func fakeReposFromReader(reader *fakeEventReader) EventTxRepositories {
 	calendarRepo := &fakeCalendarRepository{reader: reader, calendars: map[uuid.UUID]*repoCalendar.Calendar{}}
-	return EventRepositories{
+	return EventTxRepositories{
 		Calendar:     calendarRepo,
 		Event:        &fakeEventRepository{reader: reader},
 		ProposedDate: &fakeProposedDateRepository{},
@@ -69,9 +69,9 @@ func fakeReposFromReader(reader *fakeEventReader) EventRepositories {
 	}
 }
 
-func fakeReposFromTxStore(store *fakeEventTxStore) EventRepositories {
+func fakeReposFromTxStore(store *fakeEventTxStore) EventTxRepositories {
 	calendarRepo := &fakeCalendarRepository{store: store, calendars: map[uuid.UUID]*repoCalendar.Calendar{}}
-	return EventRepositories{
+	return EventTxRepositories{
 		Calendar:     calendarRepo,
 		Event:        &fakeEventRepository{store: store},
 		ProposedDate: &fakeProposedDateRepository{store: store},
@@ -686,7 +686,7 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 	}
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -839,7 +839,7 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 	}
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
@@ -943,7 +943,7 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 	}
 
 	uc := NewUsecase(
-		EventRepositories{},
+		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
