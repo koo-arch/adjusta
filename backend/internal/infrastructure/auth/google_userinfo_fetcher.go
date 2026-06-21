@@ -19,6 +19,8 @@ type googleUserInfo struct {
 	Picture  string `json:"picture"`
 }
 
+const googleUserInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo"
+
 type GoogleUserInfoFetcher struct{}
 
 func NewGoogleUserInfoFetcher() *GoogleUserInfoFetcher {
@@ -33,7 +35,7 @@ func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *
 		Expiry:       token.Expiry,
 	})
 
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
+	resp, err := client.Get(googleUserInfoEndpoint)
 	if err != nil {
 		log.Printf("failed to fetch user info: %v", err)
 		return nil, internalErrors.NewInternalError("GoogleAPIからのユーザー情報取得に失敗しました")
@@ -46,16 +48,7 @@ func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("failed to fetch user info: %s", resp.Status)
-		switch resp.StatusCode {
-		case http.StatusUnauthorized:
-			return nil, internalErrors.NewUnauthorizedError("ユーザー情報の取得に失敗しました")
-		case http.StatusForbidden:
-			return nil, internalErrors.NewForbiddenError("ユーザー情報の取得に失敗しました")
-		case http.StatusNotFound:
-			return nil, internalErrors.NewNotFoundError("ユーザー情報の取得に失敗しました")
-		default:
-			return nil, internalErrors.NewInternalError("ユーザー情報の取得に失敗しました")
-		}
+		return nil, userInfoStatusError(resp.StatusCode)
 	}
 
 	var userInfo googleUserInfo
@@ -69,4 +62,17 @@ func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *
 		Name:     userInfo.Name,
 		Picture:  userInfo.Picture,
 	}, nil
+}
+
+func userInfoStatusError(statusCode int) error {
+	switch statusCode {
+	case http.StatusUnauthorized:
+		return internalErrors.NewUnauthorizedError("ユーザー情報の取得に失敗しました")
+	case http.StatusForbidden:
+		return internalErrors.NewForbiddenError("ユーザー情報の取得に失敗しました")
+	case http.StatusNotFound:
+		return internalErrors.NewNotFoundError("ユーザー情報の取得に失敗しました")
+	default:
+		return internalErrors.NewInternalError("ユーザー情報の取得に失敗しました")
+	}
 }

@@ -74,8 +74,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		sessionctx.DeleteOAuthState(c)
-		if err := sessionctx.SetSessionToken(c, signInResult.SessionToken); err != nil {
+		if err := sessionctx.CompleteOAuthSignIn(c, signInResult.SessionToken); err != nil {
 			log.Printf("failed to save session token for account: %s, error: %v", signInResult.UserEmail, err)
 			respond.Internal(c, "セッションの保存に失敗しました")
 			return

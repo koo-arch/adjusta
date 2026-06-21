@@ -24,17 +24,14 @@ func OAuthState(c *gin.Context) (string, bool) {
 	return state, ok
 }
 
-func DeleteOAuthState(c *gin.Context) {
-	sessions.Default(c).Delete(infraCookie.OAuthStateKey)
-}
-
 func SessionToken(c *gin.Context) (string, bool) {
 	token, ok := sessions.Default(c).Get(infraCookie.SessionTokenKey).(string)
 	return token, ok
 }
 
-func SetSessionToken(c *gin.Context, token string) error {
+func CompleteOAuthSignIn(c *gin.Context, token string) error {
 	session := sessions.Default(c)
+	session.Delete(infraCookie.OAuthStateKey)
 	session.Set(infraCookie.SessionTokenKey, token)
 	return session.Save()
 }
