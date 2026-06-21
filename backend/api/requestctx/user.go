@@ -6,8 +6,18 @@ import (
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
+const (
+	userIDKey = "user_id"
+	emailKey  = "email"
+)
+
+func SetUser(c *gin.Context, userID uuid.UUID, email string) {
+	c.Set(userIDKey, userID)
+	c.Set(emailKey, email)
+}
+
 func UserIDAndEmail(c *gin.Context) (uuid.UUID, string, error) {
-	userIDValue, ok := c.Get("user_id")
+	userIDValue, ok := c.Get(userIDKey)
 	if !ok {
 		return uuid.Nil, "", internalErrors.NewUnauthorizedError("ユーザー情報が取得できませんでした")
 	}
@@ -17,7 +27,7 @@ func UserIDAndEmail(c *gin.Context) (uuid.UUID, string, error) {
 		return uuid.Nil, "", internalErrors.NewBadRequestError("ユーザーIDの形式が正しくありません")
 	}
 
-	emailValue, ok := c.Get("email")
+	emailValue, ok := c.Get(emailKey)
 	if !ok {
 		return uuid.Nil, "", internalErrors.NewUnauthorizedError("ユーザー情報が取得できませんでした")
 	}

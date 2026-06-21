@@ -4,8 +4,10 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
 type AuthMiddleware struct {
@@ -31,13 +33,14 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		authenticatedUser, err := authenticator.AuthenticateSession(ctx, sessionToken)
 		if err != nil {
 			log.Printf("failed to authenticate session: %v", err)
-			am.clearSession(c)
-			respond.Unauthorized(c, "認証に失敗しました")
+			if internalErrors.IsKind(err, internalErrors.KindUnauthorized) {
+				am.clearSession(c)
+			}
+			respond.Error(c, err, "認証に失敗しました")
 			return
 		}
 
-		c.Set("user_id", authenticatedUser.ID)
-		c.Set("email", authenticatedUser.Email)
+		requestctx.SetUser(c, authenticatedUser.ID, authenticatedUser.Email)
 		sessionctx.PutAuthenticatedSessionToken(c, sessionToken)
 		c.Next()
 	}
