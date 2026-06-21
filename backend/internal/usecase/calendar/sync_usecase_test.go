@@ -15,11 +15,18 @@ import (
 )
 
 type fakeSyncTransaction struct {
-	store SyncStore
+	store *fakeSyncStore
 }
 
-func (t *fakeSyncTransaction) Do(ctx context.Context, fn func(store SyncStore) error) error {
-	return fn(t.store)
+func (t *fakeSyncTransaction) Do(ctx context.Context, fn func(repos SyncTxRepositories) error) error {
+	calendarRepo := &fakeSyncCalendarRepository{
+		store:     t.store,
+		calendars: map[uuid.UUID]*repoCalendar.Calendar{},
+	}
+	return fn(SyncTxRepositories{
+		Calendar:     calendarRepo,
+		UserCalendar: &fakeSyncUserCalendarRepository{store: t.store, calendarRepo: calendarRepo},
+	})
 }
 
 type fakeCalendarService struct {
@@ -80,6 +87,117 @@ func (s *fakeSyncStore) ListUserCalendarRelations(ctx context.Context, userID uu
 
 func (s *fakeSyncStore) SoftDeleteUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID) error {
 	return s.softDeleteUserCalendarRelationFn(ctx, userID, calendarID)
+}
+
+type fakeSyncCalendarRepository struct {
+	store     *fakeSyncStore
+	calendars map[uuid.UUID]*repoCalendar.Calendar
+}
+
+func (r *fakeSyncCalendarRepository) Read(ctx context.Context, id uuid.UUID) (*repoCalendar.Calendar, error) {
+	if calendar, ok := r.calendars[id]; ok {
+		return calendar, nil
+	}
+	return nil, errors.New("unexpected calendar read")
+}
+
+func (r *fakeSyncCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
+	return nil, errors.New("unexpected calendar filter by user id")
+}
+
+func (r *fakeSyncCalendarRepository) FindByFields(ctx context.Context, userID uuid.UUID, opt repoCalendar.CalendarQueryOptions) (*repoCalendar.Calendar, error) {
+	if opt.GoogleCalendarID == nil {
+		return nil, errors.New("unexpected calendar find fields")
+	}
+	return r.store.findCalendarByGoogleCalendarIDFn(ctx, userID, *opt.GoogleCalendarID)
+}
+
+func (r *fakeSyncCalendarRepository) FindByGoogleCalendarID(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error) {
+	return r.store.findAnyCalendarByGoogleCalendarIDFn(ctx, googleCalendarID)
+}
+
+func (r *fakeSyncCalendarRepository) FilterByFields(ctx context.Context, userID uuid.UUID, opt repoCalendar.CalendarQueryOptions) ([]*repoCalendar.Calendar, error) {
+	return nil, errors.New("unexpected calendar filter fields")
+}
+
+func (r *fakeSyncCalendarRepository) Create(ctx context.Context, opt repoCalendar.CalendarMutationOptions) (*repoCalendar.Calendar, error) {
+	if opt.GoogleCalendarID == nil || opt.Summary == nil {
+		return nil, errors.New("google calendar id and summary are required")
+	}
+	calendar, err := r.store.createCalendarFn(ctx, *opt.GoogleCalendarID, *opt.Summary)
+	if err == nil && calendar != nil {
+		r.calendars[calendar.ID] = calendar
+	}
+	return calendar, err
+}
+
+func (r *fakeSyncCalendarRepository) Update(ctx context.Context, id uuid.UUID, opt repoCalendar.CalendarMutationOptions) (*repoCalendar.Calendar, error) {
+	if opt.GoogleCalendarID == nil || opt.Summary == nil {
+		return nil, errors.New("google calendar id and summary are required")
+	}
+	calendar, err := r.store.updateCalendarFn(ctx, id, *opt.GoogleCalendarID, *opt.Summary)
+	if err == nil && calendar != nil {
+		r.calendars[calendar.ID] = calendar
+	}
+	return calendar, err
+}
+
+func (r *fakeSyncCalendarRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return errors.New("unexpected calendar delete")
+}
+
+func (r *fakeSyncCalendarRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	return errors.New("unexpected calendar soft delete")
+}
+
+func (r *fakeSyncCalendarRepository) Restore(ctx context.Context, id uuid.UUID) error {
+	return errors.New("unexpected calendar restore")
+}
+
+type fakeSyncUserCalendarRepository struct {
+	store        *fakeSyncStore
+	calendarRepo *fakeSyncCalendarRepository
+}
+
+func (r *fakeSyncUserCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoUserCalendar.UserCalendar, error) {
+	relations, err := r.store.listUserCalendarRelationsFn(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userCalendars := make([]*repoUserCalendar.UserCalendar, 0, len(relations))
+	for _, relation := range relations {
+		r.calendarRepo.calendars[relation.CalendarID] = &repoCalendar.Calendar{
+			ID:               relation.CalendarID,
+			GoogleCalendarID: relation.GoogleCalendarID,
+		}
+		userCalendars = append(userCalendars, &repoUserCalendar.UserCalendar{
+			UserID:            userID,
+			CalendarID:        relation.CalendarID,
+			Role:              relation.Role,
+			SyncProposedDates: relation.SyncProposedDates,
+		})
+	}
+	return userCalendars, nil
+}
+
+func (r *fakeSyncUserCalendarRepository) Ensure(ctx context.Context, userID, calendarID uuid.UUID, opt repoUserCalendar.UserCalendarQueryOptions) (*repoUserCalendar.UserCalendar, error) {
+	if opt.Role == nil {
+		return nil, errors.New("role is required")
+	}
+	if err := r.store.ensureUserCalendarRelationFn(ctx, userID, calendarID, *opt.Role, opt.SyncProposedDates); err != nil {
+		return nil, err
+	}
+	return &repoUserCalendar.UserCalendar{
+		UserID:            userID,
+		CalendarID:        calendarID,
+		Role:              *opt.Role,
+		SyncProposedDates: opt.SyncProposedDates != nil && *opt.SyncProposedDates,
+	}, nil
+}
+
+func (r *fakeSyncUserCalendarRepository) SoftDeleteByUserAndCalendar(ctx context.Context, userID, calendarID uuid.UUID) error {
+	return r.store.softDeleteUserCalendarRelationFn(ctx, userID, calendarID)
 }
 
 func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *testing.T) {

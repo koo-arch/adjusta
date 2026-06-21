@@ -80,7 +80,7 @@ func main() {
 		infraAuth.NewGoogleUserInfoFetcher(),
 	)
 	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(
-		infraCalendar.NewCalendarSyncUserReader(repos.User),
+		repos.User,
 		googleTokenManager,
 		infraGoogleCalendar.NewCalendarServiceFactory(),
 		infraCalendar.NewCalendarSyncTransaction(uow),

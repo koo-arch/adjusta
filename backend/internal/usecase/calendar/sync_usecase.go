@@ -15,20 +15,20 @@ import (
 )
 
 type SyncUsecase struct {
-	userReader             UserReader
+	userRepo               repoUser.UserRepository
 	googleTokenProvider    GoogleTokenProvider
 	calendarServiceFactory CalendarServiceFactory
 	tx                     SyncTransaction
 }
 
 func NewSyncUsecase(
-	userReader UserReader,
+	userRepo repoUser.UserRepository,
 	googleTokenProvider GoogleTokenProvider,
 	calendarServiceFactory CalendarServiceFactory,
 	tx SyncTransaction,
 ) *SyncUsecase {
 	return &SyncUsecase{
-		userReader:             userReader,
+		userRepo:               userRepo,
 		googleTokenProvider:    googleTokenProvider,
 		calendarServiceFactory: calendarServiceFactory,
 		tx:                     tx,
@@ -36,7 +36,7 @@ func NewSyncUsecase(
 }
 
 func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*CalendarRecord, error) {
-	entUser, err := uc.userReader.GetByID(ctx, userID)
+	entUser, err := uc.userRepo.Read(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get user info for account: %s, %v", email, err)
 		if repoerr.IsNotFound(err) {
@@ -75,13 +75,13 @@ func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID
 func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService CalendarService, calendars []*CalendarRecord, entUser *repoUser.User) ([]*CalendarRecord, error) {
 	syncedCalendars := calendars
 
-	err := uc.tx.Do(ctx, func(store SyncStore) error {
-		relations, err := store.ListUserCalendarRelations(ctx, entUser.ID)
+	err := uc.tx.Do(ctx, func(repos SyncTxRepositories) error {
+		relations, err := listUserCalendarRelations(ctx, repos, entUser.ID)
 		if err != nil {
 			return fmt.Errorf("failed to list user calendar relations: %w", err)
 		}
 
-		adjustaCandidate, err := uc.ensureAdjustaCandidateCalendar(ctx, calendarService, store, entUser.ID, calendars, relations)
+		adjustaCandidate, err := uc.ensureAdjustaCandidateCalendar(ctx, calendarService, repos, entUser.ID, calendars, relations)
 		if err != nil {
 			return err
 		}
@@ -102,18 +102,18 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService Calenda
 
 			incoming[cal.CalendarID] = struct{}{}
 
-			storedCalendar, err := uc.ensureStoredCalendar(ctx, store, entUser.ID, cal.CalendarID, cal.Summary)
+			storedCalendar, err := uc.ensureStoredCalendar(ctx, repos, entUser.ID, cal.CalendarID, cal.Summary)
 			if err != nil {
 				return err
 			}
 
 			role := domainUserCalendar.ExternalSyncRole(cal.Primary)
-			if _, err := store.EnsureUserCalendarRelation(ctx, entUser.ID, storedCalendar.ID, role, nil); err != nil {
+			if _, err := ensureUserCalendarRelation(ctx, repos, entUser.ID, storedCalendar.ID, role, nil); err != nil {
 				return fmt.Errorf("failed to ensure user calendar relation: %w", err)
 			}
 		}
 
-		relations, err = store.ListUserCalendarRelations(ctx, entUser.ID)
+		relations, err = listUserCalendarRelations(ctx, repos, entUser.ID)
 		if err != nil {
 			return fmt.Errorf("failed to list user calendar relations: %w", err)
 		}
@@ -123,7 +123,7 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService Calenda
 				continue
 			}
 			if _, ok := incoming[relation.GoogleCalendarID]; !ok {
-				if err := store.SoftDeleteUserCalendarRelation(ctx, entUser.ID, relation.CalendarID); err != nil {
+				if err := repos.UserCalendar.SoftDeleteByUserAndCalendar(ctx, entUser.ID, relation.CalendarID); err != nil {
 					return fmt.Errorf("failed to soft delete user calendar relation: %w", err)
 				}
 			}
@@ -142,7 +142,7 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService Calenda
 func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 	ctx context.Context,
 	calendarService CalendarService,
-	store SyncStore,
+	repos SyncTxRepositories,
 	userID uuid.UUID,
 	calendars []*CalendarRecord,
 	relations []*UserCalendarRelationRecord,
@@ -153,10 +153,10 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 	if existingRelation != nil {
 		current := findIncomingCalendarByID(calendars, existingRelation.GoogleCalendarID)
 		if current != nil {
-			if _, err := store.UpdateCalendar(ctx, existingRelation.CalendarID, current.CalendarID, current.Summary); err != nil {
+			if _, err := updateCalendar(ctx, repos, existingRelation.CalendarID, current.CalendarID, current.Summary); err != nil {
 				return nil, fmt.Errorf("failed to update adjusta candidate calendar: %w", err)
 			}
-			if _, err := store.EnsureUserCalendarRelation(ctx, userID, existingRelation.CalendarID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
+			if _, err := ensureUserCalendarRelation(ctx, repos, userID, existingRelation.CalendarID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
 				return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
 			}
 			return current, nil
@@ -176,18 +176,18 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 		}
 	}
 
-	storedCalendar, err := uc.ensureStoredCalendar(ctx, store, userID, desired.CalendarID, desired.Summary)
+	storedCalendar, err := uc.ensureStoredCalendar(ctx, repos, userID, desired.CalendarID, desired.Summary)
 	if err != nil {
 		return nil, err
 	}
 
 	if existingRelation != nil && existingRelation.CalendarID != storedCalendar.ID {
-		if err := store.SoftDeleteUserCalendarRelation(ctx, userID, existingRelation.CalendarID); err != nil {
+		if err := repos.UserCalendar.SoftDeleteByUserAndCalendar(ctx, userID, existingRelation.CalendarID); err != nil {
 			return nil, fmt.Errorf("failed to replace adjusta candidate relation: %w", err)
 		}
 	}
 
-	if _, err := store.EnsureUserCalendarRelation(ctx, userID, storedCalendar.ID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
+	if _, err := ensureUserCalendarRelation(ctx, repos, userID, storedCalendar.ID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
 		return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
 	}
 
@@ -196,35 +196,84 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 
 func (uc *SyncUsecase) ensureStoredCalendar(
 	ctx context.Context,
-	store SyncStore,
+	repos SyncTxRepositories,
 	userID uuid.UUID,
 	googleCalendarID, summary string,
 ) (*repoCalendar.Calendar, error) {
-	storedCalendar, err := store.FindCalendarByGoogleCalendarID(ctx, userID, googleCalendarID)
+	storedCalendar, err := repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
+		GoogleCalendarID: &googleCalendarID,
+	})
 	if err != nil {
 		if !repoerr.IsNotFound(err) {
 			return nil, fmt.Errorf("failed to find calendar: %w", err)
 		}
 
-		storedCalendar, err = store.FindAnyCalendarByGoogleCalendarID(ctx, googleCalendarID)
+		storedCalendar, err = repos.Calendar.FindByGoogleCalendarID(ctx, googleCalendarID)
 		if err != nil {
 			if !repoerr.IsNotFound(err) {
 				return nil, fmt.Errorf("failed to find global calendar: %w", err)
 			}
 
-			storedCalendar, err = store.CreateCalendar(ctx, googleCalendarID, summary)
+			storedCalendar, err = createCalendar(ctx, repos, googleCalendarID, summary)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create calendar: %w", err)
 			}
 		}
 	}
 
-	storedCalendar, err = store.UpdateCalendar(ctx, storedCalendar.ID, googleCalendarID, summary)
+	storedCalendar, err = updateCalendar(ctx, repos, storedCalendar.ID, googleCalendarID, summary)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update calendar: %w", err)
 	}
 
 	return storedCalendar, nil
+}
+
+func createCalendar(ctx context.Context, repos SyncTxRepositories, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
+	return repos.Calendar.Create(ctx, repoCalendar.CalendarMutationOptions{
+		GoogleCalendarID: &googleCalendarID,
+		Summary:          &summary,
+	})
+}
+
+func updateCalendar(ctx context.Context, repos SyncTxRepositories, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
+	return repos.Calendar.Update(ctx, id, repoCalendar.CalendarMutationOptions{
+		GoogleCalendarID: &googleCalendarID,
+		Summary:          &summary,
+	})
+}
+
+func ensureUserCalendarRelation(ctx context.Context, repos SyncTxRepositories, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) (*domainUserCalendar.UserCalendar, error) {
+	isVisible := true
+	return repos.UserCalendar.Ensure(ctx, userID, calendarID, domainUserCalendar.UserCalendarQueryOptions{
+		Role:              &role,
+		IsVisible:         &isVisible,
+		SyncProposedDates: syncProposedDates,
+	})
+}
+
+func listUserCalendarRelations(ctx context.Context, repos SyncTxRepositories, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
+	userCalendars, err := repos.UserCalendar.FilterByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	relations := make([]*UserCalendarRelationRecord, 0, len(userCalendars))
+	for _, userCalendar := range userCalendars {
+		calendar, err := repos.Calendar.Read(ctx, userCalendar.CalendarID)
+		if err != nil {
+			return nil, err
+		}
+
+		relations = append(relations, &UserCalendarRelationRecord{
+			CalendarID:        userCalendar.CalendarID,
+			GoogleCalendarID:  calendar.GoogleCalendarID,
+			Role:              userCalendar.Role,
+			SyncProposedDates: userCalendar.SyncProposedDates,
+		})
+	}
+
+	return relations, nil
 }
 
 func findRelationByRole(relations []*UserCalendarRelationRecord, role domainvalue.UserCalendarRole) *UserCalendarRelationRecord {
