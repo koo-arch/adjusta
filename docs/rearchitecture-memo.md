@@ -257,6 +257,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - calendar sync usecase も `SyncStore` を廃止し、tx scope の domain repository bundle を直接扱う形へ寄せた
 - calendar sync usecase の user reader adapter を廃止し、domain user repository を直接受け取る形へ寄せた
 - auth usecase も `SignInReader` / `SignInStore` / `SessionStore` を廃止し、domain repository bundle と transaction adapter を直接扱う形へ寄せた
+- auth usecase の `service_ports.go` を廃止し、repository bundle、transaction port、OAuth port、output、sign-in plan / mutation builder を役割別ファイルへ分けた
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた
@@ -265,7 +266,6 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 - ローカル DB / migration で、削除済み schema 要素に対応する旧列・旧 index をどう落とすか整理する
 - auth の Phase 2 は進行中。session 主体の基盤は入ってきたが、OAuth state / callback / middleware / logout の責務境界と error handling は継続して整理する
-- `backend/internal/usecase/auth` は `auth_service.go` / `session_usecase.go` / `service_ports.go` に責務が残っている。次の整理では repository bundle、transaction port、OAuth port、output、sign-in plan / mutation builder を役割別ファイルへ分ける
 - `backend/internal/appmodel` への依存を薄くし、残る Google auth token / user profile 系 DTO も適切な境界へ寄せる
 - 残る usecase 専用 store / adapter を見直し、単なる repository 操作の言い換えになっているものは domain repository interface を直接扱える形へ寄せる
 - domain model とほぼ同じ usecase Record を見直し、必要なものだけ残す
@@ -276,11 +276,10 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 #### 5.4.5 次の作業候補
 
 1. ローカル DB で旧列・旧 index の drop 方針を確認する
-2. auth usecase のファイル分割を進め、`service_ports.go` と `session_usecase.go` に残る port / output / helper の混在を解消する
-3. auth の Phase 2 の残りとして、OAuth callback / auth middleware / logout の責務境界と error handling を整理する
-4. interface 層で API DTO と usecase input / output の境界を作り、usecase から appmodel 依存を減らす
-5. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
-6. domain rule と usecase orchestration の境界を再確認する
+2. auth の Phase 2 の残りとして、OAuth callback / auth middleware / logout の責務境界と error handling を整理する
+3. interface 層で API DTO と usecase input / output の境界を作り、usecase から appmodel 依存を減らす
+4. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
+5. domain rule と usecase orchestration の境界を再確認する
 
 ---
 
