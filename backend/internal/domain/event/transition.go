@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type SyncChange struct {
-	Status             domainvalue.SyncStatus
+	Status             value.SyncStatus
 	LastSyncedAt       *time.Time
 	ClearLastSyncedAt  bool
 	LastSyncError      *string
@@ -16,7 +16,7 @@ type SyncChange struct {
 }
 
 type EventChange struct {
-	Status                 *domainvalue.EventStatus
+	Status                 *value.EventStatus
 	ConfirmedDateID        *uuid.UUID
 	ConfirmedGoogleEventID *string
 	Sync                   SyncChange
@@ -27,36 +27,36 @@ type ProposedDateChange struct {
 	Start         *time.Time
 	End           *time.Time
 	Priority      *int
-	Status        *domainvalue.ProposedDateStatus
+	Status        *value.ProposedDateStatus
 	Sync          SyncChange
 }
 
-func NewPendingEventChange(status *domainvalue.EventStatus) EventChange {
+func NewPendingEventChange(status *value.EventStatus) EventChange {
 	return EventChange{
 		Status: status,
 		Sync: SyncChange{
-			Status: domainvalue.SyncStatusPending,
+			Status: value.SyncStatusPending,
 		},
 	}
 }
 
-func NewNotSyncedEventChange(status *domainvalue.EventStatus) EventChange {
+func NewNotSyncedEventChange(status *value.EventStatus) EventChange {
 	return EventChange{
 		Status: status,
 		Sync: SyncChange{
-			Status:             domainvalue.SyncStatusNotSynced,
+			Status:             value.SyncStatusNotSynced,
 			ClearLastSyncError: true,
 		},
 	}
 }
 
-func NewSyncedEventChange(status domainvalue.EventStatus, confirmedDateID uuid.UUID, googleEventID string, syncedAt time.Time) EventChange {
+func NewSyncedEventChange(status value.EventStatus, confirmedDateID uuid.UUID, googleEventID string, syncedAt time.Time) EventChange {
 	return EventChange{
 		Status:                 &status,
 		ConfirmedDateID:        &confirmedDateID,
 		ConfirmedGoogleEventID: &googleEventID,
 		Sync: SyncChange{
-			Status:             domainvalue.SyncStatusSynced,
+			Status:             value.SyncStatusSynced,
 			LastSyncedAt:       &syncedAt,
 			ClearLastSyncError: true,
 		},
@@ -68,32 +68,32 @@ func NewFailedEventChange(syncErr error) EventChange {
 
 	return EventChange{
 		Sync: SyncChange{
-			Status:        domainvalue.SyncStatusFailed,
+			Status:        value.SyncStatusFailed,
 			LastSyncError: &lastSyncError,
 		},
 	}
 }
 
-func NewPendingProposedDateChange(start, end *time.Time, priority *int, status *domainvalue.ProposedDateStatus) ProposedDateChange {
+func NewPendingProposedDateChange(start, end *time.Time, priority *int, status *value.ProposedDateStatus) ProposedDateChange {
 	return ProposedDateChange{
 		Start:    start,
 		End:      end,
 		Priority: priority,
 		Status:   status,
 		Sync: SyncChange{
-			Status: domainvalue.SyncStatusPending,
+			Status: value.SyncStatusPending,
 		},
 	}
 }
 
-func NewNotSyncedProposedDateChange(start, end *time.Time, priority *int, status *domainvalue.ProposedDateStatus) ProposedDateChange {
+func NewNotSyncedProposedDateChange(start, end *time.Time, priority *int, status *value.ProposedDateStatus) ProposedDateChange {
 	return ProposedDateChange{
 		Start:    start,
 		End:      end,
 		Priority: priority,
 		Status:   status,
 		Sync: SyncChange{
-			Status:             domainvalue.SyncStatusNotSynced,
+			Status:             value.SyncStatusNotSynced,
 			ClearLastSyncError: true,
 		},
 	}
@@ -103,7 +103,7 @@ func NewSyncedProposedDateChange(googleEventID string, syncedAt time.Time) Propo
 	return ProposedDateChange{
 		GoogleEventID: &googleEventID,
 		Sync: SyncChange{
-			Status:             domainvalue.SyncStatusSynced,
+			Status:             value.SyncStatusSynced,
 			LastSyncedAt:       &syncedAt,
 			ClearLastSyncError: true,
 		},
@@ -115,7 +115,7 @@ func NewFailedProposedDateChange(syncErr error) ProposedDateChange {
 
 	return ProposedDateChange{
 		Sync: SyncChange{
-			Status:        domainvalue.SyncStatusFailed,
+			Status:        value.SyncStatusFailed,
 			LastSyncError: &lastSyncError,
 		},
 	}
@@ -124,7 +124,7 @@ func NewFailedProposedDateChange(syncErr error) ProposedDateChange {
 func NewSyncedEventSyncChange(syncedAt time.Time) EventChange {
 	return EventChange{
 		Sync: SyncChange{
-			Status:             domainvalue.SyncStatusSynced,
+			Status:             value.SyncStatusSynced,
 			LastSyncedAt:       &syncedAt,
 			ClearLastSyncError: true,
 		},

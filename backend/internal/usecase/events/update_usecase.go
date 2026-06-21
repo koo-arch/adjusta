@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -41,7 +41,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 			Location:    &eventReq.Location,
 			Description: &eventReq.Description,
 		}
-		if eventReq.Status != domainvalue.StatusConfirmed {
+		if eventReq.Status != value.StatusConfirmed {
 			if candidateCalendar.SyncProposedDates {
 				eventOptions = mergeEventChange(eventOptions, domainEvent.NewPendingEventChange(&eventReq.Status))
 			} else {
@@ -63,7 +63,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		if eventReq.Status == domainvalue.StatusConfirmed {
+		if eventReq.Status == value.StatusConfirmed {
 			storedCalendar, err := repos.Calendar.Read(ctx, storedEvent.PrimaryCalendarID)
 			if err != nil {
 				log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
@@ -124,7 +124,7 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventTxReposit
 	}
 
 	changeSet := domainEvent.PlanProposedDateChanges(requestedDates, toDomainExistingDateList(existingDates))
-	buildChange := func(start, end *time.Time, priority *int, status *domainvalue.ProposedDateStatus) domainEvent.ProposedDateChange {
+	buildChange := func(start, end *time.Time, priority *int, status *value.ProposedDateStatus) domainEvent.ProposedDateChange {
 		if syncProposedDates {
 			return domainEvent.NewPendingProposedDateChange(start, end, priority, status)
 		}

@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type UserCalendarQueryOptions struct {
-	Role              *domainvalue.UserCalendarRole
+	Role              *value.UserCalendarRole
 	IsVisible         *bool
 	SyncProposedDates *bool
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type EventCreateOptions struct {
@@ -30,8 +30,8 @@ type EventSearchOptions struct {
 	Title                  *string
 	Location               *string
 	Description            *string
-	Status                 *domainvalue.EventStatus
-	SyncStatus             *domainvalue.SyncStatus
+	Status                 *value.EventStatus
+	SyncStatus             *value.SyncStatus
 	ConfirmedDateID        *uuid.UUID
 	ConfirmedGoogleEventID *string
 	WithProposedDates      bool
@@ -51,8 +51,8 @@ type EventUpdateOptions struct {
 	Title                  *string
 	Location               *string
 	Description            *string
-	Status                 *domainvalue.EventStatus
-	SyncStatus             *domainvalue.SyncStatus
+	Status                 *value.EventStatus
+	SyncStatus             *value.SyncStatus
 	ConfirmedDateID        *uuid.UUID
 	ConfirmedGoogleEventID *string
 	LastSyncedAt           *time.Time

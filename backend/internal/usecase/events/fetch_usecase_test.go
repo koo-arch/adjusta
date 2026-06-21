@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
@@ -88,7 +88,7 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 	userID := uuid.New()
 	calendarID := uuid.New()
 	now := time.Now()
-	confirmed := domainvalue.StatusConfirmed
+	confirmed := value.StatusConfirmed
 
 	eventID1 := uuid.New()
 	dateID1 := uuid.New()
@@ -115,7 +115,7 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 					{
 						ID:              eventID2,
 						Title:           "Later",
-						Status:          domainvalue.StatusConfirmed,
+						Status:          value.StatusConfirmed,
 						ConfirmedDateID: dateID2,
 						ProposedDates: []*ProposedDateRecord{
 							{ID: dateID2, StartTime: now.Add(3 * time.Hour), EndTime: now.Add(4 * time.Hour)},
@@ -124,7 +124,7 @@ func TestFetchUpcomingEventsSortsConfirmedDates(t *testing.T) {
 					{
 						ID:              eventID1,
 						Title:           "Sooner",
-						Status:          domainvalue.StatusConfirmed,
+						Status:          value.StatusConfirmed,
 						ConfirmedDateID: dateID1,
 						ProposedDates: []*ProposedDateRecord{
 							{ID: dateID1, StartTime: now.Add(1 * time.Hour), EndTime: now.Add(2 * time.Hour)},
@@ -166,7 +166,7 @@ func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
 	userID := uuid.New()
 	calendarID := uuid.New()
 	now := time.Now()
-	active := domainvalue.StatusActive
+	active := value.StatusActive
 
 	var receivedOptions EventSearchOptions
 
@@ -188,7 +188,7 @@ func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
 					{
 						ID:     uuid.New(),
 						Title:  "Needs action",
-						Status: domainvalue.StatusActive,
+						Status: value.StatusActive,
 						ProposedDates: []*ProposedDateRecord{
 							{ID: uuid.New(), StartTime: now.Add(-1 * time.Hour), EndTime: now.Add(1 * time.Hour)},
 						},
@@ -220,7 +220,7 @@ func TestFetchNeedsActionDraftsFiltersActiveEvents(t *testing.T) {
 	if len(drafts) != 1 {
 		t.Fatalf("unexpected needs action drafts length: %d", len(drafts))
 	}
-	if drafts[0].Status != domainvalue.StatusActive {
+	if drafts[0].Status != value.StatusActive {
 		t.Fatalf("unexpected draft status: %s", drafts[0].Status)
 	}
 }
@@ -246,16 +246,16 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		Title:       "Draft",
 		Location:    "Tokyo",
 		Description: "Discuss roadmap",
-		Status:      domainvalue.StatusActive,
-		SyncStatus:  domainvalue.SyncStatusPending,
+		Status:      value.StatusActive,
+		SyncStatus:  value.SyncStatusPending,
 		ProposedDates: []*ProposedDateRecord{
 			{
 				ID:         dateID1,
 				StartTime:  start1,
 				EndTime:    end1,
 				Priority:   20,
-				Status:     domainvalue.ProposedDateStatusActive,
-				SyncStatus: domainvalue.SyncStatusPending,
+				Status:     value.ProposedDateStatusActive,
+				SyncStatus: value.SyncStatusPending,
 			},
 			{
 				ID:            dateID2,
@@ -263,8 +263,8 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 				StartTime:     start2,
 				EndTime:       end2,
 				Priority:      10,
-				Status:        domainvalue.ProposedDateStatusActive,
-				SyncStatus:    domainvalue.SyncStatusPending,
+				Status:        value.ProposedDateStatusActive,
+				SyncStatus:    value.SyncStatusPending,
 			},
 		},
 	}
@@ -351,7 +351,7 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 	if upsertCallCount != 2 {
 		t.Fatalf("expected two upsert calls, got %d", upsertCallCount)
 	}
-	if detail.SyncStatus != domainvalue.SyncStatusSynced {
+	if detail.SyncStatus != value.SyncStatusSynced {
 		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
 	}
 	if detail.LastSyncedAt == nil {
@@ -380,7 +380,7 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		if proposedDate.GoogleEventID == nil || *proposedDate.GoogleEventID != expectedGoogleEventID {
 			t.Fatalf("unexpected google event id for %s: %#v", id, proposedDate.GoogleEventID)
 		}
-		if proposedDate.SyncStatus != domainvalue.SyncStatusSynced {
+		if proposedDate.SyncStatus != value.SyncStatusSynced {
 			t.Fatalf("unexpected sync status for %s: %s", id, proposedDate.SyncStatus)
 		}
 		if proposedDate.LastSyncedAt == nil {
@@ -408,16 +408,16 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 		Title:       "Draft",
 		Location:    "Tokyo",
 		Description: "Discuss roadmap",
-		Status:      domainvalue.StatusActive,
-		SyncStatus:  domainvalue.SyncStatusPending,
+		Status:      value.StatusActive,
+		SyncStatus:  value.SyncStatusPending,
 		ProposedDates: []*ProposedDateRecord{
 			{
 				ID:         dateID,
 				StartTime:  start,
 				EndTime:    end,
 				Priority:   10,
-				Status:     domainvalue.ProposedDateStatusActive,
-				SyncStatus: domainvalue.SyncStatusPending,
+				Status:     value.ProposedDateStatusActive,
+				SyncStatus: value.SyncStatusPending,
 			},
 		},
 	}
@@ -478,7 +478,7 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 	if upsertCallCount != 1 {
 		t.Fatalf("expected one upsert call, got %d", upsertCallCount)
 	}
-	if detail.SyncStatus != domainvalue.SyncStatusFailed {
+	if detail.SyncStatus != value.SyncStatusFailed {
 		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
 	}
 	if detail.LastSyncError == nil || *detail.LastSyncError != "google unavailable" {
@@ -487,7 +487,7 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 	if len(detail.ProposedDates) != 1 {
 		t.Fatalf("unexpected proposed dates: %#v", detail.ProposedDates)
 	}
-	if detail.ProposedDates[0].SyncStatus != domainvalue.SyncStatusFailed {
+	if detail.ProposedDates[0].SyncStatus != value.SyncStatusFailed {
 		t.Fatalf("unexpected proposed date sync status: %s", detail.ProposedDates[0].SyncStatus)
 	}
 	if detail.ProposedDates[0].LastSyncError == nil || *detail.ProposedDates[0].LastSyncError != "google unavailable" {
@@ -511,8 +511,8 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 		Title:       "Draft",
 		Location:    "Tokyo",
 		Description: "Discuss roadmap",
-		Status:      domainvalue.StatusActive,
-		SyncStatus:  domainvalue.SyncStatusNotSynced,
+		Status:      value.StatusActive,
+		SyncStatus:  value.SyncStatusNotSynced,
 		ProposedDates: []*ProposedDateRecord{
 			{
 				ID:            dateID,
@@ -520,8 +520,8 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 				StartTime:     start,
 				EndTime:       end,
 				Priority:      10,
-				Status:        domainvalue.ProposedDateStatusActive,
-				SyncStatus:    domainvalue.SyncStatusNotSynced,
+				Status:        value.ProposedDateStatusActive,
+				SyncStatus:    value.SyncStatusNotSynced,
 			},
 		},
 	}
@@ -570,10 +570,10 @@ func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.
 	if err != nil {
 		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
 	}
-	if detail.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if detail.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
 	}
-	if len(detail.ProposedDates) != 1 || detail.ProposedDates[0].SyncStatus != domainvalue.SyncStatusNotSynced {
+	if len(detail.ProposedDates) != 1 || detail.ProposedDates[0].SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected proposed dates: %#v", detail.ProposedDates)
 	}
 }

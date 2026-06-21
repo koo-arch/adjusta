@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 // UserCalendar holds the schema definition for the UserCalendar entity.
@@ -24,9 +24,9 @@ func (UserCalendar) Fields() []ent.Field {
 		field.UUID("calendar_id", uuid.UUID{}),
 		field.Enum("role").
 			Values(
-				string(domainvalue.UserCalendarRolePrimary),
-				string(domainvalue.UserCalendarRoleAdjustaCandidate),
-				string(domainvalue.UserCalendarRoleReference),
+				string(value.UserCalendarRolePrimary),
+				string(value.UserCalendarRoleAdjustaCandidate),
+				string(value.UserCalendarRoleReference),
 			),
 		field.Bool("is_visible").Default(true),
 		field.Bool("sync_proposed_dates").Default(false),

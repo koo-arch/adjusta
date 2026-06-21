@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -154,7 +154,7 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 
 	currentTime := time.Now()
 	startTime := currentTime.AddDate(0, 0, daysBefore)
-	confirmed := domainvalue.StatusConfirmed
+	confirmed := value.StatusConfirmed
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
 		Status:            &confirmed,
@@ -212,7 +212,7 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 
 	currentTime := time.Now()
 	startTime := currentTime.AddDate(0, 0, daysBefore)
-	active := domainvalue.StatusActive
+	active := value.StatusActive
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
 		Status:            &active,

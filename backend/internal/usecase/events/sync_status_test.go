@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -161,15 +161,15 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						Title:       title,
 						Location:    location,
 						Description: description,
-						Status:      domainvalue.StatusActive,
-						SyncStatus:  domainvalue.SyncStatusNotSynced,
+						Status:      value.StatusActive,
+						SyncStatus:  value.SyncStatusNotSynced,
 					}, nil
 				},
 				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
 					if id != eventID {
 						t.Fatalf("unexpected event id: %s", id)
 					}
-					if opt.SyncStatus == nil || *opt.SyncStatus != domainvalue.SyncStatusPending {
+					if opt.SyncStatus == nil || *opt.SyncStatus != value.SyncStatusPending {
 						t.Fatalf("expected pending sync mutation, got %#v", opt.SyncStatus)
 					}
 					return &EventRecord{
@@ -177,8 +177,8 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						Title:       "Draft",
 						Location:    "Tokyo",
 						Description: "desc",
-						Status:      domainvalue.StatusActive,
-						SyncStatus:  domainvalue.SyncStatusPending,
+						Status:      value.StatusActive,
+						SyncStatus:  value.SyncStatusPending,
 					}, nil
 				},
 				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
@@ -191,8 +191,8 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 							StartTime:  selectedDates[0].Start,
 							EndTime:    selectedDates[0].End,
 							Priority:   selectedDates[0].Priority,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusNotSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusNotSynced,
 						},
 					}, nil
 				},
@@ -200,7 +200,7 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 					if id != dateID {
 						t.Fatalf("unexpected date id: %s", id)
 					}
-					if opt.SyncStatus == nil || *opt.SyncStatus != domainvalue.SyncStatusPending {
+					if opt.SyncStatus == nil || *opt.SyncStatus != value.SyncStatusPending {
 						t.Fatalf("expected pending proposed date sync, got %#v", opt.SyncStatus)
 					}
 					return &ProposedDateRecord{
@@ -208,8 +208,8 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						StartTime:  start,
 						EndTime:    end,
 						Priority:   10,
-						Status:     domainvalue.ProposedDateStatusActive,
-						SyncStatus: domainvalue.SyncStatusPending,
+						Status:     value.ProposedDateStatusActive,
+						SyncStatus: value.SyncStatusPending,
 					}, nil
 				},
 			},
@@ -228,10 +228,10 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDraftedEvents returned error: %v", err)
 	}
-	if response.SyncStatus != domainvalue.SyncStatusPending {
+	if response.SyncStatus != value.SyncStatusPending {
 		t.Fatalf("unexpected event sync status: %s", response.SyncStatus)
 	}
-	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != domainvalue.SyncStatusPending {
+	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != value.SyncStatusPending {
 		t.Fatalf("unexpected proposed dates: %#v", response.ProposedDates)
 	}
 }
@@ -276,8 +276,8 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 						Title:       title,
 						Location:    location,
 						Description: description,
-						Status:      domainvalue.StatusActive,
-						SyncStatus:  domainvalue.SyncStatusNotSynced,
+						Status:      value.StatusActive,
+						SyncStatus:  value.SyncStatusNotSynced,
 					}, nil
 				},
 				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
@@ -295,8 +295,8 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 							StartTime:  selectedDates[0].Start,
 							EndTime:    selectedDates[0].End,
 							Priority:   selectedDates[0].Priority,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusNotSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusNotSynced,
 						},
 					}, nil
 				},
@@ -324,10 +324,10 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	if updateEventCalled || updateProposedDateCalled {
 		t.Fatalf("unexpected sync mutation calls: updateEvent=%v updateProposedDate=%v", updateEventCalled, updateProposedDateCalled)
 	}
-	if response.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if response.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected event sync status: %s", response.SyncStatus)
 	}
-	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != domainvalue.SyncStatusNotSynced {
+	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected proposed dates: %#v", response.ProposedDates)
 	}
 }
@@ -366,8 +366,8 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 						Title:       title,
 						Location:    location,
 						Description: description,
-						Status:      domainvalue.StatusActive,
-						SyncStatus:  domainvalue.SyncStatusNotSynced,
+						Status:      value.StatusActive,
+						SyncStatus:  value.SyncStatusNotSynced,
 					}, nil
 				},
 				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
@@ -377,8 +377,8 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 							StartTime:  selectedDates[0].Start,
 							EndTime:    selectedDates[0].End,
 							Priority:   selectedDates[0].Priority,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusNotSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusNotSynced,
 						},
 					}, nil
 				},
@@ -398,10 +398,10 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 	if err != nil {
 		t.Fatalf("CreateDraftedEvents returned error: %v", err)
 	}
-	if response.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if response.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected event sync status: %s", response.SyncStatus)
 	}
-	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != domainvalue.SyncStatusNotSynced {
+	if len(response.ProposedDates) != 1 || response.ProposedDates[0].SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected proposed dates: %#v", response.ProposedDates)
 	}
 }
@@ -444,7 +444,7 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
@@ -452,7 +452,7 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
@@ -465,8 +465,8 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 							StartTime:  start.Add(-time.Hour),
 							EndTime:    end.Add(-time.Hour),
 							Priority:   1,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusSynced,
 						},
 					}, nil
 				},
@@ -494,7 +494,7 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
-		Status:      domainvalue.StatusActive,
+		Status:      value.StatusActive,
 		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &dateID,
@@ -507,13 +507,13 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateDraftedEvents returned error: %v", err)
 	}
-	if eventMutation.Status == nil || *eventMutation.Status != domainvalue.StatusActive {
+	if eventMutation.Status == nil || *eventMutation.Status != value.StatusActive {
 		t.Fatalf("unexpected event status mutation: %#v", eventMutation.Status)
 	}
-	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != domainvalue.SyncStatusPending {
+	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != value.SyncStatusPending {
 		t.Fatalf("unexpected event sync mutation: %#v", eventMutation.SyncStatus)
 	}
-	if dateMutation.SyncStatus == nil || *dateMutation.SyncStatus != domainvalue.SyncStatusPending {
+	if dateMutation.SyncStatus == nil || *dateMutation.SyncStatus != value.SyncStatusPending {
 		t.Fatalf("unexpected proposed date sync mutation: %#v", dateMutation.SyncStatus)
 	}
 }
@@ -562,7 +562,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
@@ -573,8 +573,8 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
-						SyncStatus:        domainvalue.SyncStatusNotSynced,
+						Status:            value.StatusActive,
+						SyncStatus:        value.SyncStatusNotSynced,
 					}, nil
 				},
 				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
@@ -587,16 +587,16 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 							StartTime:  start.Add(-time.Hour),
 							EndTime:    end.Add(-time.Hour),
 							Priority:   10,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusSynced,
 						},
 						{
 							ID:         deleteDateID,
 							StartTime:  start.Add(-2 * time.Hour),
 							EndTime:    end.Add(-2 * time.Hour),
 							Priority:   5,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusSynced,
 						},
 					}, nil
 				},
@@ -624,7 +624,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
-		Status:      domainvalue.StatusActive,
+		Status:      value.StatusActive,
 		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &keepDateID,
@@ -642,10 +642,10 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	if err != nil {
 		t.Fatalf("UpdateDraftedEvents returned error: %v", err)
 	}
-	if eventMutation.Status == nil || *eventMutation.Status != domainvalue.StatusActive {
+	if eventMutation.Status == nil || *eventMutation.Status != value.StatusActive {
 		t.Fatalf("unexpected event status mutation: %#v", eventMutation.Status)
 	}
-	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected event sync mutation: %#v", eventMutation.SyncStatus)
 	}
 	if !eventMutation.ClearLastSyncError {
@@ -654,16 +654,16 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 	if deletedID != deleteDateID {
 		t.Fatalf("unexpected deleted id: %s", deletedID)
 	}
-	if mutations[keepDateID].SyncStatus == nil || *mutations[keepDateID].SyncStatus != domainvalue.SyncStatusNotSynced {
+	if mutations[keepDateID].SyncStatus == nil || *mutations[keepDateID].SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected kept proposed date sync mutation: %#v", mutations[keepDateID].SyncStatus)
 	}
 	if !mutations[keepDateID].ClearLastSyncError {
 		t.Fatalf("expected kept proposed date last sync error to be cleared")
 	}
-	if mutations[deleteDateID].SyncStatus == nil || *mutations[deleteDateID].SyncStatus != domainvalue.SyncStatusNotSynced {
+	if mutations[deleteDateID].SyncStatus == nil || *mutations[deleteDateID].SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected deleted proposed date sync mutation: %#v", mutations[deleteDateID].SyncStatus)
 	}
-	if createdMutation.SyncStatus == nil || *createdMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if createdMutation.SyncStatus == nil || *createdMutation.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected created proposed date sync mutation: %#v", createdMutation.SyncStatus)
 	}
 }
@@ -706,7 +706,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
@@ -714,8 +714,8 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
-						SyncStatus:        domainvalue.SyncStatusNotSynced,
+						Status:            value.StatusActive,
+						SyncStatus:        value.SyncStatusNotSynced,
 					}, nil
 				},
 				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
@@ -725,8 +725,8 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 							StartTime:  start.Add(-time.Hour),
 							EndTime:    end.Add(-time.Hour),
 							Priority:   10,
-							Status:     domainvalue.ProposedDateStatusActive,
-							SyncStatus: domainvalue.SyncStatusSynced,
+							Status:     value.ProposedDateStatusActive,
+							SyncStatus: value.SyncStatusSynced,
 						},
 					}, nil
 				},
@@ -751,7 +751,7 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
-		Status:      domainvalue.StatusActive,
+		Status:      value.StatusActive,
 		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &dateID,
@@ -764,10 +764,10 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 	if err != nil {
 		t.Fatalf("UpdateDraftedEvents returned error: %v", err)
 	}
-	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected event sync mutation: %#v", eventMutation.SyncStatus)
 	}
-	if dateMutation.SyncStatus == nil || *dateMutation.SyncStatus != domainvalue.SyncStatusNotSynced {
+	if dateMutation.SyncStatus == nil || *dateMutation.SyncStatus != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected proposed date sync mutation: %#v", dateMutation.SyncStatus)
 	}
 }
@@ -799,7 +799,7 @@ func TestDeleteDraftedEventsMarksPendingBeforeSoftDelete(t *testing.T) {
 					if id != eventID {
 						t.Fatalf("unexpected event id: %s", id)
 					}
-					if opt.SyncStatus == nil || *opt.SyncStatus != domainvalue.SyncStatusPending {
+					if opt.SyncStatus == nil || *opt.SyncStatus != value.SyncStatusPending {
 						t.Fatalf("unexpected sync status mutation: %#v", opt.SyncStatus)
 					}
 					return &EventRecord{ID: eventID}, nil
@@ -867,14 +867,14 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
 					return &EventRecord{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
@@ -904,7 +904,7 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 		Title:       "Updated title",
 		Location:    "Osaka",
 		Description: "updated desc",
-		Status:      domainvalue.StatusActive,
+		Status:      value.StatusActive,
 		ProposedDates: []ProposedDateRequest{
 			{
 				ID:       &keepDateID,
@@ -924,7 +924,7 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 	if !ok {
 		t.Fatalf("expected pending mutation for deleted proposed date")
 	}
-	if deleteMutation.SyncStatus == nil || *deleteMutation.SyncStatus != domainvalue.SyncStatusPending {
+	if deleteMutation.SyncStatus == nil || *deleteMutation.SyncStatus != value.SyncStatusPending {
 		t.Fatalf("unexpected deleted proposed date sync mutation: %#v", deleteMutation.SyncStatus)
 	}
 }
@@ -954,7 +954,7 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Title:             "Finalize",
-						Status:            domainvalue.StatusActive,
+						Status:            value.StatusActive,
 					}, nil
 				},
 				readCalendarFn: func(ctx context.Context, gotCalendarID uuid.UUID) (*CalendarRecord, error) {
@@ -993,7 +993,7 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 	if !internalErrors.IsKind(err, internalErrors.KindInternal) {
 		t.Fatalf("expected internal error, got %v", err)
 	}
-	if failureMutation.SyncStatus == nil || *failureMutation.SyncStatus != domainvalue.SyncStatusFailed {
+	if failureMutation.SyncStatus == nil || *failureMutation.SyncStatus != value.SyncStatusFailed {
 		t.Fatalf("unexpected failure sync status: %#v", failureMutation.SyncStatus)
 	}
 	if failureMutation.LastSyncError == nil || *failureMutation.LastSyncError == "" {

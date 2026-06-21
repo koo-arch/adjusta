@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 var ErrInvalidDateRange = errors.New("invalid date range")
 
 type ConfirmationChangeSet struct {
-	Status          domainvalue.EventStatus
+	Status          value.EventStatus
 	Create          *ProposedDateCreate
 	Update          *ProposedDateUpdate
 	MarkNotSelected []uuid.UUID
@@ -22,7 +22,7 @@ func PlanConfirmationChanges(confirmDate DraftProposedDate, existing []ExistingP
 	}
 
 	changeSet := &ConfirmationChangeSet{
-		Status:          domainvalue.StatusConfirmed,
+		Status:          value.StatusConfirmed,
 		MarkNotSelected: make([]uuid.UUID, 0, len(existing)),
 	}
 

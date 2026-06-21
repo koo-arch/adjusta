@@ -10,7 +10,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
 
@@ -303,10 +303,10 @@ func toEvent(entity *ent.Event) *repoEvent.Event {
 		Title:                  entity.Title,
 		Location:               entity.Location,
 		Description:            entity.Description,
-		Status:                 domainvalue.EventStatus(entity.Status),
+		Status:                 value.EventStatus(entity.Status),
 		ConfirmedDateID:        entity.ConfirmedDateID,
 		ConfirmedGoogleEventID: entity.ConfirmedGoogleEventID,
-		SyncStatus:             domainvalue.SyncStatus(entity.SyncStatus),
+		SyncStatus:             value.SyncStatus(entity.SyncStatus),
 		LastSyncedAt:           entity.LastSyncedAt,
 		LastSyncError:          entity.LastSyncError,
 		ProposedDates:          toEventProposedDates(entity.Edges.ProposedDates),
@@ -331,8 +331,8 @@ func toEventProposedDates(entities []*ent.ProposedDate) []*repoProposedDate.Prop
 			StartTime:     entity.StartTime,
 			EndTime:       entity.EndTime,
 			Priority:      entity.Priority,
-			Status:        domainvalue.ProposedDateStatus(entity.Status),
-			SyncStatus:    domainvalue.SyncStatus(entity.SyncStatus),
+			Status:        value.ProposedDateStatus(entity.Status),
+			SyncStatus:    value.SyncStatus(entity.SyncStatus),
 			LastSyncedAt:  entity.LastSyncedAt,
 			LastSyncError: entity.LastSyncError,
 		})

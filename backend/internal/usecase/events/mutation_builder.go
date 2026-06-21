@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 func (uc *Usecase) recordEventSyncFailure(ctx context.Context, repos EventTxRepositories, eventID uuid.UUID, syncErr error) error {
@@ -51,7 +51,7 @@ func toProposedDateCreateOptions(opt ProposedDateMutation) (repoProposedDate.Pro
 func toProposedDateCreateOptionsList(selectedDates []SelectedDate) []repoProposedDate.ProposedDateCreateOptions {
 	opts := make([]repoProposedDate.ProposedDateCreateOptions, 0, len(selectedDates))
 	for _, selectedDate := range selectedDates {
-		status := domainvalue.ProposedDateStatusActive
+		status := value.ProposedDateStatusActive
 		opts = append(opts, repoProposedDate.ProposedDateCreateOptions{
 			StartTime: selectedDate.Start,
 			EndTime:   selectedDate.End,

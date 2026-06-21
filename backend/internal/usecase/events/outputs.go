@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type ProposedDateOutput struct {
@@ -13,8 +13,8 @@ type ProposedDateOutput struct {
 	Start         *time.Time
 	End           *time.Time
 	Priority      int
-	Status        domainvalue.ProposedDateStatus
-	SyncStatus    domainvalue.SyncStatus
+	Status        value.ProposedDateStatus
+	SyncStatus    value.SyncStatus
 	LastSyncedAt  *time.Time
 	LastSyncError *string
 }
@@ -24,8 +24,8 @@ type EventDraftDetailOutput struct {
 	Title                  string
 	Location               string
 	Description            string
-	Status                 domainvalue.EventStatus
-	SyncStatus             domainvalue.SyncStatus
+	Status                 value.EventStatus
+	SyncStatus             value.SyncStatus
 	ConfirmedDateID        *uuid.UUID
 	GoogleEventID          string
 	ConfirmedGoogleEventID *string
@@ -39,8 +39,8 @@ type UpcomingEventOutput struct {
 	Title                  string
 	Location               string
 	Description            string
-	Status                 domainvalue.EventStatus
-	SyncStatus             domainvalue.SyncStatus
+	Status                 value.EventStatus
+	SyncStatus             value.SyncStatus
 	ConfirmedDateID        uuid.UUID
 	GoogleEventID          string
 	ConfirmedGoogleEventID *string
@@ -55,7 +55,7 @@ type NeedsActionDraftOutput struct {
 	Title          string
 	Location       string
 	Description    string
-	Status         domainvalue.EventStatus
+	Status         value.EventStatus
 	Start          time.Time
 	End            time.Time
 	NeedsAttention bool

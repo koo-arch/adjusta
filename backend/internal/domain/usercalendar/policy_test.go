@@ -3,16 +3,16 @@ package usercalendar
 import (
 	"testing"
 
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 func TestExternalSyncRole(t *testing.T) {
 	t.Parallel()
 
-	if role := ExternalSyncRole(true); role != domainvalue.UserCalendarRolePrimary {
+	if role := ExternalSyncRole(true); role != value.UserCalendarRolePrimary {
 		t.Fatalf("expected primary role, got %s", role)
 	}
-	if role := ExternalSyncRole(false); role != domainvalue.UserCalendarRoleReference {
+	if role := ExternalSyncRole(false); role != value.UserCalendarRoleReference {
 		t.Fatalf("expected reference role, got %s", role)
 	}
 }
@@ -20,13 +20,13 @@ func TestExternalSyncRole(t *testing.T) {
 func TestIsExternalSyncRole(t *testing.T) {
 	t.Parallel()
 
-	if !IsExternalSyncRole(domainvalue.UserCalendarRolePrimary) {
+	if !IsExternalSyncRole(value.UserCalendarRolePrimary) {
 		t.Fatal("expected primary to be externally synced")
 	}
-	if !IsExternalSyncRole(domainvalue.UserCalendarRoleReference) {
+	if !IsExternalSyncRole(value.UserCalendarRoleReference) {
 		t.Fatal("expected reference to be externally synced")
 	}
-	if IsExternalSyncRole(domainvalue.UserCalendarRoleAdjustaCandidate) {
+	if IsExternalSyncRole(value.UserCalendarRoleAdjustaCandidate) {
 		t.Fatal("expected adjusta candidate to be excluded from external sync")
 	}
 }

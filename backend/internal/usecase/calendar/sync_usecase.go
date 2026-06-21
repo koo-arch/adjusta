@@ -9,7 +9,7 @@ import (
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	domainUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -147,7 +147,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 	calendars []*CalendarRecord,
 	relations []*UserCalendarRelationRecord,
 ) (*CalendarRecord, error) {
-	existingRelation := findRelationByRole(relations, domainvalue.UserCalendarRoleAdjustaCandidate)
+	existingRelation := findRelationByRole(relations, value.UserCalendarRoleAdjustaCandidate)
 	syncProposedDates := resolveAdjustaCandidateSyncProposedDates(existingRelation)
 
 	if existingRelation != nil {
@@ -156,7 +156,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 			if _, err := updateCalendar(ctx, repos, existingRelation.CalendarID, current.CalendarID, current.Summary); err != nil {
 				return nil, fmt.Errorf("failed to update adjusta candidate calendar: %w", err)
 			}
-			if _, err := ensureUserCalendarRelation(ctx, repos, userID, existingRelation.CalendarID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
+			if _, err := ensureUserCalendarRelation(ctx, repos, userID, existingRelation.CalendarID, value.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
 				return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
 			}
 			return current, nil
@@ -187,7 +187,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 		}
 	}
 
-	if _, err := ensureUserCalendarRelation(ctx, repos, userID, storedCalendar.ID, domainvalue.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
+	if _, err := ensureUserCalendarRelation(ctx, repos, userID, storedCalendar.ID, value.UserCalendarRoleAdjustaCandidate, syncProposedDates); err != nil {
 		return nil, fmt.Errorf("failed to ensure adjusta candidate relation: %w", err)
 	}
 
@@ -243,7 +243,7 @@ func updateCalendar(ctx context.Context, repos SyncTxRepositories, id uuid.UUID,
 	})
 }
 
-func ensureUserCalendarRelation(ctx context.Context, repos SyncTxRepositories, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) (*domainUserCalendar.UserCalendar, error) {
+func ensureUserCalendarRelation(ctx context.Context, repos SyncTxRepositories, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) (*domainUserCalendar.UserCalendar, error) {
 	isVisible := true
 	return repos.UserCalendar.Ensure(ctx, userID, calendarID, domainUserCalendar.UserCalendarQueryOptions{
 		Role:              &role,
@@ -276,7 +276,7 @@ func listUserCalendarRelations(ctx context.Context, repos SyncTxRepositories, us
 	return relations, nil
 }
 
-func findRelationByRole(relations []*UserCalendarRelationRecord, role domainvalue.UserCalendarRole) *UserCalendarRelationRecord {
+func findRelationByRole(relations []*UserCalendarRelationRecord, role value.UserCalendarRole) *UserCalendarRelationRecord {
 	for _, relation := range relations {
 		if relation.Role == role {
 			return relation

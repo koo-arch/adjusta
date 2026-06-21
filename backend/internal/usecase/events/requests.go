@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type SelectedDate struct {
@@ -32,7 +32,7 @@ type DraftUpdateRequest struct {
 	Title         string
 	Location      string
 	Description   string
-	Status        domainvalue.EventStatus
+	Status        value.EventStatus
 	ProposedDates []ProposedDateRequest
 }
 

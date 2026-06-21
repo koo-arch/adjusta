@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type ProposedDate struct {
@@ -14,8 +14,8 @@ type ProposedDate struct {
 	StartTime     time.Time
 	EndTime       time.Time
 	Priority      int
-	Status        domainvalue.ProposedDateStatus
-	SyncStatus    domainvalue.SyncStatus
+	Status        value.ProposedDateStatus
+	SyncStatus    value.SyncStatus
 	LastSyncedAt  *time.Time
 	LastSyncError *string
 }

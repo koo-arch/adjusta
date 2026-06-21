@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -38,7 +38,7 @@ func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos Event
 }
 
 func findPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*CalendarRecord, error) {
-	role := domainvalue.UserCalendarRolePrimary
+	role := value.UserCalendarRolePrimary
 	calendar, err := repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		Role: &role,
 	})
@@ -55,7 +55,7 @@ func findAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories
 	}
 
 	for _, userCalendar := range userCalendars {
-		if userCalendar.Role != domainvalue.UserCalendarRoleAdjustaCandidate {
+		if userCalendar.Role != value.UserCalendarRoleAdjustaCandidate {
 			continue
 		}
 

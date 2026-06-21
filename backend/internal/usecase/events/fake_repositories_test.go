@@ -10,7 +10,7 @@ import (
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type fakeEventReader struct {
@@ -325,7 +325,7 @@ func (f *fakeUserCalendarRepository) FilterByUserID(ctx context.Context, userID 
 	return []*repoUserCalendar.UserCalendar{
 		{
 			CalendarID:        calendar.ID,
-			Role:              domainvalue.UserCalendarRoleAdjustaCandidate,
+			Role:              value.UserCalendarRoleAdjustaCandidate,
 			SyncProposedDates: record.SyncProposedDates,
 		},
 	}, nil

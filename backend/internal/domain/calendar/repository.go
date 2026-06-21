@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type CalendarQueryOptions struct {
 	GoogleCalendarID   *string
 	Summary            *string
-	Role               *domainvalue.UserCalendarRole
+	Role               *value.UserCalendarRole
 	WithEvents         bool `json:"with_events"`
 	WithProposedDates  bool `json:"with_proposed_dates"`
 	EventOffset        int

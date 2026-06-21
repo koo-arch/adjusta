@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -87,7 +87,7 @@ func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxR
 		}
 	}
 
-	if !attemptedSync || storedEvent.Status == domainvalue.StatusConfirmed {
+	if !attemptedSync || storedEvent.Status == value.StatusConfirmed {
 		return nil
 	}
 	if lastSyncErr != nil {

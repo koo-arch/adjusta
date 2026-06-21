@@ -6,31 +6,31 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 func TestNewPendingEventChange(t *testing.T) {
-	status := domainvalue.StatusActive
+	status := value.StatusActive
 
 	change := NewPendingEventChange(&status)
 
-	if change.Status == nil || *change.Status != domainvalue.StatusActive {
+	if change.Status == nil || *change.Status != value.StatusActive {
 		t.Fatalf("unexpected status: %#v", change.Status)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusPending {
+	if change.Sync.Status != value.SyncStatusPending {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 }
 
 func TestNewNotSyncedEventChange(t *testing.T) {
-	status := domainvalue.StatusActive
+	status := value.StatusActive
 
 	change := NewNotSyncedEventChange(&status)
 
-	if change.Status == nil || *change.Status != domainvalue.StatusActive {
+	if change.Status == nil || *change.Status != value.StatusActive {
 		t.Fatalf("unexpected status: %#v", change.Status)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusNotSynced {
+	if change.Sync.Status != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if !change.Sync.ClearLastSyncError {
@@ -42,9 +42,9 @@ func TestNewSyncedEventChange(t *testing.T) {
 	confirmedDateID := uuid.New()
 	syncedAt := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
 
-	change := NewSyncedEventChange(domainvalue.StatusConfirmed, confirmedDateID, "google-event-id", syncedAt)
+	change := NewSyncedEventChange(value.StatusConfirmed, confirmedDateID, "google-event-id", syncedAt)
 
-	if change.Status == nil || *change.Status != domainvalue.StatusConfirmed {
+	if change.Status == nil || *change.Status != value.StatusConfirmed {
 		t.Fatalf("unexpected status: %#v", change.Status)
 	}
 	if change.ConfirmedDateID == nil || *change.ConfirmedDateID != confirmedDateID {
@@ -53,7 +53,7 @@ func TestNewSyncedEventChange(t *testing.T) {
 	if change.ConfirmedGoogleEventID == nil || *change.ConfirmedGoogleEventID != "google-event-id" {
 		t.Fatalf("unexpected confirmed google event id: %#v", change.ConfirmedGoogleEventID)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusSynced {
+	if change.Sync.Status != value.SyncStatusSynced {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if change.Sync.LastSyncedAt == nil || !change.Sync.LastSyncedAt.Equal(syncedAt) {
@@ -67,7 +67,7 @@ func TestNewSyncedEventChange(t *testing.T) {
 func TestNewFailedEventChange(t *testing.T) {
 	change := NewFailedEventChange(errors.New("google unavailable"))
 
-	if change.Sync.Status != domainvalue.SyncStatusFailed {
+	if change.Sync.Status != value.SyncStatusFailed {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if change.Sync.LastSyncError == nil || *change.Sync.LastSyncError != "google unavailable" {
@@ -83,7 +83,7 @@ func TestNewSyncedEventSyncChange(t *testing.T) {
 	if change.Status != nil {
 		t.Fatalf("expected status to remain unchanged, got %#v", change.Status)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusSynced {
+	if change.Sync.Status != value.SyncStatusSynced {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if change.Sync.LastSyncedAt == nil || !change.Sync.LastSyncedAt.Equal(syncedAt) {
@@ -98,7 +98,7 @@ func TestNewPendingProposedDateChange(t *testing.T) {
 	start := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
 	end := start.Add(time.Hour)
 	priority := 1024
-	status := domainvalue.ProposedDateStatusConfirmed
+	status := value.ProposedDateStatusConfirmed
 
 	change := NewPendingProposedDateChange(&start, &end, &priority, &status)
 
@@ -114,7 +114,7 @@ func TestNewPendingProposedDateChange(t *testing.T) {
 	if change.Status == nil || *change.Status != status {
 		t.Fatalf("unexpected status: %#v", change.Status)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusPending {
+	if change.Sync.Status != value.SyncStatusPending {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 }
@@ -123,7 +123,7 @@ func TestNewNotSyncedProposedDateChange(t *testing.T) {
 	start := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
 	end := start.Add(time.Hour)
 	priority := 1024
-	status := domainvalue.ProposedDateStatusConfirmed
+	status := value.ProposedDateStatusConfirmed
 
 	change := NewNotSyncedProposedDateChange(&start, &end, &priority, &status)
 
@@ -139,7 +139,7 @@ func TestNewNotSyncedProposedDateChange(t *testing.T) {
 	if change.Status == nil || *change.Status != status {
 		t.Fatalf("unexpected status: %#v", change.Status)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusNotSynced {
+	if change.Sync.Status != value.SyncStatusNotSynced {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if !change.Sync.ClearLastSyncError {
@@ -155,7 +155,7 @@ func TestNewSyncedProposedDateChange(t *testing.T) {
 	if change.GoogleEventID == nil || *change.GoogleEventID != "google-event-id" {
 		t.Fatalf("unexpected google event id: %#v", change.GoogleEventID)
 	}
-	if change.Sync.Status != domainvalue.SyncStatusSynced {
+	if change.Sync.Status != value.SyncStatusSynced {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if change.Sync.LastSyncedAt == nil || !change.Sync.LastSyncedAt.Equal(syncedAt) {
@@ -169,7 +169,7 @@ func TestNewSyncedProposedDateChange(t *testing.T) {
 func TestNewFailedProposedDateChange(t *testing.T) {
 	change := NewFailedProposedDateChange(errors.New("calendar unavailable"))
 
-	if change.Sync.Status != domainvalue.SyncStatusFailed {
+	if change.Sync.Status != value.SyncStatusFailed {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 	if change.Sync.LastSyncError == nil || *change.Sync.LastSyncError != "calendar unavailable" {

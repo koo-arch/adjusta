@@ -4,14 +4,14 @@ import (
 	"time"
 
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type SearchDraftQuery struct {
 	Title        *string
 	Location     *string
 	Description  *string
-	Status       *domainvalue.EventStatus
+	Status       *value.EventStatus
 	StartTimeGTE *time.Time
 	StartTimeLTE *time.Time
 	EndTimeGTE   *time.Time
@@ -23,7 +23,7 @@ type EventSearchOptions struct {
 	Title             *string
 	Location          *string
 	Description       *string
-	Status            *domainvalue.EventStatus
+	Status            *value.EventStatus
 	StartTimeGTE      *time.Time
 	StartTimeLTE      *time.Time
 	EndTimeGTE        *time.Time

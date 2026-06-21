@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -106,7 +106,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 
 	confirmDateID := confirmation.ID
 	if confirmation.ID == nil {
-		confirmedStatus := domainvalue.ProposedDateStatusConfirmed
+		confirmedStatus := value.ProposedDateStatusConfirmed
 		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(
 			&changeSet.Create.Start,
 			&changeSet.Create.End,
@@ -127,7 +127,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 	}
 
 	if confirmation.ID != nil {
-		confirmedStatus := domainvalue.ProposedDateStatusConfirmed
+		confirmedStatus := value.ProposedDateStatusConfirmed
 		dateOptions := buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(
 			nil,
 			nil,
@@ -153,7 +153,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 }
 
 func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, repos EventTxRepositories, proposedDateIDs []uuid.UUID) error {
-	notSelected := domainvalue.ProposedDateStatusNotSelected
+	notSelected := value.ProposedDateStatusNotSelected
 	for _, proposedDateID := range proposedDateIDs {
 		if _, err := repos.ProposedDate.Update(ctx, proposedDateID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, &notSelected))); err != nil {
 			return err

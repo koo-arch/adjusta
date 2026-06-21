@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 func TestPlanConfirmationChangesForExistingDate(t *testing.T) {
@@ -27,7 +27,7 @@ func TestPlanConfirmationChangesForExistingDate(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if changeSet.Status != domainvalue.StatusConfirmed {
+	if changeSet.Status != value.StatusConfirmed {
 		t.Fatalf("expected confirmed status, got %s", changeSet.Status)
 	}
 	if changeSet.Update == nil || changeSet.Update.ID != id || changeSet.Update.Priority != 3072 {

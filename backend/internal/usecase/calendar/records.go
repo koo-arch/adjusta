@@ -2,7 +2,7 @@ package calendar
 
 import (
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 type CalendarRecord struct {
@@ -14,6 +14,6 @@ type CalendarRecord struct {
 type UserCalendarRelationRecord struct {
 	CalendarID        uuid.UUID
 	GoogleCalendarID  string
-	Role              domainvalue.UserCalendarRole
+	Role              value.UserCalendarRole
 	SyncProposedDates bool
 }

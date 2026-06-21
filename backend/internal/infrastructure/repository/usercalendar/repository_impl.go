@@ -9,7 +9,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
 	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
 
@@ -128,7 +128,7 @@ func toModelUserCalendar(entity *ent.UserCalendar) *repoUserCalendar.UserCalenda
 		ID:                entity.ID,
 		UserID:            entity.UserID,
 		CalendarID:        entity.CalendarID,
-		Role:              domainvalue.UserCalendarRole(entity.Role),
+		Role:              value.UserCalendarRole(entity.Role),
 		IsVisible:         entity.IsVisible,
 		SyncProposedDates: entity.SyncProposedDates,
 	}

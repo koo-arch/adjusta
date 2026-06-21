@@ -10,7 +10,7 @@ import (
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	domainUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
@@ -49,7 +49,7 @@ type fakeSyncStore struct {
 	findAnyCalendarByGoogleCalendarIDFn func(ctx context.Context, googleCalendarID string) (*repoCalendar.Calendar, error)
 	createCalendarFn                    func(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
 	updateCalendarFn                    func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
-	ensureUserCalendarRelationFn        func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error
+	ensureUserCalendarRelationFn        func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error
 	listUserCalendarRelationsFn         func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error)
 	softDeleteUserCalendarRelationFn    func(ctx context.Context, userID, calendarID uuid.UUID) error
 }
@@ -70,7 +70,7 @@ func (s *fakeSyncStore) UpdateCalendar(ctx context.Context, id uuid.UUID, google
 	return s.updateCalendarFn(ctx, id, googleCalendarID, summary)
 }
 
-func (s *fakeSyncStore) EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) (*repoUserCalendar.UserCalendar, error) {
+func (s *fakeSyncStore) EnsureUserCalendarRelation(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) (*repoUserCalendar.UserCalendar, error) {
 	if err := s.ensureUserCalendarRelationFn(ctx, userID, calendarID, role, syncProposedDates); err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *test
 	primaryCalendarID := uuid.New()
 	referenceCalendarID := uuid.New()
 
-	var ensuredRoles []domainvalue.UserCalendarRole
+	var ensuredRoles []value.UserCalendarRole
 
 	uc := NewSyncUsecase(nil, nil, nil, &fakeSyncTransaction{
 		store: &fakeSyncStore{
@@ -228,12 +228,12 @@ func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *test
 			updateCalendarFn: func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
 			},
-			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error {
+			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error {
 				ensuredRoles = append(ensuredRoles, role)
-				if role == domainvalue.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
+				if role == value.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
 					t.Fatalf("expected new adjusta candidate relation to use default sync setting")
 				}
-				if role != domainvalue.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
+				if role != value.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
 					t.Fatalf("expected externally synced roles not to override sync setting")
 				}
 				return nil
@@ -264,10 +264,10 @@ func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *test
 	if len(ensuredRoles) != 2 {
 		t.Fatalf("expected 2 ensured roles, got %d", len(ensuredRoles))
 	}
-	if ensuredRoles[0] != domainvalue.UserCalendarRolePrimary {
+	if ensuredRoles[0] != value.UserCalendarRolePrimary {
 		t.Fatalf("expected primary role, got %s", ensuredRoles[0])
 	}
-	if ensuredRoles[1] != domainvalue.UserCalendarRoleReference {
+	if ensuredRoles[1] != value.UserCalendarRoleReference {
 		t.Fatalf("expected reference role, got %s", ensuredRoles[1])
 	}
 }
@@ -287,17 +287,17 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 		{
 			CalendarID:       currentCalendarID,
 			GoogleCalendarID: "current-primary",
-			Role:             domainvalue.UserCalendarRolePrimary,
+			Role:             value.UserCalendarRolePrimary,
 		},
 		{
 			CalendarID:       missingPrimaryCalendarID,
 			GoogleCalendarID: "missing-primary",
-			Role:             domainvalue.UserCalendarRolePrimary,
+			Role:             value.UserCalendarRolePrimary,
 		},
 		{
 			CalendarID:        candidateCalendarID,
 			GoogleCalendarID:  "adjusta-candidate",
-			Role:              domainvalue.UserCalendarRoleAdjustaCandidate,
+			Role:              value.UserCalendarRoleAdjustaCandidate,
 			SyncProposedDates: true,
 		},
 	}
@@ -326,8 +326,8 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 			updateCalendarFn: func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
 			},
-			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error {
-				if role == domainvalue.UserCalendarRoleAdjustaCandidate {
+			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error {
+				if role == value.UserCalendarRoleAdjustaCandidate {
 					if syncProposedDates == nil || !*syncProposedDates {
 						t.Fatal("expected recreated adjusta candidate relation to preserve sync setting")
 					}
@@ -387,7 +387,7 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 
 	foundRecreatedCandidate := false
 	for _, relation := range currentRelations {
-		if relation.Role == domainvalue.UserCalendarRoleAdjustaCandidate && relation.CalendarID == recreatedCandidateCalendarID {
+		if relation.Role == value.UserCalendarRoleAdjustaCandidate && relation.CalendarID == recreatedCandidateCalendarID {
 			foundRecreatedCandidate = true
 			break
 		}
@@ -405,7 +405,7 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 	primaryCalendarID := uuid.New()
 	candidateCalendarID := uuid.New()
 
-	var ensuredRoles []domainvalue.UserCalendarRole
+	var ensuredRoles []value.UserCalendarRole
 	var deletedCalendarIDs []uuid.UUID
 
 	uc := NewSyncUsecase(nil, nil, nil, &fakeSyncTransaction{
@@ -427,9 +427,9 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 			updateCalendarFn: func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
 			},
-			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error {
+			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error {
 				ensuredRoles = append(ensuredRoles, role)
-				if role == domainvalue.UserCalendarRoleAdjustaCandidate {
+				if role == value.UserCalendarRoleAdjustaCandidate {
 					t.Fatalf("adjusta candidate relation should not be recreated while sync is disabled")
 				}
 				return nil
@@ -439,7 +439,7 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 					{
 						CalendarID:        candidateCalendarID,
 						GoogleCalendarID:  "missing-adjusta-candidate",
-						Role:              domainvalue.UserCalendarRoleAdjustaCandidate,
+						Role:              value.UserCalendarRoleAdjustaCandidate,
 						SyncProposedDates: false,
 					},
 				}, nil
@@ -469,7 +469,7 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 	if len(ensuredRoles) != 1 {
 		t.Fatalf("expected only primary role to be ensured, got %d", len(ensuredRoles))
 	}
-	if ensuredRoles[0] != domainvalue.UserCalendarRolePrimary {
+	if ensuredRoles[0] != value.UserCalendarRolePrimary {
 		t.Fatalf("expected primary role, got %s", ensuredRoles[0])
 	}
 	if len(deletedCalendarIDs) != 0 {
@@ -505,9 +505,9 @@ func TestSyncCalendarReusesIncomingAdjustaCandidateCalendar(t *testing.T) {
 			updateCalendarFn: func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
 			},
-			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error {
+			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error {
 				ensuredRolePairs = append(ensuredRolePairs, [2]interface{}{calendarID, role})
-				if role == domainvalue.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
+				if role == value.UserCalendarRoleAdjustaCandidate && syncProposedDates != nil {
 					t.Fatalf("expected incoming adjusta candidate relation without stored setting to use default sync setting")
 				}
 				return nil
@@ -541,10 +541,10 @@ func TestSyncCalendarReusesIncomingAdjustaCandidateCalendar(t *testing.T) {
 	if len(ensuredRolePairs) != 2 {
 		t.Fatalf("expected 2 ensured relations, got %d", len(ensuredRolePairs))
 	}
-	if ensuredRolePairs[0][1] != domainvalue.UserCalendarRoleAdjustaCandidate {
+	if ensuredRolePairs[0][1] != value.UserCalendarRoleAdjustaCandidate {
 		t.Fatalf("expected adjusta candidate relation first, got %v", ensuredRolePairs[0][1])
 	}
-	if ensuredRolePairs[1][1] != domainvalue.UserCalendarRolePrimary {
+	if ensuredRolePairs[1][1] != value.UserCalendarRolePrimary {
 		t.Fatalf("expected primary relation second, got %v", ensuredRolePairs[1][1])
 	}
 	if ensuredRolePairs[0][0] == ensuredRolePairs[1][0] {
@@ -578,8 +578,8 @@ func TestSyncCalendarPreservesAdjustaCandidateSyncSetting(t *testing.T) {
 			updateCalendarFn: func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error) {
 				return &repoCalendar.Calendar{ID: id, GoogleCalendarID: googleCalendarID, Summary: summary}, nil
 			},
-			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role domainvalue.UserCalendarRole, syncProposedDates *bool) error {
-				if role == domainvalue.UserCalendarRoleAdjustaCandidate {
+			ensureUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error {
+				if role == value.UserCalendarRoleAdjustaCandidate {
 					ensuredSyncProposedDates = syncProposedDates
 				}
 				return nil
@@ -589,7 +589,7 @@ func TestSyncCalendarPreservesAdjustaCandidateSyncSetting(t *testing.T) {
 					{
 						CalendarID:        candidateCalendarID,
 						GoogleCalendarID:  "managed-candidate",
-						Role:              domainvalue.UserCalendarRoleAdjustaCandidate,
+						Role:              value.UserCalendarRoleAdjustaCandidate,
 						SyncProposedDates: false,
 					},
 				}, nil

@@ -3,7 +3,7 @@ package queryparser
 import (
 	"fmt"
 
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
@@ -67,20 +67,20 @@ func (qp *QueryParser) ParseSearchEventQuery() (*usecaseEvents.SearchDraftQuery,
 	return &options, nil
 }
 
-func (qp *QueryParser) vaildateStatus(status *string) (*domainvalue.EventStatus, error) {
+func (qp *QueryParser) vaildateStatus(status *string) (*value.EventStatus, error) {
 	if status == nil {
 		return nil, nil
 	}
 
-	var result domainvalue.EventStatus
+	var result value.EventStatus
 
 	switch *status {
 	case "active", "pending":
-		result = domainvalue.StatusActive
+		result = value.StatusActive
 	case "confirmed":
-		result = domainvalue.StatusConfirmed
+		result = value.StatusConfirmed
 	case "cancelled":
-		result = domainvalue.StatusCancelled
+		result = value.StatusCancelled
 	default:
 		return nil, fmt.Errorf("invalid status: %s", *status)
 	}

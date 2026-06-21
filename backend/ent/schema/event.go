@@ -8,14 +8,14 @@ import (
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 const (
-	StatusDraft     = domainvalue.StatusDraft
-	StatusActive    = domainvalue.StatusActive
-	StatusConfirmed = domainvalue.StatusConfirmed
-	StatusCancelled = domainvalue.StatusCancelled
+	StatusDraft     = value.StatusDraft
+	StatusActive    = value.StatusActive
+	StatusConfirmed = value.StatusConfirmed
+	StatusCancelled = value.StatusCancelled
 )
 
 // Event holds the schema definition for the Event entity.
@@ -44,12 +44,12 @@ func (Event) Fields() []ent.Field {
 		field.String("confirmed_google_event_id").Optional().Nillable(),
 		field.Enum("sync_status").
 			Values(
-				string(domainvalue.SyncStatusNotSynced),
-				string(domainvalue.SyncStatusPending),
-				string(domainvalue.SyncStatusSynced),
-				string(domainvalue.SyncStatusFailed),
+				string(value.SyncStatusNotSynced),
+				string(value.SyncStatusPending),
+				string(value.SyncStatusSynced),
+				string(value.SyncStatusFailed),
 			).
-			Default(string(domainvalue.SyncStatusNotSynced)),
+			Default(string(value.SyncStatusNotSynced)),
 		field.Time("last_synced_at").Optional().Nillable(),
 		field.Text("last_sync_error").Optional().Nillable(),
 	}

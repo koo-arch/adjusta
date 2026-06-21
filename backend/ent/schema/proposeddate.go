@@ -13,7 +13,7 @@ import (
 	gen "github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/ent/hook"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
-	"github.com/koo-arch/adjusta-backend/internal/domainvalue"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
 // ProposedDate holds the schema definition for the ProposedDate entity.
@@ -32,20 +32,20 @@ func (ProposedDate) Fields() []ent.Field {
 		field.Int("priority").Default(0),
 		field.Enum("status").
 			Values(
-				string(domainvalue.ProposedDateStatusActive),
-				string(domainvalue.ProposedDateStatusConfirmed),
-				string(domainvalue.ProposedDateStatusNotSelected),
-				string(domainvalue.ProposedDateStatusCancelled),
+				string(value.ProposedDateStatusActive),
+				string(value.ProposedDateStatusConfirmed),
+				string(value.ProposedDateStatusNotSelected),
+				string(value.ProposedDateStatusCancelled),
 			).
-			Default(string(domainvalue.ProposedDateStatusActive)),
+			Default(string(value.ProposedDateStatusActive)),
 		field.Enum("sync_status").
 			Values(
-				string(domainvalue.SyncStatusNotSynced),
-				string(domainvalue.SyncStatusPending),
-				string(domainvalue.SyncStatusSynced),
-				string(domainvalue.SyncStatusFailed),
+				string(value.SyncStatusNotSynced),
+				string(value.SyncStatusPending),
+				string(value.SyncStatusSynced),
+				string(value.SyncStatusFailed),
 			).
-			Default(string(domainvalue.SyncStatusNotSynced)),
+			Default(string(value.SyncStatusNotSynced)),
 		field.Time("last_synced_at").Optional().Nillable(),
 		field.Text("last_sync_error").Optional().Nillable(),
 	}
