@@ -1,13 +1,13 @@
 package googlecalendar
 
 import (
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/googleapierror"
 	"golang.org/x/oauth2"
 )
 
-func toOAuth2Token(token *appmodel.GoogleAuthToken) *oauth2.Token {
+func toOAuth2Token(token *google.AuthToken) *oauth2.Token {
 	if token == nil {
 		return nil
 	}

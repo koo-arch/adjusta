@@ -4,22 +4,22 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 )
 
-type GoogleProfile = appmodel.GoogleUserProfile
+type GoogleProfile = google.UserProfile
 
 type GoogleTokenProvider interface {
-	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
+	GetToken(ctx context.Context, userID uuid.UUID) (*google.AuthToken, error)
 }
 
 type UserInfoFetcher interface {
-	FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
+	FetchGoogleUserInfo(ctx context.Context, token *google.AuthToken) (*google.UserProfile, error)
 }
 
-type UserInfoFetcherFunc func(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error)
+type UserInfoFetcherFunc func(ctx context.Context, token *google.AuthToken) (*google.UserProfile, error)
 
-func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+func (f UserInfoFetcherFunc) FetchGoogleUserInfo(ctx context.Context, token *google.AuthToken) (*google.UserProfile, error) {
 	return f(ctx, token)
 }
 

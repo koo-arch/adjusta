@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 	"golang.org/x/oauth2"
 )
@@ -23,7 +23,7 @@ func NewTokenManager(accountRepo repoAccount.AccountRepository) *TokenManager {
 	}
 }
 
-func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error) {
+func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*google.AuthToken, error) {
 	entAccount, err := tm.accountRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get account by user id: %v", err)
@@ -73,8 +73,8 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*appmod
 	return buildGoogleAuthToken(refreshedToken), nil
 }
 
-func buildGoogleAuthToken(token *oauth2.Token) *appmodel.GoogleAuthToken {
-	return &appmodel.GoogleAuthToken{
+func buildGoogleAuthToken(token *oauth2.Token) *google.AuthToken {
+	return &google.AuthToken{
 		AccessToken:  token.AccessToken,
 		TokenType:    token.TokenType,
 		RefreshToken: token.RefreshToken,

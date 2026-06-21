@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	"golang.org/x/oauth2"
 )
@@ -27,7 +27,7 @@ func NewGoogleUserInfoFetcher() *GoogleUserInfoFetcher {
 	return &GoogleUserInfoFetcher{}
 }
 
-func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *google.AuthToken) (*google.UserProfile, error) {
 	client := infraGoogleOAuth.GetConfig().Client(ctx, &oauth2.Token{
 		AccessToken:  token.AccessToken,
 		TokenType:    token.TokenType,
@@ -56,7 +56,7 @@ func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
-	return &appmodel.GoogleUserProfile{
+	return &google.UserProfile{
 		GoogleID: userInfo.GoogleID,
 		Email:    userInfo.Email,
 		Name:     userInfo.Name,

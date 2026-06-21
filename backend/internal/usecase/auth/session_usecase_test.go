@@ -6,17 +6,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 )
 
 type fakeSessionAuthenticator struct {
-	signInWithGoogleFn func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error)
+	signInWithGoogleFn func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error)
 	deleteSessionFn    func(ctx context.Context, sessionToken string) error
 }
 
-func (f *fakeSessionAuthenticator) SignInWithGoogle(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
+func (f *fakeSessionAuthenticator) SignInWithGoogle(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 	return f.signInWithGoogleFn(ctx, userInfo, oauthToken)
 }
 
@@ -29,13 +29,13 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 
 	ctx := context.Background()
 	userID := uuid.New()
-	profile := &appmodel.GoogleUserProfile{
+	profile := &google.UserProfile{
 		GoogleID: "google-id",
 		Email:    "user@example.com",
 		Name:     "Adjusta User",
 		Picture:  "https://example.com/avatar.png",
 	}
-	token := &appmodel.GoogleAuthToken{
+	token := &google.AuthToken{
 		AccessToken:  "access-token",
 		TokenType:    "Bearer",
 		RefreshToken: "refresh-token",
@@ -43,12 +43,12 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	}
 
 	var exchangedCode string
-	var fetchedToken *appmodel.GoogleAuthToken
-	var signedInProfile *appmodel.GoogleUserProfile
+	var fetchedToken *google.AuthToken
+	var signedInProfile *google.UserProfile
 
 	usecase := NewSessionUsecase(
 		&fakeSessionAuthenticator{
-			signInWithGoogleFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
+			signInWithGoogleFn: func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 				signedInProfile = userInfo
 				if oauthToken != token {
 					t.Fatalf("unexpected oauth token: %#v", oauthToken)
@@ -74,12 +74,12 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 				t.Fatalf("auth code url should not be called")
 				return ""
 			},
-			ExchangeFn: func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+			ExchangeFn: func(ctx context.Context, code string) (*google.AuthToken, error) {
 				exchangedCode = code
 				return token, nil
 			},
 		},
-		UserInfoFetcherFunc(func(ctx context.Context, gotToken *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+		UserInfoFetcherFunc(func(ctx context.Context, gotToken *google.AuthToken) (*google.UserProfile, error) {
 			fetchedToken = gotToken
 			return profile, nil
 		}),
@@ -108,7 +108,7 @@ func TestSessionUsecaseGoogleLoginURL(t *testing.T) {
 
 	usecase := NewSessionUsecase(
 		&fakeSessionAuthenticator{
-			signInWithGoogleFn: func(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
+			signInWithGoogleFn: func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 				t.Fatalf("sign in should not be called")
 				return nil, nil, nil
 			},
@@ -121,12 +121,12 @@ func TestSessionUsecaseGoogleLoginURL(t *testing.T) {
 			AuthCodeURLFn: func(state string) string {
 				return "https://example.com/oauth?state=" + state
 			},
-			ExchangeFn: func(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+			ExchangeFn: func(ctx context.Context, code string) (*google.AuthToken, error) {
 				t.Fatalf("exchange should not be called")
 				return nil, nil
 			},
 		},
-		UserInfoFetcherFunc(func(ctx context.Context, token *appmodel.GoogleAuthToken) (*appmodel.GoogleUserProfile, error) {
+		UserInfoFetcherFunc(func(ctx context.Context, token *google.AuthToken) (*google.UserProfile, error) {
 			t.Fatalf("fetch user info should not be called")
 			return nil, nil
 		}),

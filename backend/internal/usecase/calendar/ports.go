@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 )
 
 type GoogleTokenProvider interface {
-	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
+	GetToken(ctx context.Context, userID uuid.UUID) (*google.AuthToken, error)
 }
 
 type CalendarService interface {
@@ -17,12 +17,12 @@ type CalendarService interface {
 }
 
 type CalendarServiceFactory interface {
-	New(ctx context.Context, token *appmodel.GoogleAuthToken) (CalendarService, error)
+	New(ctx context.Context, token *google.AuthToken) (CalendarService, error)
 }
 
-type CalendarServiceFactoryFunc func(ctx context.Context, token *appmodel.GoogleAuthToken) (CalendarService, error)
+type CalendarServiceFactoryFunc func(ctx context.Context, token *google.AuthToken) (CalendarService, error)
 
-func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *appmodel.GoogleAuthToken) (CalendarService, error) {
+func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *google.AuthToken) (CalendarService, error) {
 	return f(ctx, token)
 }
 

@@ -5,9 +5,9 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
@@ -25,7 +25,7 @@ const (
 	signInModeUpdateUserAndAccount
 )
 
-func (am *AuthService) resolveSignInPlan(ctx context.Context, userInfo *appmodel.GoogleUserProfile) (*signInPlan, error) {
+func (am *AuthService) resolveSignInPlan(ctx context.Context, userInfo *google.UserProfile) (*signInPlan, error) {
 	u, err := am.repos.User.FindByEmail(ctx, userInfo.Email)
 	if err != nil {
 		log.Printf("failed to get user by email: %v", err)
@@ -54,7 +54,7 @@ func (am *AuthService) resolveSignInPlan(ctx context.Context, userInfo *appmodel
 	}, nil
 }
 
-func (am *AuthService) persistSignIn(ctx context.Context, repos AuthTxRepositories, plan *signInPlan, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error) {
+func (am *AuthService) persistSignIn(ctx context.Context, repos AuthTxRepositories, plan *signInPlan, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoUser.User, error) {
 	switch plan.mode {
 	case signInModeCreateUserAndAccount:
 		u, err := repos.User.Create(ctx, userInfo.Email, buildUserMutationOptions(userInfo))

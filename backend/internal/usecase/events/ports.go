@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 )
 
 type GoogleTokenProvider interface {
-	GetToken(ctx context.Context, userID uuid.UUID) (*appmodel.GoogleAuthToken, error)
+	GetToken(ctx context.Context, userID uuid.UUID) (*google.AuthToken, error)
 }
 
 type EventTransaction interface {

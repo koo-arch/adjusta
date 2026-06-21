@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
@@ -27,7 +27,7 @@ func NewAuthService(repos AuthRepositories, tx SignInTransaction, sessionLifetim
 	}
 }
 
-func (am *AuthService) SignInWithGoogle(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoSession.Session, *repoUser.User, error) {
+func (am *AuthService) SignInWithGoogle(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 	plan, err := am.resolveSignInPlan(ctx, userInfo)
 	if err != nil {
 		return nil, nil, err
@@ -63,7 +63,7 @@ func (am *AuthService) SignInWithGoogle(ctx context.Context, userInfo *appmodel.
 	return storedSession, u, nil
 }
 
-func (am *AuthService) ProcessUserSignIn(ctx context.Context, userInfo *appmodel.GoogleUserProfile, oauthToken *appmodel.GoogleAuthToken) (*repoUser.User, error) {
+func (am *AuthService) ProcessUserSignIn(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoUser.User, error) {
 	plan, err := am.resolveSignInPlan(ctx, userInfo)
 	if err != nil {
 		return nil, err

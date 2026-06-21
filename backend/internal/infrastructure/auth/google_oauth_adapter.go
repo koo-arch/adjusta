@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	"golang.org/x/oauth2"
 )
@@ -18,13 +18,13 @@ func (g *GoogleOAuthGateway) AuthCodeURL(state string) string {
 	return infraGoogleOAuth.GetConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
 
-func (g *GoogleOAuthGateway) Exchange(ctx context.Context, code string) (*appmodel.GoogleAuthToken, error) {
+func (g *GoogleOAuthGateway) Exchange(ctx context.Context, code string) (*google.AuthToken, error) {
 	token, err := infraGoogleOAuth.GetConfig().Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
 
-	return &appmodel.GoogleAuthToken{
+	return &google.AuthToken{
 		AccessToken:  token.AccessToken,
 		TokenType:    token.TokenType,
 		RefreshToken: token.RefreshToken,

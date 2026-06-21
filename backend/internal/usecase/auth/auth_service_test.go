@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
@@ -190,13 +190,13 @@ func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
 	userID := uuid.New()
 	scope := "openid email profile"
 	expiry := time.Now().Add(time.Hour).UTC()
-	profile := &appmodel.GoogleUserProfile{
+	profile := &google.UserProfile{
 		GoogleID: "google-user-id",
 		Email:    "user@example.com",
 		Name:     "Adjusta User",
 		Picture:  "https://example.com/avatar.png",
 	}
-	token := &appmodel.GoogleAuthToken{
+	token := &google.AuthToken{
 		AccessToken:  "access-token",
 		TokenType:    "Bearer",
 		RefreshToken: "refresh-token",
@@ -296,13 +296,13 @@ func TestAuthServiceSignInWithGoogleCreatesSessionInTransaction(t *testing.T) {
 
 	ctx := context.Background()
 	userID := uuid.New()
-	profile := &appmodel.GoogleUserProfile{
+	profile := &google.UserProfile{
 		GoogleID: "google-user-id",
 		Email:    "user@example.com",
 		Name:     "Adjusta User",
 		Picture:  "https://example.com/avatar.png",
 	}
-	token := &appmodel.GoogleAuthToken{
+	token := &google.AuthToken{
 		AccessToken:  "access-token",
 		TokenType:    "Bearer",
 		RefreshToken: "refresh-token",

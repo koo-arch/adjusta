@@ -1,8 +1,8 @@
-package appmodel
+package google
 
 import "time"
 
-type GoogleAuthToken struct {
+type AuthToken struct {
 	AccessToken  string
 	TokenType    string
 	RefreshToken string
@@ -10,15 +10,9 @@ type GoogleAuthToken struct {
 	Scope        *string
 }
 
-type GoogleUserProfile struct {
+type UserProfile struct {
 	GoogleID string `json:"sub"`
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Picture  string `json:"picture"`
-}
-
-type GoogleCalendarList struct {
-	CalendarID string `json:"calendar_id"`
-	Summary    string `json:"summary"`
-	Primary    bool   `json:"primary"`
 }

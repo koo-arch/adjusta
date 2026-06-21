@@ -3,7 +3,7 @@ package googlecalendar
 import (
 	"context"
 
-	"github.com/koo-arch/adjusta-backend/internal/appmodel"
+	"github.com/koo-arch/adjusta-backend/internal/google"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 )
 
@@ -17,7 +17,7 @@ func NewCalendarServiceFactory() usecaseCalendar.CalendarServiceFactory {
 	return &calendarServiceFactory{}
 }
 
-func (f *calendarServiceFactory) New(ctx context.Context, token *appmodel.GoogleAuthToken) (usecaseCalendar.CalendarService, error) {
+func (f *calendarServiceFactory) New(ctx context.Context, token *google.AuthToken) (usecaseCalendar.CalendarService, error) {
 	service, err := NewClient(ctx, toOAuth2Token(token))
 	if err != nil {
 		return nil, normalizeGoogleAPIError(err)
