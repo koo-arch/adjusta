@@ -3,10 +3,9 @@ package middlewares
 import (
 	"log"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/api/respond"
-	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
+	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 )
 
 type AuthMiddleware struct {
@@ -19,8 +18,7 @@ func NewAuthMiddleware(middleware *Middleware) *AuthMiddleware {
 
 func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		sessionToken, ok := session.Get(infraCookie.SessionTokenKey).(string)
+		sessionToken, ok := sessionctx.SessionToken(c)
 		if !ok || sessionToken == "" {
 			am.clearSession(c)
 			respond.Unauthorized(c, "認証情報がありません")
@@ -40,16 +38,13 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 
 		c.Set("user_id", authenticatedUser.ID)
 		c.Set("email", authenticatedUser.Email)
-		c.Set(infraCookie.SessionTokenKey, sessionToken)
+		sessionctx.PutAuthenticatedSessionToken(c, sessionToken)
 		c.Next()
 	}
 }
 
 func (am *AuthMiddleware) clearSession(c *gin.Context) {
-	session := sessions.Default(c)
-	session.Clear()
-	if err := session.Save(); err != nil {
+	if err := sessionctx.Clear(c); err != nil {
 		log.Printf("failed to clear session cookie: %v", err)
 	}
-	infraCookie.DeleteCookie(c, infraCookie.SessionCookieName)
 }

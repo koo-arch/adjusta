@@ -4,12 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/api/respond"
+	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
-	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
 )
 
 type OauthHandler struct {
@@ -21,10 +19,8 @@ func NewOauthHandler(handler *Handler) *OauthHandler {
 }
 
 func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
-	session := sessions.Default(c)
-	state := uuid.NewString()
-	session.Set(infraCookie.OAuthStateKey, state)
-	if err := session.Save(); err != nil {
+	state, err := sessionctx.NewOAuthState(c)
+	if err != nil {
 		log.Printf("failed to save oauth state: %v", err)
 		respond.Internal(c, "認証状態の保存に失敗しました")
 		return
@@ -35,8 +31,7 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 }
 
 func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
-	session := sessions.Default(c)
-	sessionToken, _ := session.Get(infraCookie.SessionTokenKey).(string)
+	sessionToken, _ := sessionctx.SessionToken(c)
 
 	authSessionUsecase := oh.handler.Server.AuthSessionUsecase
 	if err := authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
@@ -44,21 +39,17 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 		return
 	}
 
-	session.Clear()
-	if err := session.Save(); err != nil {
+	if err := sessionctx.Clear(c); err != nil {
 		log.Printf("failed to save cleared session: %v", err)
 		respond.Internal(c, "セッションの保存に失敗しました")
 		return
 	}
-
-	infraCookie.DeleteCookie(c, infraCookie.SessionCookieName)
 
 	respond.OKMessage(c, "logged out")
 }
 
 func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
 		state := c.Query("state")
 		code := c.Query("code")
 		if code == "" {
@@ -67,7 +58,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		expectedState, ok := session.Get(infraCookie.OAuthStateKey).(string)
+		expectedState, ok := sessionctx.OAuthState(c)
 		if !ok || expectedState == "" || state != expectedState {
 			log.Printf("invalid oauth state")
 			respond.BadRequest(c, "stateが不正です")
@@ -83,9 +74,8 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		session.Delete(infraCookie.OAuthStateKey)
-		session.Set(infraCookie.SessionTokenKey, signInResult.SessionToken)
-		if err := session.Save(); err != nil {
+		sessionctx.DeleteOAuthState(c)
+		if err := sessionctx.SetSessionToken(c, signInResult.SessionToken); err != nil {
 			log.Printf("failed to save session token for account: %s, error: %v", signInResult.UserEmail, err)
 			respond.Internal(c, "セッションの保存に失敗しました")
 			return
