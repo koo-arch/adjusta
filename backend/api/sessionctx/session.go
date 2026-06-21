@@ -1,6 +1,8 @@
 package sessionctx
 
 import (
+	"net/http"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -53,6 +55,6 @@ func Clear(c *gin.Context) error {
 	if err := session.Save(); err != nil {
 		return err
 	}
-	infraCookie.DeleteCookie(c, infraCookie.SessionCookieName)
+	http.SetCookie(c.Writer, infraCookie.ExpiredCookie(infraCookie.SessionCookieName))
 	return nil
 }

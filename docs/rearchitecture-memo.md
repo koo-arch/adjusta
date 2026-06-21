@@ -259,6 +259,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - auth usecase も `SignInReader` / `SignInStore` / `SessionStore` を廃止し、domain repository bundle と transaction adapter を直接扱う形へ寄せた
 - auth usecase の `service_ports.go` を廃止し、repository bundle、transaction port、OAuth port、output、sign-in plan / mutation builder を役割別ファイルへ分けた
 - OAuth handler / auth middleware / session middleware の session cookie 操作を `api/sessionctx` に集約し、HTTP 境界での session 操作の重複を削減した
+- `internal/infrastructure/cookie` から Gin 依存を外し、cookie の HTTP response 書き込みは `api/sessionctx` 側で扱う形にした
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた

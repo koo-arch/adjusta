@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
@@ -34,22 +33,7 @@ func DefaultCookieOptions() sessions.Options {
 	}
 }
 
-func SetCookie(c *gin.Context, name, value string, maxAge int) {
-	opt := DefaultCookieOptions()
-	cookie := &http.Cookie{
-		Name:     name,
-		Value:    value,
-		MaxAge:   opt.MaxAge,
-		Path:     opt.Path,
-		Domain:   opt.Domain,
-		HttpOnly: opt.HttpOnly,
-		Secure:   opt.Secure,
-		SameSite: opt.SameSite,
-	}
-	http.SetCookie(c.Writer, cookie)
-}
-
-func DeleteCookie(c *gin.Context, name string) {
+func ExpiredCookie(name string) *http.Cookie {
 	domain := configs.GetEnv("DOMAIN")
 	secure := configs.GetEnv("GO_ENV") != "development"
 
@@ -57,7 +41,7 @@ func DeleteCookie(c *gin.Context, name string) {
 	if secure {
 		sameSite = http.SameSiteNoneMode
 	}
-	cookie := &http.Cookie{
+	return &http.Cookie{
 		Name:     name,
 		Value:    "",
 		MaxAge:   -1,
@@ -67,5 +51,4 @@ func DeleteCookie(c *gin.Context, name string) {
 		Secure:   secure,
 		SameSite: sameSite,
 	}
-	http.SetCookie(c.Writer, cookie)
 }
