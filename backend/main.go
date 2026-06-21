@@ -64,9 +64,12 @@ func main() {
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
 	sessionLifetime := time.Duration(infraCookie.DefaultCookieOptions().MaxAge) * time.Second
 	authService := usecaseAuth.NewAuthService(
-		infraAuth.NewAuthReader(repos.User, repos.Account),
+		usecaseAuth.AuthRepositories{
+			User:    repos.User,
+			Account: repos.Account,
+			Session: repos.Session,
+		},
 		infraAuth.NewAuthTransaction(uow),
-		infraAuth.NewAuthSessionStore(repos.Session),
 		sessionLifetime,
 	)
 	googleTokenManager := infraGoogleOAuth.NewTokenManager(repos.Account)

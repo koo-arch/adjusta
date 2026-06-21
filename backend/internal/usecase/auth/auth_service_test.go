@@ -56,13 +56,13 @@ func (f *fakeSignInStore) CreateSession(ctx context.Context, userID uuid.UUID, s
 }
 
 type fakeSignInTransaction struct {
-	store  SignInStore
+	store  *fakeSignInStore
 	called bool
 }
 
-func (f *fakeSignInTransaction) Do(ctx context.Context, fn func(store SignInStore) error) error {
+func (f *fakeSignInTransaction) Do(ctx context.Context, fn func(repos AuthTxRepositories) error) error {
 	f.called = true
-	return fn(f.store)
+	return fn(fakeAuthTxRepositories(f.store))
 }
 
 type fakeSessionStore struct {
@@ -86,6 +86,101 @@ func (f *fakeSessionStore) UpdateSessionExpiry(ctx context.Context, sessionID uu
 
 func (f *fakeSessionStore) DeleteSessionByToken(ctx context.Context, sessionToken string) error {
 	return f.deleteSessionByTokenFn(ctx, sessionToken)
+}
+
+func fakeAuthRepositories(reader *fakeSignInReader, sessions *fakeSessionStore) AuthRepositories {
+	return AuthRepositories{
+		User:    &fakeAuthUserRepository{reader: reader},
+		Account: &fakeAuthAccountRepository{reader: reader},
+		Session: &fakeAuthSessionRepository{sessions: sessions},
+	}
+}
+
+func fakeAuthTxRepositories(store *fakeSignInStore) AuthTxRepositories {
+	return AuthTxRepositories{
+		User:    &fakeAuthUserRepository{store: store},
+		Account: &fakeAuthAccountRepository{store: store},
+		Session: &fakeAuthSessionRepository{store: store},
+	}
+}
+
+type fakeAuthUserRepository struct {
+	reader *fakeSignInReader
+	store  *fakeSignInStore
+}
+
+func (r *fakeAuthUserRepository) Read(ctx context.Context, id uuid.UUID) (*repoUser.User, error) {
+	return nil, nil
+}
+
+func (r *fakeAuthUserRepository) FindByEmail(ctx context.Context, email string) (*repoUser.User, error) {
+	return r.reader.findUserByEmailFn(ctx, email)
+}
+
+func (r *fakeAuthUserRepository) Create(ctx context.Context, email string, opt repoUser.UserMutationOptions) (*repoUser.User, error) {
+	return r.store.createUserFn(ctx, email, opt)
+}
+
+func (r *fakeAuthUserRepository) Update(ctx context.Context, id uuid.UUID, opt repoUser.UserMutationOptions) (*repoUser.User, error) {
+	return r.store.updateUserFn(ctx, id, opt)
+}
+
+func (r *fakeAuthUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
+func (r *fakeAuthUserRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
+func (r *fakeAuthUserRepository) Restore(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
+type fakeAuthAccountRepository struct {
+	reader *fakeSignInReader
+	store  *fakeSignInStore
+}
+
+func (r *fakeAuthAccountRepository) Read(ctx context.Context, id uuid.UUID) (*repoAccount.Account, error) {
+	return nil, nil
+}
+
+func (r *fakeAuthAccountRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {
+	return r.reader.findAccountByUserIDFn(ctx, userID)
+}
+
+func (r *fakeAuthAccountRepository) Create(ctx context.Context, userID uuid.UUID, opt repoAccount.AccountMutationOptions) (*repoAccount.Account, error) {
+	return r.store.createAccountFn(ctx, userID, opt)
+}
+
+func (r *fakeAuthAccountRepository) Update(ctx context.Context, id uuid.UUID, opt repoAccount.AccountMutationOptions) (*repoAccount.Account, error) {
+	return r.store.updateAccountFn(ctx, id, opt)
+}
+
+type fakeAuthSessionRepository struct {
+	store    *fakeSignInStore
+	sessions *fakeSessionStore
+}
+
+func (r *fakeAuthSessionRepository) Read(ctx context.Context, id uuid.UUID, opt repoSession.SessionQueryOptions) (*repoSession.Session, error) {
+	return nil, nil
+}
+
+func (r *fakeAuthSessionRepository) FindByToken(ctx context.Context, sessionToken string, opt repoSession.SessionQueryOptions) (*repoSession.Session, error) {
+	return r.sessions.findSessionByTokenFn(ctx, sessionToken, opt.WithUser)
+}
+
+func (r *fakeAuthSessionRepository) Create(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
+	return r.store.createSessionFn(ctx, userID, sessionToken, expiresAt)
+}
+
+func (r *fakeAuthSessionRepository) UpdateExpiry(ctx context.Context, id uuid.UUID, expiresAt time.Time) (*repoSession.Session, error) {
+	return r.sessions.updateSessionExpiryFn(ctx, id, expiresAt)
+}
+
+func (r *fakeAuthSessionRepository) DeleteByToken(ctx context.Context, sessionToken string) error {
+	return r.sessions.deleteSessionByTokenFn(ctx, sessionToken)
 }
 
 func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
@@ -168,18 +263,19 @@ func TestAuthServiceProcessUserSignInCreatesUserWhenUserNotFound(t *testing.T) {
 		},
 	}
 
-	service := NewAuthService(
-		&fakeSignInReader{
-			findUserByEmailFn: func(ctx context.Context, email string) (*repoUser.User, error) {
-				return nil, repoerr.ErrNotFound
-			},
-			findAccountByUserIDFn: func(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {
-				t.Fatalf("find account should not be called when user is missing")
-				return nil, nil
-			},
+	reader := &fakeSignInReader{
+		findUserByEmailFn: func(ctx context.Context, email string) (*repoUser.User, error) {
+			return nil, repoerr.ErrNotFound
 		},
+		findAccountByUserIDFn: func(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {
+			t.Fatalf("find account should not be called when user is missing")
+			return nil, nil
+		},
+	}
+
+	service := NewAuthService(
+		fakeAuthRepositories(reader, &fakeSessionStore{}),
 		tx,
-		&fakeSessionStore{},
 		time.Hour,
 	)
 
@@ -249,18 +345,19 @@ func TestAuthServiceSignInWithGoogleCreatesSessionInTransaction(t *testing.T) {
 		},
 	}
 
-	service := NewAuthService(
-		&fakeSignInReader{
-			findUserByEmailFn: func(ctx context.Context, email string) (*repoUser.User, error) {
-				return nil, repoerr.ErrNotFound
-			},
-			findAccountByUserIDFn: func(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {
-				t.Fatalf("find account should not be called when user is missing")
-				return nil, nil
-			},
+	reader := &fakeSignInReader{
+		findUserByEmailFn: func(ctx context.Context, email string) (*repoUser.User, error) {
+			return nil, repoerr.ErrNotFound
 		},
+		findAccountByUserIDFn: func(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error) {
+			t.Fatalf("find account should not be called when user is missing")
+			return nil, nil
+		},
+	}
+
+	service := NewAuthService(
+		fakeAuthRepositories(reader, &fakeSessionStore{}),
 		tx,
-		&fakeSessionStore{},
 		time.Hour,
 	)
 
@@ -288,36 +385,36 @@ func TestAuthServiceAuthenticateSessionDeletesExpiredSession(t *testing.T) {
 	ctx := context.Background()
 	expiredAt := time.Now().Add(-time.Minute)
 	var deletedToken string
+	sessions := &fakeSessionStore{
+		createSessionFn: func(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
+			t.Fatalf("create session should not be called")
+			return nil, nil
+		},
+		findSessionByTokenFn: func(ctx context.Context, sessionToken string, withUser bool) (*repoSession.Session, error) {
+			return &repoSession.Session{
+				ID:           uuid.New(),
+				UserID:       uuid.New(),
+				SessionToken: sessionToken,
+				ExpiresAt:    expiredAt,
+				User: &repoUser.User{
+					ID:    uuid.New(),
+					Email: "user@example.com",
+				},
+			}, nil
+		},
+		updateSessionExpiryFn: func(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*repoSession.Session, error) {
+			t.Fatalf("update session expiry should not be called for expired session")
+			return nil, nil
+		},
+		deleteSessionByTokenFn: func(ctx context.Context, sessionToken string) error {
+			deletedToken = sessionToken
+			return nil
+		},
+	}
 
 	service := NewAuthService(
+		fakeAuthRepositories(&fakeSignInReader{}, sessions),
 		nil,
-		nil,
-		&fakeSessionStore{
-			createSessionFn: func(ctx context.Context, userID uuid.UUID, sessionToken string, expiresAt time.Time) (*repoSession.Session, error) {
-				t.Fatalf("create session should not be called")
-				return nil, nil
-			},
-			findSessionByTokenFn: func(ctx context.Context, sessionToken string, withUser bool) (*repoSession.Session, error) {
-				return &repoSession.Session{
-					ID:           uuid.New(),
-					UserID:       uuid.New(),
-					SessionToken: sessionToken,
-					ExpiresAt:    expiredAt,
-					User: &repoUser.User{
-						ID:    uuid.New(),
-						Email: "user@example.com",
-					},
-				}, nil
-			},
-			updateSessionExpiryFn: func(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (*repoSession.Session, error) {
-				t.Fatalf("update session expiry should not be called for expired session")
-				return nil, nil
-			},
-			deleteSessionByTokenFn: func(ctx context.Context, sessionToken string) error {
-				deletedToken = sessionToken
-				return nil
-			},
-		},
 		time.Hour,
 	)
 
