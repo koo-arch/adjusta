@@ -11,10 +11,10 @@ import (
 )
 
 type OauthHandler struct {
-	authSessionUsecase AuthSessionService
+	authSessionUsecase AuthSessionUsecase
 }
 
-func NewOauthHandler(authSessionUsecase AuthSessionService) *OauthHandler {
+func NewOauthHandler(authSessionUsecase AuthSessionUsecase) *OauthHandler {
 	return &OauthHandler{authSessionUsecase: authSessionUsecase}
 }
 

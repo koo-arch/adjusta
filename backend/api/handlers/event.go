@@ -15,10 +15,10 @@ import (
 )
 
 type EventHandler struct {
-	eventUsecase EventService
+	eventUsecase EventUsecase
 }
 
-func NewEventHandler(eventUsecase EventService) *EventHandler {
+func NewEventHandler(eventUsecase EventUsecase) *EventHandler {
 	return &EventHandler{eventUsecase: eventUsecase}
 }
 

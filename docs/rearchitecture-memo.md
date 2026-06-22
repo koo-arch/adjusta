@@ -268,6 +268,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - account / user / OAuth / event handler は `api.Server` 経由ではなく必要な usecase port を直接受け取る形へ寄せ始め、旧 `Handler` wrapper を削除した
 - `api.Server` と root `api` port package を廃止し、handler / middleware はそれぞれの package 内 port と専用 dependencies を使う形へ分けた
 - middleware 共通の依存束ねを廃止し、auth / calendar / session middleware が必要な依存だけを直接受け取る形へ分けた
+- handler / middleware から呼び出す application 入口の port 命名は `XxxService` ではなく `XxxUsecase` に寄せた
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた

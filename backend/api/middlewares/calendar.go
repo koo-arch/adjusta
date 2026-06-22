@@ -13,13 +13,13 @@ import (
 
 type CalendarMiddleware struct {
 	cache               *infraCache.Cache
-	calendarSyncService CalendarSyncService
+	calendarSyncUsecase CalendarSyncUsecase
 }
 
-func NewCalendarMiddleware(cache *infraCache.Cache, calendarSyncService CalendarSyncService) *CalendarMiddleware {
+func NewCalendarMiddleware(cache *infraCache.Cache, calendarSyncUsecase CalendarSyncUsecase) *CalendarMiddleware {
 	return &CalendarMiddleware{
 		cache:               cache,
-		calendarSyncService: calendarSyncService,
+		calendarSyncUsecase: calendarSyncUsecase,
 	}
 }
 
@@ -44,7 +44,7 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 			return
 		}
 
-		calendarUsecase := cm.calendarSyncService
+		calendarUsecase := cm.calendarSyncUsecase
 		calendarList, err := calendarUsecase.SyncGoogleCalendars(ctx, userid, email)
 		if err != nil {
 			log.Printf("failed to register calendar list for account: %s, error: %v", email, err)

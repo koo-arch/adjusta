@@ -9,10 +9,10 @@ import (
 )
 
 type UserHandler struct {
-	accountProfileUsecase AccountProfileService
+	accountProfileUsecase AccountProfileUsecase
 }
 
-func NewUserHandler(accountProfileUsecase AccountProfileService) *UserHandler {
+func NewUserHandler(accountProfileUsecase AccountProfileUsecase) *UserHandler {
 	return &UserHandler{accountProfileUsecase: accountProfileUsecase}
 }
 

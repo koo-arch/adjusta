@@ -9,17 +9,17 @@ import (
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
-type AccountProfileService interface {
+type AccountProfileUsecase interface {
 	FetchGoogleProfile(ctx context.Context, userID uuid.UUID) (*usecaseAccount.GoogleProfile, error)
 }
 
-type AuthSessionService interface {
+type AuthSessionUsecase interface {
 	GoogleLoginURL(state string) string
 	CompleteGoogleSignIn(ctx context.Context, code string) (*usecaseAuth.GoogleSignInResult, error)
 	Logout(ctx context.Context, sessionToken string) error
 }
 
-type EventService interface {
+type EventUsecase interface {
 	FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseEvents.FetchedGoogleEvent, error)
 	FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseEvents.EventDraftDetailOutput, error)
 	SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query usecaseEvents.SearchDraftQuery) ([]*usecaseEvents.EventDraftDetailOutput, error)
