@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/dto"
 	"github.com/koo-arch/adjusta-backend/api/queryparser"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
@@ -16,10 +15,10 @@ import (
 )
 
 type EventHandler struct {
-	eventUsecase api.EventService
+	eventUsecase EventService
 }
 
-func NewEventHandler(eventUsecase api.EventService) *EventHandler {
+func NewEventHandler(eventUsecase EventService) *EventHandler {
 	return &EventHandler{eventUsecase: eventUsecase}
 }
 

@@ -4,16 +4,15 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 )
 
 type AccountHandler struct {
-	accountProfileUsecase api.AccountProfileService
+	accountProfileUsecase AccountProfileService
 }
 
-func NewAccountHandler(accountProfileUsecase api.AccountProfileService) *AccountHandler {
+func NewAccountHandler(accountProfileUsecase AccountProfileService) *AccountHandler {
 	return &AccountHandler{accountProfileUsecase: accountProfileUsecase}
 }
 

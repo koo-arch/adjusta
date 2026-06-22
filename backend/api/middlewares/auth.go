@@ -11,11 +11,11 @@ import (
 )
 
 type AuthMiddleware struct {
-	middleware *Middleware
+	sessionAuthenticator SessionAuthenticator
 }
 
-func NewAuthMiddleware(middleware *Middleware) *AuthMiddleware {
-	return &AuthMiddleware{middleware: middleware}
+func NewAuthMiddleware(sessionAuthenticator SessionAuthenticator) *AuthMiddleware {
+	return &AuthMiddleware{sessionAuthenticator: sessionAuthenticator}
 }
 
 func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
@@ -28,9 +28,8 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		authenticator := am.middleware.sessionAuthenticator
 
-		authenticatedUser, err := authenticator.AuthenticateSession(ctx, sessionToken)
+		authenticatedUser, err := am.sessionAuthenticator.AuthenticateSession(ctx, sessionToken)
 		if err != nil {
 			log.Printf("failed to authenticate session: %v", err)
 			if internalErrors.IsKind(err, internalErrors.KindUnauthorized) {

@@ -6,12 +6,10 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 )
 
-type SessionMiddleware struct {
-	Middleware *Middleware
-}
+type SessionMiddleware struct{}
 
-func NewSessionMiddleware(middleware *Middleware) *SessionMiddleware {
-	return &SessionMiddleware{Middleware: middleware}
+func NewSessionMiddleware() *SessionMiddleware {
+	return &SessionMiddleware{}
 }
 
 func (sm *SessionMiddleware) SessionRenewal() gin.HandlerFunc {

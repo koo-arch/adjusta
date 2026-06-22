@@ -121,14 +121,9 @@ func main() {
 	oauthHandler := handlers.NewOauthHandler(authSessionUsecase)
 	eventHandler := handlers.NewEventHandler(eventUsecase)
 
-	middleware := middlewares.NewMiddleware(middlewares.Dependencies{
-		Cache:                cacheStore,
-		SessionAuthenticator: authService,
-		CalendarSyncService:  calendarSyncUsecase,
-	})
-	authMiddleware := middlewares.NewAuthMiddleware(middleware)
-	calendarMiddleware := middlewares.NewCalendarMiddleware(middleware)
-	sessionMiddleware := middlewares.NewSessionMiddleware(middleware)
+	authMiddleware := middlewares.NewAuthMiddleware(authService)
+	calendarMiddleware := middlewares.NewCalendarMiddleware(cacheStore, calendarSyncUsecase)
+	sessionMiddleware := middlewares.NewSessionMiddleware()
 
 	// ルートハンドラの定義
 	router.GET("/auth/google/login", oauthHandler.GoogleLoginHandler)

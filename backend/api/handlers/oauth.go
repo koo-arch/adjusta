@@ -5,17 +5,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
 type OauthHandler struct {
-	authSessionUsecase api.AuthSessionService
+	authSessionUsecase AuthSessionService
 }
 
-func NewOauthHandler(authSessionUsecase api.AuthSessionService) *OauthHandler {
+func NewOauthHandler(authSessionUsecase AuthSessionService) *OauthHandler {
 	return &OauthHandler{authSessionUsecase: authSessionUsecase}
 }
 
