@@ -4,16 +4,17 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 )
 
 type AccountHandler struct {
-	handler *Handler
+	accountProfileUsecase api.AccountProfileService
 }
 
-func NewAccountHandler(handler *Handler) *AccountHandler {
-	return &AccountHandler{handler: handler}
+func NewAccountHandler(accountProfileUsecase api.AccountProfileService) *AccountHandler {
+	return &AccountHandler{accountProfileUsecase: accountProfileUsecase}
 }
 
 func (ah *AccountHandler) FetchAccountsHandler() gin.HandlerFunc {
@@ -26,8 +27,7 @@ func (ah *AccountHandler) FetchAccountsHandler() gin.HandlerFunc {
 			return
 		}
 
-		accountProfileUsecase := ah.handler.Server.AccountProfileUsecase
-		userInfo, err := accountProfileUsecase.FetchGoogleProfile(ctx, userid)
+		userInfo, err := ah.accountProfileUsecase.FetchGoogleProfile(ctx, userid)
 		if err != nil {
 			log.Printf("failed to fetch user info for account: %s, %v", email, err)
 			respond.Error(c, err, "ユーザー情報取得に失敗しました")

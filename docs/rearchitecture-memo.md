@@ -217,7 +217,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 | 層 | 現在の主な配置 | 到達度の目安 | できていること | 主な残課題 |
 |---|---|---:|---|---|
-| interface | `backend/api/handlers` `backend/api/dto` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 87% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている。events の request DTO は `api/dto` へ寄せ始めた | `api/server.go` は interface と composition root の境界にある。API response DTO と usecase output の分離は未完 |
+| interface | `backend/api/handlers` `backend/api/dto` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 87% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている。events の request DTO は `api/dto` へ寄せ始め、`api.Server` は廃止した | `api/ports.go` の port 定義を handler / middleware の責務に合わせてさらに分割する余地がある。API response DTO と usecase output の分離は未完 |
 | application | `backend/internal/usecase` `backend/internal/google` `backend/internal/errors` | 82% 前後 | usecase ごとの port 分離、transaction orchestration、Google Calendar 連携の orchestration、イベント詳細アクセス時の候補予定再同期が進んでいる。events port では候補日程作成時の selected date DTO を usecase 側へ切り出し始めた | Google 連携の共通語彙を `internal/google` に寄せ始めたが、usecase 専用 DTO / domain model への分離は継続課題 |
 | domain | `backend/internal/domain` | 78% 前後 | repository interface の移動、priority / confirm ルール抽出、`events.confirmed_google_event_id` 正本化、transaction 技術要素の domain interface からの除去、ProposedDate repository の create/update option 分離、shared value の `domain/value` 配置が進んでいる | 状態遷移や同期方針の一部はまだ usecase 側にある |
 | infrastructure | `backend/internal/infrastructure` `backend/ent` | 85% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる。tx 付き repository の組み立ても infrastructure に集約された | ローカル DB で旧列・旧 index をどう落とすか、migration / drop 方針の整理が残る |
@@ -225,7 +225,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 #### 5.4.2 現在の補助的な位置づけ
 
 - `backend/main.go` は 4 層のいずれかというより composition root として扱う
-- `backend/api/server.go` は interface 層が usecase 群へ依存するための依存束ねとして扱う
+- `backend/api/ports.go` は interface 層が usecase 群へ依存するための port 定義置き場として扱う
 - `backend/internal/google` は Google 連携の共通語彙として扱い、大きくなりすぎる場合は usecase ごとの contract へ分ける
 - Google 連携の実装は `internal/infrastructure/googleoauth` / `internal/infrastructure/googlecalendar` へ寄っている
 - `cookie` `cache` `configs` は `internal/infrastructure` 配下へ移動済みで、命名や責務粒度は継続して整理する
@@ -265,6 +265,8 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - auth middleware の user context 書き込みを `api/requestctx` に寄せ、request context key の直書きを閉じた
 - `internal/appmodel` に残っていた Google token / user profile 型を `internal/google` へ移し、Google 連携の共通語彙として扱う方針へ寄せた
 - shared domain value を `internal/domain/value` へ移し、event / proposed date / sync / user calendar の役割別ファイルへ分けた
+- account / user / OAuth / event handler は `api.Server` 経由ではなく必要な usecase port を直接受け取る形へ寄せ始め、旧 `Handler` wrapper を削除した
+- `api.Server` を廃止し、`api` package は handler / middleware が使う port 定義、middleware は専用 dependencies を受け取る形へ分けた
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた

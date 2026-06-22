@@ -32,7 +32,7 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 		}
 
 		// キャッシュにある場合はそれを使う
-		cache := cm.middleware.Server.Cache
+		cache := cm.middleware.cache
 		cacheKey := fmt.Sprintf("calendars:%s", userid)
 		if cacheCalendar, found := cache.CalendarCache.Get(cacheKey); found {
 			c.Set("calendarList", cacheCalendar)
@@ -41,7 +41,7 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 			return
 		}
 
-		calendarUsecase := cm.middleware.Server.CalendarSyncUsecase
+		calendarUsecase := cm.middleware.calendarSyncService
 		calendarList, err := calendarUsecase.SyncGoogleCalendars(ctx, userid, email)
 		if err != nil {
 			log.Printf("failed to register calendar list for account: %s, error: %v", email, err)

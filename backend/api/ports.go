@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
-	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
@@ -41,33 +40,4 @@ type EventService interface {
 	FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, confirmation usecaseEvents.ConfirmationRequest) error
 	UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq usecaseEvents.DraftUpdateRequest) error
 	DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) error
-}
-
-type Dependencies struct {
-	Cache                 *infraCache.Cache
-	SessionAuthenticator  SessionAuthenticator
-	AccountProfileUsecase AccountProfileService
-	AuthSessionUsecase    AuthSessionService
-	CalendarSyncUsecase   CalendarSyncService
-	EventUsecase          EventService
-}
-
-type Server struct {
-	Cache                 *infraCache.Cache
-	SessionAuthenticator  SessionAuthenticator
-	AccountProfileUsecase AccountProfileService
-	AuthSessionUsecase    AuthSessionService
-	CalendarSyncUsecase   CalendarSyncService
-	EventUsecase          EventService
-}
-
-func NewServer(deps Dependencies) *Server {
-	return &Server{
-		Cache:                 deps.Cache,
-		SessionAuthenticator:  deps.SessionAuthenticator,
-		AccountProfileUsecase: deps.AccountProfileUsecase,
-		AuthSessionUsecase:    deps.AuthSessionUsecase,
-		CalendarSyncUsecase:   deps.CalendarSyncUsecase,
-		EventUsecase:          deps.EventUsecase,
-	}
 }

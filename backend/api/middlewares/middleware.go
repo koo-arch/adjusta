@@ -2,14 +2,25 @@ package middlewares
 
 import (
 	"github.com/koo-arch/adjusta-backend/api"
+	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 )
 
-type Middleware struct {
-	Server *api.Server
+type Dependencies struct {
+	Cache                *infraCache.Cache
+	SessionAuthenticator api.SessionAuthenticator
+	CalendarSyncService  api.CalendarSyncService
 }
 
-func NewMiddleware(server *api.Server) *Middleware {
+type Middleware struct {
+	cache                *infraCache.Cache
+	sessionAuthenticator api.SessionAuthenticator
+	calendarSyncService  api.CalendarSyncService
+}
+
+func NewMiddleware(deps Dependencies) *Middleware {
 	return &Middleware{
-		Server: server,
+		cache:                deps.Cache,
+		sessionAuthenticator: deps.SessionAuthenticator,
+		calendarSyncService:  deps.CalendarSyncService,
 	}
 }

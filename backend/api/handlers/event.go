@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/dto"
 	"github.com/koo-arch/adjusta-backend/api/queryparser"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
@@ -14,12 +15,12 @@ import (
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
-type CalendarHandler struct {
-	handler *Handler
+type EventHandler struct {
+	eventUsecase api.EventService
 }
 
-func NewCalendarHandler(handler *Handler) *CalendarHandler {
-	return &CalendarHandler{handler: handler}
+func NewEventHandler(eventUsecase api.EventService) *EventHandler {
+	return &EventHandler{eventUsecase: eventUsecase}
 }
 
 var extractErrorMessage = "ユーザー情報確認時にエラーが発生しました。"
@@ -201,7 +202,7 @@ func toGoogleEventResponses(events []*usecaseEvents.FetchedGoogleEvent) []*dto.G
 	return responses
 }
 
-func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
+func (eh *EventHandler) FetchEventListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -211,7 +212,7 @@ func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		accountsEvents, err := eventUsecase.FetchAllGoogleEvents(ctx, userid, email)
 		if err, ok := err.(*errors.APIError); ok && err.Kind == errors.KindPartial {
@@ -233,7 +234,7 @@ func (ch *CalendarHandler) FetchEventListHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
+func (eh *EventHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -243,7 +244,7 @@ func (ch *CalendarHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		draftedEvents, err := eventUsecase.FetchAllDraftedEvents(ctx, userid, email)
 		if err != nil {
@@ -256,7 +257,7 @@ func (ch *CalendarHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) SearchEventDraftHandler() gin.HandlerFunc {
+func (eh *EventHandler) SearchEventDraftHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// クエリパラメータの取得
 		queryparser := queryparser.NewQueryParser(c)
@@ -276,7 +277,7 @@ func (ch *CalendarHandler) SearchEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		draftedEvents, err := eventUsecase.SearchDraftedEvents(ctx, userid, email, *query)
 		if err != nil {
@@ -289,7 +290,7 @@ func (ch *CalendarHandler) SearchEventDraftHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
+func (eh *EventHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -299,7 +300,7 @@ func (ch *CalendarHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		daysBefore := 3
 		upcomingEvents, err := eventUsecase.FetchUpcomingEvents(ctx, userid, email, daysBefore)
@@ -313,7 +314,7 @@ func (ch *CalendarHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
+func (eh *EventHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -323,7 +324,7 @@ func (ch *CalendarHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		daysBefore := 3
 		needsActionDrafts, err := eventUsecase.FetchNeedsActionDrafts(ctx, userid, email, daysBefore)
@@ -337,7 +338,7 @@ func (ch *CalendarHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
+func (eh *EventHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -352,7 +353,7 @@ func (ch *CalendarHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		draftedEvent, err := eventUsecase.FetchDraftedEventDetail(ctx, userid, email, eventID)
 		if err != nil {
@@ -365,7 +366,7 @@ func (ch *CalendarHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
+func (eh *EventHandler) CreateEventDraftHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -386,7 +387,7 @@ func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, toDraftCreationRequest(eventDraft))
 		if err != nil {
@@ -399,7 +400,7 @@ func (ch *CalendarHandler) CreateEventDraftHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
+func (eh *EventHandler) EventFinalizeHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -426,7 +427,7 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		confirmation := usecaseEvents.ConfirmationRequest{
 			ID:            confirmEvent.ConfirmDate.ID,
@@ -447,7 +448,7 @@ func (ch *CalendarHandler) EventFinalizeHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
+func (eh *EventHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -473,7 +474,7 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, toDraftUpdateRequest(eventDraft))
 		if err != nil {
@@ -486,7 +487,7 @@ func (ch *CalendarHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 	}
 }
 
-func (ch *CalendarHandler) DeleteEventDraftHandler() gin.HandlerFunc {
+func (eh *EventHandler) DeleteEventDraftHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -501,7 +502,7 @@ func (ch *CalendarHandler) DeleteEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := ch.handler.Server.EventUsecase
+		eventUsecase := eh.eventUsecase
 
 		err = eventUsecase.DeleteDraftedEvents(ctx, userid, email, eventID)
 		if err != nil {

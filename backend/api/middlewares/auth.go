@@ -28,7 +28,7 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		authenticator := am.middleware.Server.SessionAuthenticator
+		authenticator := am.middleware.sessionAuthenticator
 
 		authenticatedUser, err := authenticator.AuthenticateSession(ctx, sessionToken)
 		if err != nil {

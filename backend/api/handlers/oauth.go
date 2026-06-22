@@ -5,17 +5,18 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
 type OauthHandler struct {
-	handler *Handler
+	authSessionUsecase api.AuthSessionService
 }
 
-func NewOauthHandler(handler *Handler) *OauthHandler {
-	return &OauthHandler{handler: handler}
+func NewOauthHandler(authSessionUsecase api.AuthSessionService) *OauthHandler {
+	return &OauthHandler{authSessionUsecase: authSessionUsecase}
 }
 
 func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
@@ -26,15 +27,14 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 		return
 	}
 
-	url := oh.handler.Server.AuthSessionUsecase.GoogleLoginURL(state)
+	url := oh.authSessionUsecase.GoogleLoginURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 	sessionToken, _ := sessionctx.SessionToken(c)
 
-	authSessionUsecase := oh.handler.Server.AuthSessionUsecase
-	if err := authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
+	if err := oh.authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
 		respond.Error(c, err, "セッションの削除に失敗しました")
 		return
 	}
@@ -66,8 +66,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		authSessionUsecase := oh.handler.Server.AuthSessionUsecase
-		signInResult, err := authSessionUsecase.CompleteGoogleSignIn(ctx, code)
+		signInResult, err := oh.authSessionUsecase.CompleteGoogleSignIn(ctx, code)
 		if err != nil {
 			log.Printf("failed to complete google sign in: %v", err)
 			respond.Error(c, err, "ログインに失敗しました")

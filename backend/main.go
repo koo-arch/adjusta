@@ -10,7 +10,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/api"
 	"github.com/koo-arch/adjusta-backend/api/handlers"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
 	"github.com/koo-arch/adjusta-backend/ent"
@@ -99,15 +98,6 @@ func main() {
 		infraGoogleCalendar.NewEventGateway(googleTokenManager, calendarApp),
 	)
 
-	server := api.NewServer(api.Dependencies{
-		Cache:                 cacheStore,
-		SessionAuthenticator:  authService,
-		AccountProfileUsecase: accountProfileUsecase,
-		AuthSessionUsecase:    authSessionUsecase,
-		CalendarSyncUsecase:   calendarSyncUsecase,
-		EventUsecase:          eventUsecase,
-	})
-
 	//Ginフレームワークのデフォルトの設定を使用してルータを作成
 	router := gin.Default()
 
@@ -126,13 +116,16 @@ func main() {
 	store.Options(infraCookie.DefaultCookieOptions())
 	router.Use(sessions.Sessions(infraCookie.SessionCookieName, store))
 
-	handler := handlers.NewHandler(server)
-	accountHandler := handlers.NewAccountHandler(handler)
-	userHandler := handlers.NewUserHandler(handler)
-	oauthHandler := handlers.NewOauthHandler(handler)
-	calendarHandler := handlers.NewCalendarHandler(handler)
+	accountHandler := handlers.NewAccountHandler(accountProfileUsecase)
+	userHandler := handlers.NewUserHandler(accountProfileUsecase)
+	oauthHandler := handlers.NewOauthHandler(authSessionUsecase)
+	eventHandler := handlers.NewEventHandler(eventUsecase)
 
-	middleware := middlewares.NewMiddleware(server)
+	middleware := middlewares.NewMiddleware(middlewares.Dependencies{
+		Cache:                cacheStore,
+		SessionAuthenticator: authService,
+		CalendarSyncService:  calendarSyncUsecase,
+	})
 	authMiddleware := middlewares.NewAuthMiddleware(middleware)
 	calendarMiddleware := middlewares.NewCalendarMiddleware(middleware)
 	sessionMiddleware := middlewares.NewSessionMiddleware(middleware)
@@ -150,18 +143,18 @@ func main() {
 		auth.GET("/account/list", accountHandler.FetchAccountsHandler())
 		calendar := auth.Group("/calendar").Use(calendarMiddleware.SyncGoogleCalendars())
 		{
-			calendar.GET("/list", calendarHandler.FetchEventListHandler())
-			calendar.GET("/event/draft/list", calendarHandler.FetchAllEventDraftListHandler())
-			calendar.GET("/event/draft/:id", calendarHandler.FetchEventDraftDetailHandler())
-			calendar.POST("/event/draft", calendarHandler.CreateEventDraftHandler())
-			calendar.PATCH("/event/confirm/:id", calendarHandler.EventFinalizeHandler())
-			calendar.PUT("/event/draft/:id", calendarHandler.UpdateEventDraftHandler())
-			calendar.DELETE("/event/draft/:id", calendarHandler.DeleteEventDraftHandler())
+			calendar.GET("/list", eventHandler.FetchEventListHandler())
+			calendar.GET("/event/draft/list", eventHandler.FetchAllEventDraftListHandler())
+			calendar.GET("/event/draft/:id", eventHandler.FetchEventDraftDetailHandler())
+			calendar.POST("/event/draft", eventHandler.CreateEventDraftHandler())
+			calendar.PATCH("/event/confirm/:id", eventHandler.EventFinalizeHandler())
+			calendar.PUT("/event/draft/:id", eventHandler.UpdateEventDraftHandler())
+			calendar.DELETE("/event/draft/:id", eventHandler.DeleteEventDraftHandler())
 		}
 
-		auth.GET("/event/draft/search", calendarHandler.SearchEventDraftHandler())
-		auth.GET("/event/confirmed/upcoming", calendarHandler.FetchUpcomingEventsHandler())
-		auth.GET("/event/draft/needs-action", calendarHandler.FetchNeedsActionDraftsHandler())
+		auth.GET("/event/draft/search", eventHandler.SearchEventDraftHandler())
+		auth.GET("/event/confirmed/upcoming", eventHandler.FetchUpcomingEventsHandler())
+		auth.GET("/event/draft/needs-action", eventHandler.FetchNeedsActionDraftsHandler())
 	}
 
 	// サーバー起動
