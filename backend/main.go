@@ -119,7 +119,7 @@ func main() {
 	accountHandler := handlers.NewAccountHandler(accountProfileUsecase)
 	userHandler := handlers.NewUserHandler(accountProfileUsecase)
 	oauthHandler := handlers.NewOauthHandler(authSessionUsecase)
-	eventHandler := handlers.NewEventHandler(eventUsecase)
+	eventHandler := handlers.NewEventHandler(eventUsecase, eventUsecase, eventUsecase)
 
 	authMiddleware := middlewares.NewAuthMiddleware(authService)
 	calendarMiddleware := middlewares.NewCalendarMiddleware(cacheStore, calendarSyncUsecase)

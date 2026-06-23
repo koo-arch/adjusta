@@ -15,11 +15,21 @@ import (
 )
 
 type EventHandler struct {
-	eventUsecase EventUsecase
+	googleEventUsecase  GoogleEventUsecase
+	eventQueryUsecase   EventQueryUsecase
+	eventCommandUsecase EventCommandUsecase
 }
 
-func NewEventHandler(eventUsecase EventUsecase) *EventHandler {
-	return &EventHandler{eventUsecase: eventUsecase}
+func NewEventHandler(
+	googleEventUsecase GoogleEventUsecase,
+	eventQueryUsecase EventQueryUsecase,
+	eventCommandUsecase EventCommandUsecase,
+) *EventHandler {
+	return &EventHandler{
+		googleEventUsecase:  googleEventUsecase,
+		eventQueryUsecase:   eventQueryUsecase,
+		eventCommandUsecase: eventCommandUsecase,
+	}
 }
 
 var extractErrorMessage = "ユーザー情報確認時にエラーが発生しました。"
@@ -211,7 +221,7 @@ func (eh *EventHandler) FetchEventListHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.googleEventUsecase
 
 		accountsEvents, err := eventUsecase.FetchAllGoogleEvents(ctx, userid, email)
 		if err, ok := err.(*errors.APIError); ok && err.Kind == errors.KindPartial {
@@ -243,7 +253,7 @@ func (eh *EventHandler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventQueryUsecase
 
 		draftedEvents, err := eventUsecase.FetchAllDraftedEvents(ctx, userid, email)
 		if err != nil {
@@ -276,7 +286,7 @@ func (eh *EventHandler) SearchEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventQueryUsecase
 
 		draftedEvents, err := eventUsecase.SearchDraftedEvents(ctx, userid, email, *query)
 		if err != nil {
@@ -299,7 +309,7 @@ func (eh *EventHandler) FetchUpcomingEventsHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventQueryUsecase
 
 		daysBefore := 3
 		upcomingEvents, err := eventUsecase.FetchUpcomingEvents(ctx, userid, email, daysBefore)
@@ -323,7 +333,7 @@ func (eh *EventHandler) FetchNeedsActionDraftsHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventQueryUsecase
 
 		daysBefore := 3
 		needsActionDrafts, err := eventUsecase.FetchNeedsActionDrafts(ctx, userid, email, daysBefore)
@@ -352,7 +362,7 @@ func (eh *EventHandler) FetchEventDraftDetailHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventQueryUsecase
 
 		draftedEvent, err := eventUsecase.FetchDraftedEventDetail(ctx, userid, email, eventID)
 		if err != nil {
@@ -386,7 +396,7 @@ func (eh *EventHandler) CreateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventCommandUsecase
 
 		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, toDraftCreationRequest(eventDraft))
 		if err != nil {
@@ -426,7 +436,7 @@ func (eh *EventHandler) EventFinalizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventCommandUsecase
 
 		confirmation := usecaseEvents.ConfirmationRequest{
 			ID:            confirmEvent.ConfirmDate.ID,
@@ -473,7 +483,7 @@ func (eh *EventHandler) UpdateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventCommandUsecase
 
 		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, toDraftUpdateRequest(eventDraft))
 		if err != nil {
@@ -501,7 +511,7 @@ func (eh *EventHandler) DeleteEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		eventUsecase := eh.eventUsecase
+		eventUsecase := eh.eventCommandUsecase
 
 		err = eventUsecase.DeleteDraftedEvents(ctx, userid, email, eventID)
 		if err != nil {
