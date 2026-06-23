@@ -55,6 +55,17 @@ func TestNewDraftEventChange(t *testing.T) {
 	}
 }
 
+func TestNewPendingEventSyncChange(t *testing.T) {
+	change := NewPendingEventSyncChange()
+
+	if change.Status != nil {
+		t.Fatalf("expected status to remain unchanged, got %#v", change.Status)
+	}
+	if change.Sync.Status != value.SyncStatusPending {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+}
+
 func TestNewSyncedEventChange(t *testing.T) {
 	confirmedDateID := uuid.New()
 	syncedAt := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
@@ -201,6 +212,17 @@ func TestNewNotSelectedProposedDateChange(t *testing.T) {
 
 	if change.Status == nil || *change.Status != value.ProposedDateStatusNotSelected {
 		t.Fatalf("unexpected status: %#v", change.Status)
+	}
+	if change.Sync.Status != value.SyncStatusPending {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+}
+
+func TestNewPendingProposedDateSyncChange(t *testing.T) {
+	change := NewPendingProposedDateSyncChange()
+
+	if change.Status != nil {
+		t.Fatalf("expected status to remain unchanged, got %#v", change.Status)
 	}
 	if change.Sync.Status != value.SyncStatusPending {
 		t.Fatalf("unexpected sync status: %s", change.Sync.Status)

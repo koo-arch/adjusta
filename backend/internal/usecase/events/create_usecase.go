@@ -39,14 +39,14 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		}
 
 		if candidateCalendar.SyncProposedDates {
-			storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventChange(nil)))
+			storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventSyncChange()))
 			if err != nil {
 				log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 			}
 
 			for i, storedDate := range storedDates {
-				storedDates[i], err = repos.ProposedDate.Update(ctx, storedDate.ID, buildProposedDateMutation(domainEvent.NewPendingProposedDateChange(nil, nil, nil, nil)))
+				storedDates[i], err = repos.ProposedDate.Update(ctx, storedDate.ID, buildProposedDateMutation(domainEvent.NewPendingProposedDateSyncChange()))
 				if err != nil {
 					log.Printf("failed to mark proposed date sync pending for account: %s, error: %v", email, err)
 					return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
