@@ -42,11 +42,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 			Description: &eventReq.Description,
 		}
 		if eventReq.Status != value.StatusConfirmed {
-			if candidateCalendar.SyncProposedDates {
-				eventOptions = mergeEventChange(eventOptions, domainEvent.NewPendingEventChange(&eventReq.Status))
-			} else {
-				eventOptions = mergeEventChange(eventOptions, domainEvent.NewNotSyncedEventChange(&eventReq.Status))
-			}
+			eventOptions = mergeEventChange(eventOptions, domainEvent.NewDraftEventChange(&eventReq.Status, candidateCalendar.SyncProposedDates))
 		}
 		storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, eventOptions)
 		if err != nil {
@@ -125,10 +121,7 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventTxReposit
 
 	changeSet := domainEvent.PlanProposedDateChanges(requestedDates, toDomainExistingDateList(existingDates))
 	buildChange := func(start, end *time.Time, priority *int, status *value.ProposedDateStatus) domainEvent.ProposedDateChange {
-		if syncProposedDates {
-			return domainEvent.NewPendingProposedDateChange(start, end, priority, status)
-		}
-		return domainEvent.NewNotSyncedProposedDateChange(start, end, priority, status)
+		return domainEvent.NewDraftProposedDateChange(start, end, priority, status, syncProposedDates)
 	}
 
 	for _, date := range changeSet.Updates {

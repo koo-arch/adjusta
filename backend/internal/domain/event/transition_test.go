@@ -38,6 +38,23 @@ func TestNewNotSyncedEventChange(t *testing.T) {
 	}
 }
 
+func TestNewDraftEventChange(t *testing.T) {
+	status := value.StatusActive
+
+	pendingChange := NewDraftEventChange(&status, true)
+	if pendingChange.Sync.Status != value.SyncStatusPending {
+		t.Fatalf("unexpected pending sync status: %s", pendingChange.Sync.Status)
+	}
+
+	notSyncedChange := NewDraftEventChange(&status, false)
+	if notSyncedChange.Sync.Status != value.SyncStatusNotSynced {
+		t.Fatalf("unexpected not synced status: %s", notSyncedChange.Sync.Status)
+	}
+	if !notSyncedChange.Sync.ClearLastSyncError {
+		t.Fatal("expected clear last sync error flag")
+	}
+}
+
 func TestNewSyncedEventChange(t *testing.T) {
 	confirmedDateID := uuid.New()
 	syncedAt := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
@@ -144,6 +161,49 @@ func TestNewNotSyncedProposedDateChange(t *testing.T) {
 	}
 	if !change.Sync.ClearLastSyncError {
 		t.Fatal("expected clear last sync error flag")
+	}
+}
+
+func TestNewDraftProposedDateChange(t *testing.T) {
+	status := value.ProposedDateStatusActive
+
+	pendingChange := NewDraftProposedDateChange(nil, nil, nil, &status, true)
+	if pendingChange.Sync.Status != value.SyncStatusPending {
+		t.Fatalf("unexpected pending sync status: %s", pendingChange.Sync.Status)
+	}
+
+	notSyncedChange := NewDraftProposedDateChange(nil, nil, nil, &status, false)
+	if notSyncedChange.Sync.Status != value.SyncStatusNotSynced {
+		t.Fatalf("unexpected not synced status: %s", notSyncedChange.Sync.Status)
+	}
+	if !notSyncedChange.Sync.ClearLastSyncError {
+		t.Fatal("expected clear last sync error flag")
+	}
+}
+
+func TestNewConfirmedProposedDateChange(t *testing.T) {
+	start := time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	priority := 1024
+
+	change := NewConfirmedProposedDateChange(&start, &end, &priority)
+
+	if change.Status == nil || *change.Status != value.ProposedDateStatusConfirmed {
+		t.Fatalf("unexpected status: %#v", change.Status)
+	}
+	if change.Sync.Status != value.SyncStatusPending {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
+	}
+}
+
+func TestNewNotSelectedProposedDateChange(t *testing.T) {
+	change := NewNotSelectedProposedDateChange()
+
+	if change.Status == nil || *change.Status != value.ProposedDateStatusNotSelected {
+		t.Fatalf("unexpected status: %#v", change.Status)
+	}
+	if change.Sync.Status != value.SyncStatusPending {
+		t.Fatalf("unexpected sync status: %s", change.Sync.Status)
 	}
 }
 

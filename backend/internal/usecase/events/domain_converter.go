@@ -44,12 +44,21 @@ func toDomainConfirmationRequest(date ConfirmationRequest) (domainEvent.DraftPro
 }
 
 func assignSelectedDatePriorities(dates []SelectedDate) []SelectedDate {
+	draftDates := make([]domainEvent.DraftProposedDate, 0, len(dates))
+	for _, date := range dates {
+		draftDates = append(draftDates, domainEvent.DraftProposedDate{
+			Start: date.Start,
+			End:   date.End,
+		})
+	}
+
+	assignedDraftDates := domainEvent.AssignPrioritiesByOrder(draftDates)
 	assigned := make([]SelectedDate, 0, len(dates))
-	for i, date := range dates {
+	for _, date := range assignedDraftDates {
 		assigned = append(assigned, SelectedDate{
 			Start:    date.Start,
 			End:      date.End,
-			Priority: domainEvent.PriorityForOrder(i, len(dates)),
+			Priority: date.Priority,
 		})
 	}
 	return assigned

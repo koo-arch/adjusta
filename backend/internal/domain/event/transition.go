@@ -50,6 +50,13 @@ func NewNotSyncedEventChange(status *value.EventStatus) EventChange {
 	}
 }
 
+func NewDraftEventChange(status *value.EventStatus, syncExternally bool) EventChange {
+	if syncExternally {
+		return NewPendingEventChange(status)
+	}
+	return NewNotSyncedEventChange(status)
+}
+
 func NewSyncedEventChange(status value.EventStatus, confirmedDateID uuid.UUID, googleEventID string, syncedAt time.Time) EventChange {
 	return EventChange{
 		Status:                 &status,
@@ -97,6 +104,23 @@ func NewNotSyncedProposedDateChange(start, end *time.Time, priority *int, status
 			ClearLastSyncError: true,
 		},
 	}
+}
+
+func NewDraftProposedDateChange(start, end *time.Time, priority *int, status *value.ProposedDateStatus, syncExternally bool) ProposedDateChange {
+	if syncExternally {
+		return NewPendingProposedDateChange(start, end, priority, status)
+	}
+	return NewNotSyncedProposedDateChange(start, end, priority, status)
+}
+
+func NewConfirmedProposedDateChange(start, end *time.Time, priority *int) ProposedDateChange {
+	status := value.ProposedDateStatusConfirmed
+	return NewPendingProposedDateChange(start, end, priority, &status)
+}
+
+func NewNotSelectedProposedDateChange() ProposedDateChange {
+	status := value.ProposedDateStatusNotSelected
+	return NewPendingProposedDateChange(nil, nil, nil, &status)
 }
 
 func NewSyncedProposedDateChange(googleEventID string, syncedAt time.Time) ProposedDateChange {
