@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
@@ -170,30 +169,13 @@ func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, em
 
 	upcomingEvents := make([]UpcomingEventOutput, 0)
 	for _, storedEvent := range storedEvents {
-		if storedEvent.ProposedDates == nil {
+		upcomingEvent, err := buildUpcomingEventOutput(storedEvent)
+		if err != nil {
 			log.Printf("No association found between calendar and event")
-			return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			return nil, err
 		}
-
-		for _, storedDate := range storedEvent.ProposedDates {
-			if storedEvent.ConfirmedDateID == storedDate.ID {
-				upcomingEvents = append(upcomingEvents, UpcomingEventOutput{
-					ID:                     storedEvent.ID,
-					Title:                  storedEvent.Title,
-					Location:               storedEvent.Location,
-					Description:            storedEvent.Description,
-					Status:                 storedEvent.Status,
-					SyncStatus:             storedEvent.SyncStatus,
-					ConfirmedDateID:        storedEvent.ConfirmedDateID,
-					GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
-					ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
-					LastSyncedAt:           storedEvent.LastSyncedAt,
-					LastSyncError:          storedEvent.LastSyncError,
-					Start:                  storedDate.StartTime,
-					End:                    storedDate.EndTime,
-				})
-				break
-			}
+		if upcomingEvent != nil {
+			upcomingEvents = append(upcomingEvents, *upcomingEvent)
 		}
 	}
 
@@ -232,23 +214,13 @@ func (uc *Usecase) FetchNeedsActionDrafts(ctx context.Context, userID uuid.UUID,
 
 	needsActionDrafts := make([]NeedsActionDraftOutput, 0)
 	for _, storedEvent := range storedEvents {
-		if storedEvent.ProposedDates == nil {
+		needsActionDraft, err := buildNeedsActionDraftOutput(storedEvent, currentTime)
+		if err != nil {
 			log.Printf("No association found between calendar and event")
-			return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+			return nil, err
 		}
-
-		for _, storedDate := range storedEvent.ProposedDates {
-			needsActionDrafts = append(needsActionDrafts, NeedsActionDraftOutput{
-				ID:             storedEvent.ID,
-				Title:          storedEvent.Title,
-				Location:       storedEvent.Location,
-				Description:    storedEvent.Description,
-				Status:         storedEvent.Status,
-				Start:          storedDate.StartTime,
-				End:            storedDate.EndTime,
-				NeedsAttention: currentTime.After(storedDate.StartTime),
-			})
-			break
+		if needsActionDraft != nil {
+			needsActionDrafts = append(needsActionDrafts, *needsActionDraft)
 		}
 	}
 

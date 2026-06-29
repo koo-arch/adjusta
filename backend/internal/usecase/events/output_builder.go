@@ -2,6 +2,7 @@ package events
 
 import (
 	"sort"
+	"time"
 
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
@@ -48,5 +49,56 @@ func buildEventDraftDetailOutput(storedEvent *EventRecord) (*EventDraftDetailOut
 		LastSyncedAt:           storedEvent.LastSyncedAt,
 		LastSyncError:          storedEvent.LastSyncError,
 		ProposedDates:          buildProposedDateOutputs(storedEvent.ProposedDates),
+	}, nil
+}
+
+func buildUpcomingEventOutput(storedEvent *EventRecord) (*UpcomingEventOutput, error) {
+	if storedEvent.ProposedDates == nil {
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+
+	for _, storedDate := range storedEvent.ProposedDates {
+		if storedEvent.ConfirmedDateID != storedDate.ID {
+			continue
+		}
+
+		return &UpcomingEventOutput{
+			ID:                     storedEvent.ID,
+			Title:                  storedEvent.Title,
+			Location:               storedEvent.Location,
+			Description:            storedEvent.Description,
+			Status:                 storedEvent.Status,
+			SyncStatus:             storedEvent.SyncStatus,
+			ConfirmedDateID:        storedEvent.ConfirmedDateID,
+			GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
+			ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
+			LastSyncedAt:           storedEvent.LastSyncedAt,
+			LastSyncError:          storedEvent.LastSyncError,
+			Start:                  storedDate.StartTime,
+			End:                    storedDate.EndTime,
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func buildNeedsActionDraftOutput(storedEvent *EventRecord, currentTime time.Time) (*NeedsActionDraftOutput, error) {
+	if storedEvent.ProposedDates == nil {
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+	if len(storedEvent.ProposedDates) == 0 {
+		return nil, nil
+	}
+
+	storedDate := storedEvent.ProposedDates[0]
+	return &NeedsActionDraftOutput{
+		ID:             storedEvent.ID,
+		Title:          storedEvent.Title,
+		Location:       storedEvent.Location,
+		Description:    storedEvent.Description,
+		Status:         storedEvent.Status,
+		Start:          storedDate.StartTime,
+		End:            storedDate.EndTime,
+		NeedsAttention: currentTime.After(storedDate.StartTime),
 	}, nil
 }
