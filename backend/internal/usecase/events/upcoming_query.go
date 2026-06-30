@@ -1,0 +1,53 @@
+package events
+
+import (
+	"context"
+	"log"
+	"sort"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+)
+
+func (uc *Usecase) FetchUpcomingEvents(ctx context.Context, userID uuid.UUID, email string, daysBefore int) ([]UpcomingEventOutput, error) {
+	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
+	if err != nil {
+		return nil, err
+	}
+
+	currentTime := time.Now()
+	startTime := currentTime.AddDate(0, 0, daysBefore)
+	confirmed := value.StatusConfirmed
+	eventOptions := EventSearchOptions{
+		WithProposedDates: true,
+		Status:            &confirmed,
+		StartTimeGTE:      &currentTime,
+		StartTimeLTE:      &startTime,
+	}
+
+	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
+	if err != nil {
+		log.Printf("failed to get event for account: %s, error: %v", email, err)
+		return nil, internalErrors.NewInternalError("イベント取得時にエラーが発生しました")
+	}
+
+	upcomingEvents := make([]UpcomingEventOutput, 0)
+	for _, storedEvent := range storedEvents {
+		upcomingEvent, err := buildUpcomingEventOutput(storedEvent)
+		if err != nil {
+			log.Printf("No association found between calendar and event")
+			return nil, err
+		}
+		if upcomingEvent != nil {
+			upcomingEvents = append(upcomingEvents, *upcomingEvent)
+		}
+	}
+
+	sort.Slice(upcomingEvents, func(i, j int) bool {
+		return upcomingEvents[i].Start.Before(upcomingEvents[j].Start)
+	})
+
+	return upcomingEvents, nil
+}

@@ -282,6 +282,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - 残る usecase 専用 store / adapter を見直し、単なる repository 操作の言い換えになっているものは domain repository interface を直接扱える形へ寄せる
 - domain model とほぼ同じ usecase Record を見直し、必要なものだけ残す
 - proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる
+- `backend/internal/usecase/events` は draft / confirmation / sync / google などの関心が増えているため、まず同一 package 内でファイル prefix による責務整理を進める。依存関係が十分薄くなった段階で、サブドメイン単位の package 分割も検討する
 - `cookie` `cache` `configs` の naming や責務粒度を、最終的な infrastructure 方針に合わせて整理する
 - frontend では API server data と draft state の責務分離をさらに進める
 
@@ -292,6 +293,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 3. interface 層で API DTO と usecase input / output の境界を作り、usecase から appmodel 依存を減らす
 4. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
 5. domain rule と usecase orchestration の境界を再確認する
+6. `events` usecase は draft / confirmation / sync / google のファイル責務を明確にし、将来的なサブドメイン package 分割に備える
 
 ---
 
