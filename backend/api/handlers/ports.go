@@ -13,7 +13,7 @@ type AccountProfileUsecase interface {
 	FetchGoogleProfile(ctx context.Context, userID uuid.UUID) (*usecaseAccount.GoogleProfile, error)
 }
 
-type AuthSessionUsecase interface {
+type OAuthUsecase interface {
 	GoogleLoginURL(state string) string
 	CompleteGoogleSignIn(ctx context.Context, code string) (*usecaseAuth.GoogleSignInResult, error)
 	Logout(ctx context.Context, sessionToken string) error

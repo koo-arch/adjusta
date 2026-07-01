@@ -11,11 +11,11 @@ import (
 )
 
 type OauthHandler struct {
-	authSessionUsecase AuthSessionUsecase
+	oauthUsecase OAuthUsecase
 }
 
-func NewOauthHandler(authSessionUsecase AuthSessionUsecase) *OauthHandler {
-	return &OauthHandler{authSessionUsecase: authSessionUsecase}
+func NewOauthHandler(oauthUsecase OAuthUsecase) *OauthHandler {
+	return &OauthHandler{oauthUsecase: oauthUsecase}
 }
 
 func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
@@ -26,14 +26,14 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 		return
 	}
 
-	url := oh.authSessionUsecase.GoogleLoginURL(state)
+	url := oh.oauthUsecase.GoogleLoginURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 	sessionToken, _ := sessionctx.SessionToken(c)
 
-	if err := oh.authSessionUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
+	if err := oh.oauthUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
 		respond.Error(c, err, "セッションの削除に失敗しました")
 		return
 	}
@@ -65,7 +65,7 @@ func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		signInResult, err := oh.authSessionUsecase.CompleteGoogleSignIn(ctx, code)
+		signInResult, err := oh.oauthUsecase.CompleteGoogleSignIn(ctx, code)
 		if err != nil {
 			log.Printf("failed to complete google sign in: %v", err)
 			respond.Error(c, err, "ログインに失敗しました")

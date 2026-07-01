@@ -7,26 +7,26 @@ import (
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-type SessionUsecase struct {
+type OAuthUsecase struct {
 	authenticator SessionAuthenticator
-	oauth         OAuthGateway
+	gateway       OAuthGateway
 	userInfo      UserInfoFetcher
 }
 
-func NewSessionUsecase(authenticator SessionAuthenticator, oauth OAuthGateway, userInfo UserInfoFetcher) *SessionUsecase {
-	return &SessionUsecase{
+func NewOAuthUsecase(authenticator SessionAuthenticator, gateway OAuthGateway, userInfo UserInfoFetcher) *OAuthUsecase {
+	return &OAuthUsecase{
 		authenticator: authenticator,
-		oauth:         oauth,
+		gateway:       gateway,
 		userInfo:      userInfo,
 	}
 }
 
-func (uc *SessionUsecase) GoogleLoginURL(state string) string {
-	return uc.oauth.AuthCodeURL(state)
+func (uc *OAuthUsecase) GoogleLoginURL(state string) string {
+	return uc.gateway.AuthCodeURL(state)
 }
 
-func (uc *SessionUsecase) CompleteGoogleSignIn(ctx context.Context, code string) (*GoogleSignInResult, error) {
-	oauthToken, err := uc.oauth.Exchange(ctx, code)
+func (uc *OAuthUsecase) CompleteGoogleSignIn(ctx context.Context, code string) (*GoogleSignInResult, error) {
+	oauthToken, err := uc.gateway.Exchange(ctx, code)
 	if err != nil {
 		log.Printf("failed to exchange oauth token: %v", err)
 		return nil, internalErrors.NewInternalError("OAuthトークンの取得に失敗しました")
@@ -50,7 +50,7 @@ func (uc *SessionUsecase) CompleteGoogleSignIn(ctx context.Context, code string)
 	}, nil
 }
 
-func (uc *SessionUsecase) Logout(ctx context.Context, sessionToken string) error {
+func (uc *OAuthUsecase) Logout(ctx context.Context, sessionToken string) error {
 	if err := uc.authenticator.DeleteSession(ctx, sessionToken); err != nil {
 		log.Printf("failed to delete session: %v", err)
 		return internalErrors.NormalizeAPIError(err, "セッションの削除に失敗しました")

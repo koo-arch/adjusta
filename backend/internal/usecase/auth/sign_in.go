@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
+	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/google"
@@ -25,7 +27,62 @@ const (
 	signInModeUpdateUserAndAccount
 )
 
-func (am *AuthService) resolveSignInPlan(ctx context.Context, userInfo *google.UserProfile) (*signInPlan, error) {
+func (am *Authenticator) SignInWithGoogle(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
+	plan, err := am.resolveSignInPlan(ctx, userInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var (
+		u             *repoUser.User
+		storedSession *repoSession.Session
+	)
+
+	sessionToken := uuid.NewString()
+	expiresAt := repoSession.ExpiresAtFrom(time.Now(), am.sessionLifetime)
+
+	err = am.tx.Do(ctx, func(repos AuthTxRepositories) error {
+		var err error
+		u, err = am.persistSignIn(ctx, repos, plan, userInfo, oauthToken)
+		if err != nil {
+			return err
+		}
+
+		storedSession, err = repos.Session.Create(ctx, u.ID, sessionToken, expiresAt)
+		if err != nil {
+			log.Printf("failed to create session during google sign in: %v", err)
+			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return storedSession, u, nil
+}
+
+func (am *Authenticator) ProcessUserSignIn(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoUser.User, error) {
+	plan, err := am.resolveSignInPlan(ctx, userInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	var u *repoUser.User
+	err = am.tx.Do(ctx, func(repos AuthTxRepositories) error {
+		var err error
+		u, err = am.persistSignIn(ctx, repos, plan, userInfo, oauthToken)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func (am *Authenticator) resolveSignInPlan(ctx context.Context, userInfo *google.UserProfile) (*signInPlan, error) {
 	u, err := am.repos.User.FindByEmail(ctx, userInfo.Email)
 	if err != nil {
 		log.Printf("failed to get user by email: %v", err)
@@ -54,7 +111,7 @@ func (am *AuthService) resolveSignInPlan(ctx context.Context, userInfo *google.U
 	}, nil
 }
 
-func (am *AuthService) persistSignIn(ctx context.Context, repos AuthTxRepositories, plan *signInPlan, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoUser.User, error) {
+func (am *Authenticator) persistSignIn(ctx context.Context, repos AuthTxRepositories, plan *signInPlan, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoUser.User, error) {
 	switch plan.mode {
 	case signInModeCreateUserAndAccount:
 		u, err := repos.User.Create(ctx, userInfo.Email, buildUserMutationOptions(userInfo))

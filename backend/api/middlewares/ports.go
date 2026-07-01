@@ -13,5 +13,5 @@ type SessionAuthenticator interface {
 }
 
 type CalendarSyncUsecase interface {
-	SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseCalendar.CalendarRecord, error)
+	SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*usecaseCalendar.ExternalCalendar, error)
 }

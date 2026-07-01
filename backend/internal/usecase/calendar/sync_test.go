@@ -30,14 +30,14 @@ func (t *fakeSyncTransaction) Do(ctx context.Context, fn func(repos SyncTxReposi
 }
 
 type fakeCalendarService struct {
-	createCalendarFn func(summary string) (*CalendarRecord, error)
+	createCalendarFn func(summary string) (*ExternalCalendar, error)
 }
 
-func (s *fakeCalendarService) FetchCalendarList() ([]*CalendarRecord, error) {
+func (s *fakeCalendarService) FetchCalendarList() ([]*ExternalCalendar, error) {
 	return nil, nil
 }
 
-func (s *fakeCalendarService) CreateCalendar(summary string) (*CalendarRecord, error) {
+func (s *fakeCalendarService) CreateCalendar(summary string) (*ExternalCalendar, error) {
 	if s.createCalendarFn == nil {
 		return nil, errors.New("unexpected create calendar call")
 	}
@@ -50,7 +50,7 @@ type fakeSyncStore struct {
 	createCalendarFn                    func(ctx context.Context, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
 	updateCalendarFn                    func(ctx context.Context, id uuid.UUID, googleCalendarID, summary string) (*repoCalendar.Calendar, error)
 	ensureUserCalendarRelationFn        func(ctx context.Context, userID, calendarID uuid.UUID, role value.UserCalendarRole, syncProposedDates *bool) error
-	listUserCalendarRelationsFn         func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error)
+	listUserCalendarRelationsFn         func(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error)
 	softDeleteUserCalendarRelationFn    func(ctx context.Context, userID, calendarID uuid.UUID) error
 }
 
@@ -81,7 +81,7 @@ func (s *fakeSyncStore) EnsureUserCalendarRelation(ctx context.Context, userID, 
 	}, nil
 }
 
-func (s *fakeSyncStore) ListUserCalendarRelations(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
+func (s *fakeSyncStore) ListUserCalendarRelations(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error) {
 	return s.listUserCalendarRelationsFn(ctx, userID)
 }
 
@@ -238,7 +238,7 @@ func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *test
 				}
 				return nil
 			},
-			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
+			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error) {
 				return nil, nil
 			},
 			softDeleteUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID) error {
@@ -249,11 +249,11 @@ func TestSyncCalendarAssignsExternalRolesWithoutCreatingAdjustaCandidate(t *test
 	})
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*CalendarRecord, error) {
+		createCalendarFn: func(summary string) (*ExternalCalendar, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*CalendarRecord{
+	}, []*ExternalCalendar{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
 		{CalendarID: "reference-cal", Summary: "Reference", Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
@@ -283,7 +283,7 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 	recreatedCandidateCalendarID := uuid.New()
 
 	var deletedCalendarIDs []uuid.UUID
-	currentRelations := []*UserCalendarRelationRecord{
+	currentRelations := []*CalendarRelation{
 		{
 			CalendarID:       currentCalendarID,
 			GoogleCalendarID: "current-primary",
@@ -331,7 +331,7 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 					if syncProposedDates == nil || !*syncProposedDates {
 						t.Fatal("expected recreated adjusta candidate relation to preserve sync setting")
 					}
-					currentRelations = append(currentRelations, &UserCalendarRelationRecord{
+					currentRelations = append(currentRelations, &CalendarRelation{
 						CalendarID:        calendarID,
 						GoogleCalendarID:  "recreated-adjusta-candidate",
 						Role:              role,
@@ -340,12 +340,12 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 				}
 				return nil
 			},
-			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
+			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error) {
 				return currentRelations, nil
 			},
 			softDeleteUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID) error {
 				deletedCalendarIDs = append(deletedCalendarIDs, calendarID)
-				next := make([]*UserCalendarRelationRecord, 0, len(currentRelations))
+				next := make([]*CalendarRelation, 0, len(currentRelations))
 				for _, relation := range currentRelations {
 					if relation.CalendarID != calendarID {
 						next = append(next, relation)
@@ -358,17 +358,17 @@ func TestSyncCalendarRecreatesMissingAdjustaCandidateRelation(t *testing.T) {
 	})
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*CalendarRecord, error) {
+		createCalendarFn: func(summary string) (*ExternalCalendar, error) {
 			if summary != domainUserCalendar.AdjustaCandidateCalendarSummary {
 				t.Fatalf("unexpected candidate calendar summary: %s", summary)
 			}
-			return &CalendarRecord{
+			return &ExternalCalendar{
 				CalendarID: "recreated-adjusta-candidate",
 				Summary:    summary,
 				Primary:    false,
 			}, nil
 		},
-	}, []*CalendarRecord{
+	}, []*ExternalCalendar{
 		{CalendarID: "current-primary", Summary: "Current Primary", Primary: true},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {
@@ -434,8 +434,8 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 				}
 				return nil
 			},
-			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
-				return []*UserCalendarRelationRecord{
+			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error) {
+				return []*CalendarRelation{
 					{
 						CalendarID:        candidateCalendarID,
 						GoogleCalendarID:  "missing-adjusta-candidate",
@@ -452,11 +452,11 @@ func TestSyncCalendarDoesNotRecreateMissingAdjustaCandidateWhenSyncDisabled(t *t
 	})
 
 	calendars, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*CalendarRecord, error) {
+		createCalendarFn: func(summary string) (*ExternalCalendar, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*CalendarRecord{
+	}, []*ExternalCalendar{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {
@@ -512,7 +512,7 @@ func TestSyncCalendarReusesIncomingAdjustaCandidateCalendar(t *testing.T) {
 				}
 				return nil
 			},
-			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
+			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error) {
 				return nil, nil
 			},
 			softDeleteUserCalendarRelationFn: func(ctx context.Context, userID, calendarID uuid.UUID) error {
@@ -523,11 +523,11 @@ func TestSyncCalendarReusesIncomingAdjustaCandidateCalendar(t *testing.T) {
 	})
 
 	calendars, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*CalendarRecord, error) {
+		createCalendarFn: func(summary string) (*ExternalCalendar, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*CalendarRecord{
+	}, []*ExternalCalendar{
 		{CalendarID: "primary-cal", Summary: "Primary", Primary: true},
 		{CalendarID: "managed-candidate", Summary: domainUserCalendar.AdjustaCandidateCalendarSummary, Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
@@ -584,8 +584,8 @@ func TestSyncCalendarPreservesAdjustaCandidateSyncSetting(t *testing.T) {
 				}
 				return nil
 			},
-			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*UserCalendarRelationRecord, error) {
-				return []*UserCalendarRelationRecord{
+			listUserCalendarRelationsFn: func(ctx context.Context, userID uuid.UUID) ([]*CalendarRelation, error) {
+				return []*CalendarRelation{
 					{
 						CalendarID:        candidateCalendarID,
 						GoogleCalendarID:  "managed-candidate",
@@ -602,11 +602,11 @@ func TestSyncCalendarPreservesAdjustaCandidateSyncSetting(t *testing.T) {
 	})
 
 	_, err := uc.syncCalendar(ctx, &fakeCalendarService{
-		createCalendarFn: func(summary string) (*CalendarRecord, error) {
+		createCalendarFn: func(summary string) (*ExternalCalendar, error) {
 			t.Fatalf("create calendar should not be called")
 			return nil, nil
 		},
-	}, []*CalendarRecord{
+	}, []*ExternalCalendar{
 		{CalendarID: "managed-candidate", Summary: domainUserCalendar.AdjustaCandidateCalendarSummary, Primary: false},
 	}, &repoUser.User{ID: userID, Email: "user@example.com"})
 	if err != nil {

@@ -24,7 +24,7 @@ func (f *fakeSessionAuthenticator) DeleteSession(ctx context.Context, sessionTok
 	return f.deleteSessionFn(ctx, sessionToken)
 }
 
-func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
+func TestOAuthUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -46,7 +46,7 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	var fetchedToken *google.AuthToken
 	var signedInProfile *google.UserProfile
 
-	usecase := NewSessionUsecase(
+	usecase := NewOAuthUsecase(
 		&fakeSessionAuthenticator{
 			signInWithGoogleFn: func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 				signedInProfile = userInfo
@@ -103,10 +103,10 @@ func TestSessionUsecaseCompleteGoogleSignInSuccess(t *testing.T) {
 	}
 }
 
-func TestSessionUsecaseGoogleLoginURL(t *testing.T) {
+func TestOAuthUsecaseGoogleLoginURL(t *testing.T) {
 	t.Parallel()
 
-	usecase := NewSessionUsecase(
+	usecase := NewOAuthUsecase(
 		&fakeSessionAuthenticator{
 			signInWithGoogleFn: func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 				t.Fatalf("sign in should not be called")

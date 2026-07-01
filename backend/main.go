@@ -62,7 +62,7 @@ func main() {
 	uow := infraRepository.NewUnitOfWork(client)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
 	sessionLifetime := time.Duration(infraCookie.DefaultCookieOptions().MaxAge) * time.Second
-	authService := usecaseAuth.NewAuthService(
+	authenticator := usecaseAuth.NewAuthenticator(
 		usecaseAuth.AuthRepositories{
 			User:    repos.User,
 			Account: repos.Account,
@@ -76,8 +76,8 @@ func main() {
 		googleTokenManager,
 		infraAuth.NewGoogleUserInfoFetcher(),
 	)
-	authSessionUsecase := usecaseAuth.NewSessionUsecase(
-		authService,
+	oauthUsecase := usecaseAuth.NewOAuthUsecase(
+		authenticator,
 		infraAuth.NewGoogleOAuthGateway(),
 		infraAuth.NewGoogleUserInfoFetcher(),
 	)
@@ -118,10 +118,10 @@ func main() {
 
 	accountHandler := handlers.NewAccountHandler(accountProfileUsecase)
 	userHandler := handlers.NewUserHandler(accountProfileUsecase)
-	oauthHandler := handlers.NewOauthHandler(authSessionUsecase)
+	oauthHandler := handlers.NewOauthHandler(oauthUsecase)
 	eventHandler := handlers.NewEventHandler(eventUsecase, eventUsecase, eventUsecase)
 
-	authMiddleware := middlewares.NewAuthMiddleware(authService)
+	authMiddleware := middlewares.NewAuthMiddleware(authenticator)
 	calendarMiddleware := middlewares.NewCalendarMiddleware(cacheStore, calendarSyncUsecase)
 	sessionMiddleware := middlewares.NewSessionMiddleware()
 
