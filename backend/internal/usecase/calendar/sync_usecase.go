@@ -21,6 +21,13 @@ type SyncUsecase struct {
 	tx                     SyncTransaction
 }
 
+type UserCalendarRelationRecord struct {
+	CalendarID        uuid.UUID
+	GoogleCalendarID  string
+	Role              value.UserCalendarRole
+	SyncProposedDates bool
+}
+
 func NewSyncUsecase(
 	userRepo repoUser.UserRepository,
 	googleTokenProvider GoogleTokenProvider,

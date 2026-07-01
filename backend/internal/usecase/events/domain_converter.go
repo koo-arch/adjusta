@@ -2,6 +2,7 @@ package events
 
 import (
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
@@ -64,7 +65,7 @@ func assignSelectedDatePriorities(dates []SelectedDate) []SelectedDate {
 	return assigned
 }
 
-func toDomainExistingDateList(dates []*ProposedDateRecord) []domainEvent.ExistingProposedDate {
+func toDomainExistingDateList(dates []*domainProposedDate.ProposedDate) []domainEvent.ExistingProposedDate {
 	converted := make([]domainEvent.ExistingProposedDate, 0, len(dates))
 	for _, date := range dates {
 		converted = append(converted, domainEvent.ExistingProposedDate{

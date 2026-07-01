@@ -11,7 +11,16 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string) (*CalendarRecord, error) {
+type EventCalendar struct {
+	ID                uuid.UUID
+	GoogleCalendarID  string
+	Summary           string
+	Description       *string
+	Timezone          *string
+	SyncProposedDates bool
+}
+
+func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string) (*EventCalendar, error) {
 	storedCalendar, err := findPrimaryCalendar(ctx, repos, userID)
 	if err != nil {
 		log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
@@ -24,12 +33,12 @@ func (uc *Usecase) loadPrimaryCalendar(ctx context.Context, repos EventTxReposit
 	return storedCalendar, nil
 }
 
-func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string) (*CalendarRecord, error) {
+func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string) (*EventCalendar, error) {
 	storedCalendar, err := findAdjustaCandidateCalendar(ctx, repos, userID)
 	if err != nil {
 		log.Printf("failed to get adjusta candidate calendar for account: %s, error: %v", email, err)
 		if repoerr.IsNotFound(err) {
-			return &CalendarRecord{SyncProposedDates: false}, nil
+			return &EventCalendar{SyncProposedDates: false}, nil
 		}
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
@@ -37,7 +46,7 @@ func (uc *Usecase) loadAdjustaCandidateCalendar(ctx context.Context, repos Event
 	return storedCalendar, nil
 }
 
-func findPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*CalendarRecord, error) {
+func findPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*EventCalendar, error) {
 	role := value.UserCalendarRolePrimary
 	calendar, err := repos.Calendar.FindByFields(ctx, userID, repoCalendar.CalendarQueryOptions{
 		Role: &role,
@@ -45,10 +54,10 @@ func findPrimaryCalendar(ctx context.Context, repos EventTxRepositories, userID 
 	if err != nil {
 		return nil, err
 	}
-	return toCalendarRecord(calendar), nil
+	return toEventCalendar(calendar), nil
 }
 
-func findAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*CalendarRecord, error) {
+func findAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories, userID uuid.UUID) (*EventCalendar, error) {
 	userCalendars, err := repos.UserCalendar.FilterByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -64,8 +73,35 @@ func findAdjustaCandidateCalendar(ctx context.Context, repos EventTxRepositories
 			return nil, err
 		}
 
-		return toCalendarRecordWithSync(calendar, userCalendar.SyncProposedDates), nil
+		return toEventCalendarWithSync(calendar, userCalendar.SyncProposedDates), nil
 	}
 
 	return nil, repoerr.ErrNotFound
+}
+
+func toEventCalendar(calendar *repoCalendar.Calendar) *EventCalendar {
+	return toEventCalendarWithSync(calendar, false)
+}
+
+func toEventCalendarWithSync(calendar *repoCalendar.Calendar, syncProposedDates bool) *EventCalendar {
+	if calendar == nil {
+		return nil
+	}
+
+	return &EventCalendar{
+		ID:                calendar.ID,
+		GoogleCalendarID:  calendar.GoogleCalendarID,
+		Summary:           calendar.Summary,
+		Description:       calendar.Description,
+		Timezone:          calendar.Timezone,
+		SyncProposedDates: syncProposedDates,
+	}
+}
+
+func toEventCalendars(calendars []*repoCalendar.Calendar) []*EventCalendar {
+	eventCalendars := make([]*EventCalendar, 0, len(calendars))
+	for _, calendar := range calendars {
+		eventCalendars = append(eventCalendars, toEventCalendar(calendar))
+	}
+	return eventCalendars
 }

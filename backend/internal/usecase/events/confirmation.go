@@ -33,7 +33,7 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		googleEventID, err := uc.handleGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
+		googleEventID, err := uc.upsertConfirmedGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
 		if err != nil {
 			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
 			if syncErr := uc.recordEventSyncFailure(ctx, repos, storedEvent.ID, err); syncErr != nil {
@@ -62,32 +62,7 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 	return nil
 }
 
-func (uc *Usecase) handleGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *EventRecord, confirmation ConfirmationRequest) (*string, error) {
-	existingGoogleEventID := domainEvent.ResolveReusableGoogleEventID(
-		confirmation.ID,
-		storedEvent.ConfirmedGoogleEventID,
-		confirmation.GoogleEventID,
-	)
-
-	googleEventID, err := uc.googleCalendar.UpsertEvent(
-		ctx,
-		userID,
-		calendarID,
-		existingGoogleEventID,
-		storedEvent.Title,
-		storedEvent.Location,
-		storedEvent.Description,
-		*confirmation.Start,
-		*confirmation.End,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upsert google event: %w", err)
-	}
-
-	return &googleEventID, nil
-}
-
-func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositories, googleEventID *string, confirmation ConfirmationRequest, storedEvent *EventRecord) error {
+func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositories, googleEventID *string, confirmation ConfirmationRequest, storedEvent *domainEvent.Event) error {
 	confirmDate, err := toDomainConfirmationRequest(confirmation)
 	if err != nil {
 		return err

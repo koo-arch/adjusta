@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
@@ -13,7 +15,7 @@ func TestBuildProposedDateOutputsSortsByDescendingPriority(t *testing.T) {
 
 	start := time.Date(2026, 6, 7, 10, 0, 0, 0, time.UTC)
 
-	proposedDates := buildProposedDateOutputs([]*ProposedDateRecord{
+	proposedDates := buildProposedDateOutputs([]*domainProposedDate.ProposedDate{
 		{ID: uuid.New(), StartTime: start, EndTime: start.Add(time.Hour), Priority: 1024},
 		{ID: uuid.New(), StartTime: start.Add(2 * time.Hour), EndTime: start.Add(3 * time.Hour), Priority: 3072},
 		{ID: uuid.New(), StartTime: start.Add(4 * time.Hour), EndTime: start.Add(5 * time.Hour), Priority: 2048},
@@ -35,12 +37,12 @@ func TestBuildUpcomingEventOutputUsesConfirmedDate(t *testing.T) {
 	otherDateID := uuid.New()
 	start := time.Date(2026, 6, 7, 10, 0, 0, 0, time.UTC)
 
-	output, err := buildUpcomingEventOutput(&EventRecord{
+	output, err := buildUpcomingEventOutput(&domainEvent.Event{
 		ID:              eventID,
 		Title:           "Upcoming",
 		Status:          value.StatusConfirmed,
 		ConfirmedDateID: confirmedDateID,
-		ProposedDates: []*ProposedDateRecord{
+		ProposedDates: []*domainProposedDate.ProposedDate{
 			{ID: otherDateID, StartTime: start.Add(2 * time.Hour), EndTime: start.Add(3 * time.Hour)},
 			{ID: confirmedDateID, StartTime: start, EndTime: start.Add(time.Hour)},
 		},
@@ -65,11 +67,11 @@ func TestBuildNeedsActionDraftOutputMarksOverdueDraft(t *testing.T) {
 	now := time.Date(2026, 6, 7, 10, 0, 0, 0, time.UTC)
 	start := now.Add(-time.Hour)
 
-	output, err := buildNeedsActionDraftOutput(&EventRecord{
+	output, err := buildNeedsActionDraftOutput(&domainEvent.Event{
 		ID:     uuid.New(),
 		Title:  "Needs action",
 		Status: value.StatusActive,
-		ProposedDates: []*ProposedDateRecord{
+		ProposedDates: []*domainProposedDate.ProposedDate{
 			{ID: uuid.New(), StartTime: start, EndTime: start.Add(time.Hour)},
 		},
 	}, now)

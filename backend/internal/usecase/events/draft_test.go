@@ -2,127 +2,15 @@ package events
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
-
-type fakeEventTxStore struct {
-	t                              *testing.T
-	findPrimaryCalendarFn          func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
-	findAdjustaCandidateCalendarFn func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
-	findEventByIDFn                func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
-	readCalendarFn                 func(ctx context.Context, calendarID uuid.UUID) (*CalendarRecord, error)
-	createEventFn                  func(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*EventRecord, error)
-	updateEventFn                  func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error)
-	softDeleteEventFn              func(ctx context.Context, id uuid.UUID) error
-	listProposedDatesByEventFn     func(ctx context.Context, eventID uuid.UUID) ([]*ProposedDateRecord, error)
-	createProposedDatesFn          func(ctx context.Context, selectedDates []SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error)
-	updateProposedDateFn           func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error)
-	deleteProposedDateFn           func(ctx context.Context, id uuid.UUID) error
-	createProposedDateFn           func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error)
-}
-
-func (f *fakeEventTxStore) unexpected(method string) {
-	f.t.Fatalf("%s should not be called", method)
-}
-
-func (f *fakeEventTxStore) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
-	if f.findPrimaryCalendarFn == nil {
-		f.unexpected("FindPrimaryCalendar")
-	}
-	return f.findPrimaryCalendarFn(ctx, userID)
-}
-
-func (f *fakeEventTxStore) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
-	if f.findAdjustaCandidateCalendarFn == nil {
-		f.unexpected("FindAdjustaCandidateCalendar")
-	}
-	return f.findAdjustaCandidateCalendarFn(ctx, userID)
-}
-
-func (f *fakeEventTxStore) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
-	if f.findEventByIDFn == nil {
-		f.unexpected("FindEventByID")
-	}
-	return f.findEventByIDFn(ctx, userID, eventID, withProposedDates)
-}
-
-func (f *fakeEventTxStore) ReadCalendar(ctx context.Context, calendarID uuid.UUID) (*CalendarRecord, error) {
-	if f.readCalendarFn == nil {
-		f.unexpected("ReadCalendar")
-	}
-	return f.readCalendarFn(ctx, calendarID)
-}
-
-func (f *fakeEventTxStore) CreateEvent(ctx context.Context, userID, primaryCalendarID uuid.UUID, title, location, description string, start, end time.Time) (*EventRecord, error) {
-	if f.createEventFn == nil {
-		f.unexpected("CreateEvent")
-	}
-	return f.createEventFn(ctx, userID, primaryCalendarID, title, location, description, start, end)
-}
-
-func (f *fakeEventTxStore) UpdateEvent(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
-	if f.updateEventFn == nil {
-		f.unexpected("UpdateEvent")
-	}
-	return f.updateEventFn(ctx, id, opt)
-}
-
-func (f *fakeEventTxStore) SoftDeleteEvent(ctx context.Context, id uuid.UUID) error {
-	if f.softDeleteEventFn == nil {
-		f.unexpected("SoftDeleteEvent")
-	}
-	return f.softDeleteEventFn(ctx, id)
-}
-
-func (f *fakeEventTxStore) ListProposedDatesByEvent(ctx context.Context, eventID uuid.UUID) ([]*ProposedDateRecord, error) {
-	if f.listProposedDatesByEventFn == nil {
-		f.unexpected("ListProposedDatesByEvent")
-	}
-	return f.listProposedDatesByEventFn(ctx, eventID)
-}
-
-func (f *fakeEventTxStore) CreateProposedDates(ctx context.Context, selectedDates []SelectedDate, eventID uuid.UUID) ([]*ProposedDateRecord, error) {
-	if f.createProposedDatesFn == nil {
-		f.unexpected("CreateProposedDates")
-	}
-	return f.createProposedDatesFn(ctx, selectedDates, eventID)
-}
-
-func (f *fakeEventTxStore) UpdateProposedDate(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
-	if f.updateProposedDateFn == nil {
-		f.unexpected("UpdateProposedDate")
-	}
-	return f.updateProposedDateFn(ctx, id, opt)
-}
-
-func (f *fakeEventTxStore) DeleteProposedDate(ctx context.Context, id uuid.UUID) error {
-	if f.deleteProposedDateFn == nil {
-		f.unexpected("DeleteProposedDate")
-	}
-	return f.deleteProposedDateFn(ctx, id)
-}
-
-func (f *fakeEventTxStore) CreateProposedDate(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error) {
-	if f.createProposedDateFn == nil {
-		f.unexpected("CreateProposedDate")
-	}
-	return f.createProposedDateFn(ctx, opt, eventID)
-}
-
-type fakeEventTransaction struct {
-	store *fakeEventTxStore
-}
-
-func (f *fakeEventTransaction) DoEvent(ctx context.Context, fn func(repos EventTxRepositories) error) error {
-	return fn(fakeReposFromTxStore(f.store))
-}
 
 func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 	t.Parallel()
@@ -140,23 +28,23 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: true}, nil
+					return &EventCalendar{ID: uuid.New(), SyncProposedDates: true}, nil
 				},
-				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*EventRecord, error) {
+				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*domainEvent.Event, error) {
 					if gotUserID != userID || gotCalendarID != calendarID {
 						t.Fatalf("unexpected create event args: %s %s", gotUserID, gotCalendarID)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:          eventID,
 						Title:       title,
 						Location:    location,
@@ -165,14 +53,14 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						SyncStatus:  value.SyncStatusNotSynced,
 					}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					if id != eventID {
 						t.Fatalf("unexpected event id: %s", id)
 					}
 					if opt.SyncStatus == nil || *opt.SyncStatus != value.SyncStatusPending {
 						t.Fatalf("expected pending sync mutation, got %#v", opt.SyncStatus)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:          eventID,
 						Title:       "Draft",
 						Location:    "Tokyo",
@@ -181,11 +69,11 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						SyncStatus:  value.SyncStatusPending,
 					}, nil
 				},
-				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
-					return []*ProposedDateRecord{
+					return []*domainProposedDate.ProposedDate{
 						{
 							ID:         dateID,
 							StartTime:  selectedDates[0].Start,
@@ -196,14 +84,14 @@ func TestCreateDraftedEventsMarksSyncPending(t *testing.T) {
 						},
 					}, nil
 				},
-				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*domainProposedDate.ProposedDate, error) {
 					if id != dateID {
 						t.Fatalf("unexpected date id: %s", id)
 					}
 					if opt.SyncStatus == nil || *opt.SyncStatus != value.SyncStatusPending {
 						t.Fatalf("expected pending proposed date sync, got %#v", opt.SyncStatus)
 					}
-					return &ProposedDateRecord{
+					return &domainProposedDate.ProposedDate{
 						ID:         dateID,
 						StartTime:  start,
 						EndTime:    end,
@@ -255,23 +143,23 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: false}, nil
+					return &EventCalendar{ID: uuid.New(), SyncProposedDates: false}, nil
 				},
-				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*EventRecord, error) {
+				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*domainEvent.Event, error) {
 					if gotUserID != userID || gotCalendarID != calendarID {
 						t.Fatalf("unexpected create event args: %s %s", gotUserID, gotCalendarID)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:          eventID,
 						Title:       title,
 						Location:    location,
@@ -280,16 +168,16 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 						SyncStatus:  value.SyncStatusNotSynced,
 					}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					updateEventCalled = true
 					t.Fatalf("UpdateEvent should not be called when candidate sync is disabled")
 					return nil, nil
 				},
-				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
-					return []*ProposedDateRecord{
+					return []*domainProposedDate.ProposedDate{
 						{
 							ID:         dateID,
 							StartTime:  selectedDates[0].Start,
@@ -300,7 +188,7 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 						},
 					}, nil
 				},
-				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*domainProposedDate.ProposedDate, error) {
 					updateProposedDateCalled = true
 					t.Fatalf("UpdateProposedDate should not be called when candidate sync is disabled")
 					return nil, nil
@@ -348,20 +236,20 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
 					return nil, repoerr.ErrNotFound
 				},
-				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*EventRecord, error) {
-					return &EventRecord{
+				createEventFn: func(ctx context.Context, gotUserID, gotCalendarID uuid.UUID, title, location, description string, gotStart, gotEnd time.Time) (*domainEvent.Event, error) {
+					return &domainEvent.Event{
 						ID:          eventID,
 						Title:       title,
 						Location:    location,
@@ -370,8 +258,8 @@ func TestCreateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 						SyncStatus:  value.SyncStatusNotSynced,
 					}, nil
 				},
-				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
-					return []*ProposedDateRecord{
+				createProposedDatesFn: func(ctx context.Context, selectedDates []SelectedDate, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
+					return []*domainProposedDate.ProposedDate{
 						{
 							ID:         dateID,
 							StartTime:  selectedDates[0].Start,
@@ -425,41 +313,41 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: true}, nil
+					return &EventCalendar{ID: uuid.New(), SyncProposedDates: true}, nil
 				},
-				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*domainEvent.Event, error) {
 					if gotUserID != userID || gotEventID != eventID {
 						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 					}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					eventMutation = opt
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 					}, nil
 				},
-				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
-					return []*ProposedDateRecord{
+					return []*domainProposedDate.ProposedDate{
 						{
 							ID:         dateID,
 							StartTime:  start.Add(-time.Hour),
@@ -470,18 +358,18 @@ func TestUpdateDraftedEventsMarksPendingSyncForDraftEdits(t *testing.T) {
 						},
 					}, nil
 				},
-				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*domainProposedDate.ProposedDate, error) {
 					if id != dateID {
 						t.Fatalf("unexpected date id: %s", id)
 					}
 					dateMutation = opt
-					return &ProposedDateRecord{ID: dateID}, nil
+					return &domainProposedDate.ProposedDate{ID: dateID}, nil
 				},
 				deleteProposedDateFn: func(ctx context.Context, id uuid.UUID) error {
 					t.Fatalf("DeleteProposedDate should not be called")
 					return nil
 				},
-				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error) {
+				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*domainProposedDate.ProposedDate, error) {
 					t.Fatalf("CreateProposedDate should not be called")
 					return nil, nil
 				},
@@ -543,45 +431,45 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: false}, nil
+					return &EventCalendar{ID: uuid.New(), SyncProposedDates: false}, nil
 				},
-				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*domainEvent.Event, error) {
 					if gotUserID != userID || gotEventID != eventID {
 						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 					}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					if id != eventID {
 						t.Fatalf("unexpected event id: %s", id)
 					}
 					eventMutation = opt
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 						SyncStatus:        value.SyncStatusNotSynced,
 					}, nil
 				},
-				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
+				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
-					return []*ProposedDateRecord{
+					return []*domainProposedDate.ProposedDate{
 						{
 							ID:         keepDateID,
 							StartTime:  start.Add(-time.Hour),
@@ -600,20 +488,20 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateSyncDisabled(t *testing.T
 						},
 					}, nil
 				},
-				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*domainProposedDate.ProposedDate, error) {
 					mutations[id] = opt
-					return &ProposedDateRecord{ID: id}, nil
+					return &domainProposedDate.ProposedDate{ID: id}, nil
 				},
 				deleteProposedDateFn: func(ctx context.Context, id uuid.UUID) error {
 					deletedID = id
 					return nil
 				},
-				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, gotEventID uuid.UUID) (*ProposedDateRecord, error) {
+				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, gotEventID uuid.UUID) (*domainProposedDate.ProposedDate, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
 					createdMutation = opt
-					return &ProposedDateRecord{ID: createdDateID}, nil
+					return &domainProposedDate.ProposedDate{ID: createdDateID}, nil
 				},
 			},
 		},
@@ -687,39 +575,39 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
 					return nil, repoerr.ErrNotFound
 				},
-				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*domainEvent.Event, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 					}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					eventMutation = opt
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 						SyncStatus:        value.SyncStatusNotSynced,
 					}, nil
 				},
-				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
-					return []*ProposedDateRecord{
+				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
+					return []*domainProposedDate.ProposedDate{
 						{
 							ID:         dateID,
 							StartTime:  start.Add(-time.Hour),
@@ -730,15 +618,15 @@ func TestUpdateDraftedEventsKeepsNotSyncedWhenCandidateCalendarMissing(t *testin
 						},
 					}, nil
 				},
-				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*domainProposedDate.ProposedDate, error) {
 					dateMutation = opt
-					return &ProposedDateRecord{ID: id}, nil
+					return &domainProposedDate.ProposedDate{ID: id}, nil
 				},
 				deleteProposedDateFn: func(ctx context.Context, id uuid.UUID) error {
 					t.Fatalf("DeleteProposedDate should not be called")
 					return nil
 				},
-				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error) {
+				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*domainProposedDate.ProposedDate, error) {
 					t.Fatalf("CreateProposedDate should not be called")
 					return nil, nil
 				},
@@ -788,13 +676,13 @@ func TestDeleteDraftedEventsMarksPendingBeforeSoftDelete(t *testing.T) {
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					updateCalled = true
 					if id != eventID {
 						t.Fatalf("unexpected event id: %s", id)
@@ -802,7 +690,7 @@ func TestDeleteDraftedEventsMarksPendingBeforeSoftDelete(t *testing.T) {
 					if opt.SyncStatus == nil || *opt.SyncStatus != value.SyncStatusPending {
 						t.Fatalf("unexpected sync status mutation: %#v", opt.SyncStatus)
 					}
-					return &EventRecord{ID: eventID}, nil
+					return &domainEvent.Event{ID: eventID}, nil
 				},
 				softDeleteEventFn: func(ctx context.Context, id uuid.UUID) error {
 					deleteCalled = true
@@ -848,50 +736,50 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findPrimaryCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: calendarID}, nil
+					return &EventCalendar{ID: calendarID}, nil
 				},
-				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*CalendarRecord, error) {
+				findAdjustaCandidateCalendarFn: func(ctx context.Context, gotUserID uuid.UUID) (*EventCalendar, error) {
 					if gotUserID != userID {
 						t.Fatalf("unexpected user id: %s", gotUserID)
 					}
-					return &CalendarRecord{ID: uuid.New(), SyncProposedDates: true}, nil
+					return &EventCalendar{ID: uuid.New(), SyncProposedDates: true}, nil
 				},
-				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*domainEvent.Event, error) {
 					if gotEventID != eventID {
 						t.Fatalf("unexpected event id: %s", gotEventID)
 					}
-					return &EventRecord{
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 					}, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
-					return &EventRecord{
+				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
+					return &domainEvent.Event{
 						ID:                eventID,
 						PrimaryCalendarID: calendarID,
 						Status:            value.StatusActive,
 					}, nil
 				},
-				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*ProposedDateRecord, error) {
-					return []*ProposedDateRecord{
+				listProposedDatesByEventFn: func(ctx context.Context, gotEventID uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
+					return []*domainProposedDate.ProposedDate{
 						{ID: keepDateID, StartTime: start.Add(-time.Hour), EndTime: end.Add(-time.Hour), Priority: 1},
 						{ID: deleteDateID, StartTime: start.Add(-2 * time.Hour), EndTime: end.Add(-2 * time.Hour), Priority: 2},
 					}, nil
 				},
-				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*ProposedDateRecord, error) {
+				updateProposedDateFn: func(ctx context.Context, id uuid.UUID, opt ProposedDateMutation) (*domainProposedDate.ProposedDate, error) {
 					mutations[id] = opt
-					return &ProposedDateRecord{ID: id}, nil
+					return &domainProposedDate.ProposedDate{ID: id}, nil
 				},
 				deleteProposedDateFn: func(ctx context.Context, id uuid.UUID) error {
 					deletedID = id
 					return nil
 				},
-				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*ProposedDateRecord, error) {
+				createProposedDateFn: func(ctx context.Context, opt ProposedDateMutation, eventID uuid.UUID) (*domainProposedDate.ProposedDate, error) {
 					t.Fatalf("CreateProposedDate should not be called")
 					return nil, nil
 				},
@@ -926,77 +814,5 @@ func TestUpdateDraftedEventsMarksDeletedProposedDatesPendingBeforeSoftDelete(t *
 	}
 	if deleteMutation.SyncStatus == nil || *deleteMutation.SyncStatus != value.SyncStatusPending {
 		t.Fatalf("unexpected deleted proposed date sync mutation: %#v", deleteMutation.SyncStatus)
-	}
-}
-
-func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	userID := uuid.New()
-	calendarID := uuid.New()
-	eventID := uuid.New()
-	start := time.Now().UTC().Add(3 * time.Hour)
-	end := start.Add(time.Hour)
-
-	var failureMutation EventMutation
-
-	uc := NewUsecase(
-		EventTxRepositories{},
-		&fakeEventTransaction{
-			store: &fakeEventTxStore{
-				t: t,
-				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
-					if gotUserID != userID || gotEventID != eventID {
-						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
-					}
-					return &EventRecord{
-						ID:                eventID,
-						PrimaryCalendarID: calendarID,
-						Title:             "Finalize",
-						Status:            value.StatusActive,
-					}, nil
-				},
-				readCalendarFn: func(ctx context.Context, gotCalendarID uuid.UUID) (*CalendarRecord, error) {
-					if gotCalendarID != calendarID {
-						t.Fatalf("unexpected calendar id: %s", gotCalendarID)
-					}
-					return &CalendarRecord{
-						ID:               calendarID,
-						GoogleCalendarID: "primary-calendar",
-					}, nil
-				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*EventRecord, error) {
-					if id != eventID {
-						t.Fatalf("unexpected event id: %s", id)
-					}
-					failureMutation = opt
-					return &EventRecord{ID: eventID}, nil
-				},
-			},
-		},
-		&fakeGoogleCalendarGateway{
-			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*CalendarRecord, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
-				t.Fatalf("FetchEvents should not be called")
-				return nil, nil
-			},
-			upsertEventFn: func(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
-				return "", errors.New("google unavailable")
-			},
-		},
-	)
-
-	err := uc.FinalizeProposedDate(ctx, userID, eventID, "user@example.com", ConfirmationRequest{
-		Start: &start,
-		End:   &end,
-	})
-	if !internalErrors.IsKind(err, internalErrors.KindInternal) {
-		t.Fatalf("expected internal error, got %v", err)
-	}
-	if failureMutation.SyncStatus == nil || *failureMutation.SyncStatus != value.SyncStatusFailed {
-		t.Fatalf("unexpected failure sync status: %#v", failureMutation.SyncStatus)
-	}
-	if failureMutation.LastSyncError == nil || *failureMutation.LastSyncError == "" {
-		t.Fatalf("expected last sync error to be recorded, got %#v", failureMutation.LastSyncError)
 	}
 }

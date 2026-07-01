@@ -5,10 +5,11 @@ import (
 	"time"
 
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func buildProposedDateOutputs(storedDates []*ProposedDateRecord) []ProposedDateOutput {
+func buildProposedDateOutputs(storedDates []*domainProposedDate.ProposedDate) []ProposedDateOutput {
 	proposedDates := make([]ProposedDateOutput, 0, len(storedDates))
 	for _, storedDate := range storedDates {
 		proposedDates = append(proposedDates, ProposedDateOutput{
@@ -31,7 +32,7 @@ func buildProposedDateOutputs(storedDates []*ProposedDateRecord) []ProposedDateO
 	return proposedDates
 }
 
-func buildEventDraftDetailOutput(storedEvent *EventRecord) (*EventDraftDetailOutput, error) {
+func buildEventDraftDetailOutput(storedEvent *domainEvent.Event) (*EventDraftDetailOutput, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
@@ -52,7 +53,7 @@ func buildEventDraftDetailOutput(storedEvent *EventRecord) (*EventDraftDetailOut
 	}, nil
 }
 
-func buildUpcomingEventOutput(storedEvent *EventRecord) (*UpcomingEventOutput, error) {
+func buildUpcomingEventOutput(storedEvent *domainEvent.Event) (*UpcomingEventOutput, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
@@ -82,7 +83,7 @@ func buildUpcomingEventOutput(storedEvent *EventRecord) (*UpcomingEventOutput, e
 	return nil, nil
 }
 
-func buildNeedsActionDraftOutput(storedEvent *EventRecord, currentTime time.Time) (*NeedsActionDraftOutput, error) {
+func buildNeedsActionDraftOutput(storedEvent *domainEvent.Event, currentTime time.Time) (*NeedsActionDraftOutput, error) {
 	if storedEvent.ProposedDates == nil {
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}

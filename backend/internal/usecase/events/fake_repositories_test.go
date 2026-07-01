@@ -14,42 +14,42 @@ import (
 )
 
 type fakeEventReader struct {
-	findPrimaryCalendarFn          func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
-	findAdjustaCandidateCalendarFn func(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error)
-	listCalendarsByUserFn          func(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error)
-	searchEventsFn                 func(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error)
-	findEventByIDFn                func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error)
+	findPrimaryCalendarFn          func(ctx context.Context, userID uuid.UUID) (*EventCalendar, error)
+	findAdjustaCandidateCalendarFn func(ctx context.Context, userID uuid.UUID) (*EventCalendar, error)
+	listCalendarsByUserFn          func(ctx context.Context, userID uuid.UUID) ([]*EventCalendar, error)
+	searchEventsFn                 func(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*repoEvent.Event, error)
+	findEventByIDFn                func(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*repoEvent.Event, error)
 }
 
-func (f *fakeEventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
+func (f *fakeEventReader) FindPrimaryCalendar(ctx context.Context, userID uuid.UUID) (*EventCalendar, error) {
 	return f.findPrimaryCalendarFn(ctx, userID)
 }
 
-func (f *fakeEventReader) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*CalendarRecord, error) {
+func (f *fakeEventReader) FindAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID) (*EventCalendar, error) {
 	if f.findAdjustaCandidateCalendarFn == nil {
 		panic("FindAdjustaCandidateCalendar should not be called")
 	}
 	return f.findAdjustaCandidateCalendarFn(ctx, userID)
 }
 
-func (f *fakeEventReader) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*CalendarRecord, error) {
+func (f *fakeEventReader) ListCalendarsByUser(ctx context.Context, userID uuid.UUID) ([]*EventCalendar, error) {
 	return f.listCalendarsByUserFn(ctx, userID)
 }
 
-func (f *fakeEventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*EventRecord, error) {
+func (f *fakeEventReader) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*repoEvent.Event, error) {
 	return f.searchEventsFn(ctx, userID, calendarID, opt)
 }
 
-func (f *fakeEventReader) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*EventRecord, error) {
+func (f *fakeEventReader) FindEventByID(ctx context.Context, userID, eventID uuid.UUID, withProposedDates bool) (*repoEvent.Event, error) {
 	return f.findEventByIDFn(ctx, userID, eventID, withProposedDates)
 }
 
 type fakeGoogleCalendarGateway struct {
-	fetchEventsFn func(ctx context.Context, userID uuid.UUID, calendars []*CalendarRecord, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
+	fetchEventsFn func(ctx context.Context, userID uuid.UUID, calendars []*EventCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
 	upsertEventFn func(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
 }
 
-func (f *fakeGoogleCalendarGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*CalendarRecord, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
+func (f *fakeGoogleCalendarGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*EventCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
 	return f.fetchEventsFn(ctx, userID, calendars, startTime, endTime)
 }
 
@@ -86,7 +86,7 @@ type fakeCalendarRepository struct {
 func (f *fakeCalendarRepository) Read(ctx context.Context, id uuid.UUID) (*repoCalendar.Calendar, error) {
 	if f.store != nil && f.store.readCalendarFn != nil {
 		record, err := f.store.readCalendarFn(ctx, id)
-		return calendarRecordToDomain(record), err
+		return eventCalendarToDomain(record), err
 	}
 	if calendar, ok := f.calendars[id]; ok {
 		return calendar, nil
@@ -104,7 +104,7 @@ func (f *fakeCalendarRepository) FilterByUserID(ctx context.Context, userID uuid
 	}
 	calendars := make([]*repoCalendar.Calendar, 0, len(records))
 	for _, record := range records {
-		calendar := calendarRecordToDomain(record)
+		calendar := eventCalendarToDomain(record)
 		f.calendars[calendar.ID] = calendar
 		calendars = append(calendars, calendar)
 	}
@@ -114,7 +114,7 @@ func (f *fakeCalendarRepository) FilterByUserID(ctx context.Context, userID uuid
 func (f *fakeCalendarRepository) FindByFields(ctx context.Context, userID uuid.UUID, opt repoCalendar.CalendarQueryOptions) (*repoCalendar.Calendar, error) {
 	if f.reader != nil && f.reader.findPrimaryCalendarFn != nil {
 		record, err := f.reader.findPrimaryCalendarFn(ctx, userID)
-		calendar := calendarRecordToDomain(record)
+		calendar := eventCalendarToDomain(record)
 		if calendar != nil {
 			f.calendars[calendar.ID] = calendar
 		}
@@ -122,7 +122,7 @@ func (f *fakeCalendarRepository) FindByFields(ctx context.Context, userID uuid.U
 	}
 	if f.store != nil && f.store.findPrimaryCalendarFn != nil {
 		record, err := f.store.findPrimaryCalendarFn(ctx, userID)
-		calendar := calendarRecordToDomain(record)
+		calendar := eventCalendarToDomain(record)
 		if calendar != nil {
 			f.calendars[calendar.ID] = calendar
 		}
@@ -307,7 +307,7 @@ type fakeUserCalendarRepository struct {
 
 func (f *fakeUserCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoUserCalendar.UserCalendar, error) {
 	var (
-		record *CalendarRecord
+		record *EventCalendar
 		err    error
 	)
 	if f.reader != nil && f.reader.findAdjustaCandidateCalendarFn != nil {
@@ -320,7 +320,7 @@ func (f *fakeUserCalendarRepository) FilterByUserID(ctx context.Context, userID 
 	if err != nil {
 		return nil, err
 	}
-	calendar := calendarRecordToDomain(record)
+	calendar := eventCalendarToDomain(record)
 	f.calendarRepo.calendars[calendar.ID] = calendar
 	return []*repoUserCalendar.UserCalendar{
 		{
@@ -339,7 +339,7 @@ func (f *fakeUserCalendarRepository) SoftDeleteByUserAndCalendar(ctx context.Con
 	return errors.New("SoftDeleteByUserAndCalendar should not be called")
 }
 
-func calendarRecordToDomain(record *CalendarRecord) *repoCalendar.Calendar {
+func eventCalendarToDomain(record *EventCalendar) *repoCalendar.Calendar {
 	if record == nil {
 		return nil
 	}
@@ -352,7 +352,7 @@ func calendarRecordToDomain(record *CalendarRecord) *repoCalendar.Calendar {
 	}
 }
 
-func applyEventMutation(record *EventRecord, opt EventMutation) {
+func applyEventMutation(record *repoEvent.Event, opt EventMutation) {
 	if opt.Title != nil {
 		record.Title = *opt.Title
 	}
@@ -390,7 +390,7 @@ func applyEventMutation(record *EventRecord, opt EventMutation) {
 	}
 }
 
-func applyProposedDateMutation(record *ProposedDateRecord, opt ProposedDateMutation) {
+func applyProposedDateMutation(record *repoProposedDate.ProposedDate, opt ProposedDateMutation) {
 	if opt.GoogleEventID != nil {
 		googleEventID := *opt.GoogleEventID
 		record.GoogleEventID = &googleEventID

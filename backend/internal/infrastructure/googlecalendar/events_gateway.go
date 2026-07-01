@@ -22,7 +22,7 @@ func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, cale
 	}
 }
 
-func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*usecaseEvents.CalendarRecord, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
+func (g *eventGateway) FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*usecaseEvents.EventCalendar, startTime, endTime time.Time) (*usecaseEvents.GoogleEventFetchResult, error) {
 	calendarService, err := g.newCalendarService(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func toFetchedGoogleEvents(events []*FetchedEvent) []*usecaseEvents.FetchedGoogl
 	return outputs
 }
 
-func toCalendars(calendars []*usecaseEvents.CalendarRecord) []*repoCalendar.Calendar {
+func toCalendars(calendars []*usecaseEvents.EventCalendar) []*repoCalendar.Calendar {
 	domainCalendars := make([]*repoCalendar.Calendar, 0, len(calendars))
 	for _, calendar := range calendars {
 		if calendar == nil {

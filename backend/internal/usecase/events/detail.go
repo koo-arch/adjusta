@@ -13,7 +13,35 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+func (uc *Usecase) FetchDraftedEventDetail(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) (*EventDraftDetailOutput, error) {
+	if uc.tx == nil {
+		storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, uc.repos, userID, email, eventID)
+		if err != nil {
+			return nil, err
+		}
+		return buildEventDraftDetailOutput(storedEvent)
+	}
+
+	var response *EventDraftDetailOutput
+
+	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
+		storedEvent, err := uc.loadDraftedEventDetailWithSync(ctx, repos, userID, email, eventID)
+		if err != nil {
+			return err
+		}
+
+		response, err = buildEventDraftDetailOutput(storedEvent)
+		return err
+	})
+	if err != nil {
+		log.Printf("failed running fetch drafted event detail transaction: %v", err)
+		return nil, mapUsecaseError(err, internalErrors.InternalErrorMessage)
+	}
+
+	return response, nil
+}
+
+func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*domainEvent.Event, error) {
 	storedEvent, err := repos.Event.FindByIDAndUser(ctx, userID, eventID, domainEvent.EventReadOptions{
 		WithProposedDates: true,
 	})
@@ -28,7 +56,7 @@ func (uc *Usecase) loadDraftedEventDetailRecord(ctx context.Context, repos Event
 	return storedEvent, nil
 }
 
-func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*EventRecord, error) {
+func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email string, eventID uuid.UUID) (*domainEvent.Event, error) {
 	storedEvent, err := uc.loadDraftedEventDetailRecord(ctx, repos, userID, email, eventID)
 	if err != nil {
 		return nil, err
@@ -49,7 +77,7 @@ func (uc *Usecase) loadDraftedEventDetailWithSync(ctx context.Context, repos Eve
 	return uc.loadDraftedEventDetailRecord(ctx, repos, userID, email, eventID)
 }
 
-func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email, calendarID string, storedEvent *EventRecord) error {
+func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxRepositories, userID uuid.UUID, email, calendarID string, storedEvent *domainEvent.Event) error {
 	var (
 		attemptedSync bool
 		lastSyncErr   error

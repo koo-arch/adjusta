@@ -10,6 +10,9 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
+type EventMutation = domainEvent.EventUpdateOptions
+type ProposedDateMutation = repoProposedDate.ProposedDateUpdateOptions
+
 func (uc *Usecase) recordEventSyncFailure(ctx context.Context, repos EventTxRepositories, eventID uuid.UUID, syncErr error) error {
 	_, err := repos.Event.Update(ctx, eventID, mergeEventChange(EventMutation{}, domainEvent.NewFailedEventChange(syncErr)))
 	return err
