@@ -1,4 +1,4 @@
-package handlers
+package oauth
 
 import (
 	"log"
@@ -10,15 +10,15 @@ import (
 	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
-type OauthHandler struct {
+type Handler struct {
 	oauthUsecase OAuthUsecase
 }
 
-func NewOauthHandler(oauthUsecase OAuthUsecase) *OauthHandler {
-	return &OauthHandler{oauthUsecase: oauthUsecase}
+func NewHandler(oauthUsecase OAuthUsecase) *Handler {
+	return &Handler{oauthUsecase: oauthUsecase}
 }
 
-func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
+func (oh *Handler) GoogleLoginHandler(c *gin.Context) {
 	state, err := sessionctx.NewOAuthState(c)
 	if err != nil {
 		log.Printf("failed to save oauth state: %v", err)
@@ -30,7 +30,7 @@ func (oh *OauthHandler) GoogleLoginHandler(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
+func (oh *Handler) LogoutHandler(c *gin.Context) {
 	sessionToken, _ := sessionctx.SessionToken(c)
 
 	if err := oh.oauthUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
@@ -47,7 +47,7 @@ func (oh *OauthHandler) LogoutHandler(c *gin.Context) {
 	respond.OKMessage(c, "logged out")
 }
 
-func (oh *OauthHandler) GoogleCallbackHandler() gin.HandlerFunc {
+func (oh *Handler) GoogleCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		state := c.Query("state")
 		code := c.Query("code")

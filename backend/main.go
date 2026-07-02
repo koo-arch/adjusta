@@ -10,7 +10,10 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/api/handlers"
+	accountHandlers "github.com/koo-arch/adjusta-backend/api/handlers/account"
+	eventHandlers "github.com/koo-arch/adjusta-backend/api/handlers/events"
+	oauthHandlers "github.com/koo-arch/adjusta-backend/api/handlers/oauth"
+	userHandlers "github.com/koo-arch/adjusta-backend/api/handlers/user"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
 	"github.com/koo-arch/adjusta-backend/ent"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
@@ -116,10 +119,16 @@ func main() {
 	store.Options(infraCookie.DefaultCookieOptions())
 	router.Use(sessions.Sessions(infraCookie.SessionCookieName, store))
 
-	accountHandler := handlers.NewAccountHandler(accountProfileUsecase)
-	userHandler := handlers.NewUserHandler(accountProfileUsecase)
-	oauthHandler := handlers.NewOauthHandler(oauthUsecase)
-	eventHandler := handlers.NewEventHandler(eventUsecase, eventUsecase, eventUsecase)
+	accountHandler := accountHandlers.NewHandler(accountProfileUsecase)
+	userHandler := userHandlers.NewHandler(accountProfileUsecase)
+	oauthHandler := oauthHandlers.NewHandler(oauthUsecase)
+	eventHandler := eventHandlers.NewHandler(
+		eventUsecase,
+		eventUsecase,
+		eventUsecase,
+		eventUsecase,
+		eventUsecase,
+	)
 
 	authMiddleware := middlewares.NewAuthMiddleware(authenticator)
 	calendarMiddleware := middlewares.NewCalendarMiddleware(cacheStore, calendarSyncUsecase)

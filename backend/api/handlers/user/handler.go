@@ -1,4 +1,4 @@
-package handlers
+package user
 
 import (
 	"log"
@@ -8,25 +8,26 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/respond"
 )
 
-type AccountHandler struct {
-	accountProfileUsecase AccountProfileUsecase
+type Handler struct {
+	profileUsecase ProfileUsecase
 }
 
-func NewAccountHandler(accountProfileUsecase AccountProfileUsecase) *AccountHandler {
-	return &AccountHandler{accountProfileUsecase: accountProfileUsecase}
+func NewHandler(profileUsecase ProfileUsecase) *Handler {
+	return &Handler{profileUsecase: profileUsecase}
 }
 
-func (ah *AccountHandler) FetchAccountsHandler() gin.HandlerFunc {
+func (uh *Handler) GetCurrentUserHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-
 		userid, email, err := requestctx.UserIDAndEmail(c)
 		if err != nil {
+			log.Printf("failed to extract user info for account: %s, %v", email, err)
 			respond.Error(c, err, "ユーザー情報確認時にエラーが発生しました")
 			return
 		}
 
-		userInfo, err := ah.accountProfileUsecase.FetchGoogleProfile(ctx, userid)
+		ctx := c.Request.Context()
+
+		userInfo, err := uh.profileUsecase.FetchGoogleProfile(ctx, userid)
 		if err != nil {
 			log.Printf("failed to fetch user info for account: %s, %v", email, err)
 			respond.Error(c, err, "ユーザー情報取得に失敗しました")
