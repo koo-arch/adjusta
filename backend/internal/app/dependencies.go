@@ -10,6 +10,7 @@ import (
 	oauthHandlers "github.com/koo-arch/adjusta-backend/api/handlers/oauth"
 	userHandlers "github.com/koo-arch/adjusta-backend/api/handlers/user"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
+	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 	"github.com/koo-arch/adjusta-backend/ent"
 	"github.com/koo-arch/adjusta-backend/internal/config"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
@@ -43,6 +44,7 @@ func buildDependencies(client *ent.Client, cfg config.Config) *dependencies {
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
 	googleOAuthClient := infraGoogleOAuth.NewClient(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI)
 	cookieManager := apiCookie.NewManager(cfg.Domain, !cfg.IsDevelopment())
+	cookieSessionStore := sessionctx.NewCookieSessionStore(cookieManager)
 	cookieOptions := cookieManager.Options()
 	sessionLifetime := time.Duration(cookieOptions.MaxAge) * time.Second
 
@@ -86,11 +88,11 @@ func buildDependencies(client *ent.Client, cfg config.Config) *dependencies {
 	return &dependencies{
 		accountHandler:     accountHandlers.NewHandler(accountProfileUsecase),
 		userHandler:        userHandlers.NewHandler(accountProfileUsecase),
-		oauthHandler:       oauthHandlers.NewHandler(oauthUsecase, cfg.RedirectURLAfterLogin, cookieManager),
+		oauthHandler:       oauthHandlers.NewHandler(oauthUsecase, cfg.RedirectURLAfterLogin, cookieSessionStore),
 		eventHandler:       eventHandlers.NewHandler(eventUsecase, eventUsecase, eventUsecase, eventUsecase, eventUsecase),
-		authMiddleware:     middlewares.NewAuthMiddleware(authenticator, cookieManager),
+		authMiddleware:     middlewares.NewAuthMiddleware(authenticator, cookieSessionStore),
 		calendarMiddleware: middlewares.NewCalendarMiddleware(calendarSyncUsecase),
-		sessionMiddleware:  middlewares.NewSessionMiddleware(cookieManager),
+		sessionMiddleware:  middlewares.NewSessionMiddleware(cookieSessionStore),
 		cookieOptions:      cookieOptions,
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/koo-arch/adjusta-backend/api/cookie"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
@@ -13,19 +12,19 @@ import (
 
 type AuthMiddleware struct {
 	sessionAuthenticator SessionAuthenticator
-	cookieManager        *cookie.Manager
+	cookieSessionStore   *sessionctx.CookieSessionStore
 }
 
-func NewAuthMiddleware(sessionAuthenticator SessionAuthenticator, cookieManager *cookie.Manager) *AuthMiddleware {
+func NewAuthMiddleware(sessionAuthenticator SessionAuthenticator, cookieSessionStore *sessionctx.CookieSessionStore) *AuthMiddleware {
 	return &AuthMiddleware{
 		sessionAuthenticator: sessionAuthenticator,
-		cookieManager:        cookieManager,
+		cookieSessionStore:   cookieSessionStore,
 	}
 }
 
 func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		sessionToken, ok := sessionctx.SessionToken(c)
+		sessionToken, ok := am.cookieSessionStore.SessionToken(c)
 		if !ok || sessionToken == "" {
 			am.clearSession(c)
 			respond.Unauthorized(c, "認証情報がありません")
@@ -45,13 +44,12 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 		}
 
 		requestctx.SetUser(c, authenticatedUser.ID, authenticatedUser.Email)
-		sessionctx.PutAuthenticatedSessionToken(c, sessionToken)
 		c.Next()
 	}
 }
 
 func (am *AuthMiddleware) clearSession(c *gin.Context) {
-	if err := sessionctx.Clear(c, am.cookieManager); err != nil {
+	if err := am.cookieSessionStore.ClearSession(c); err != nil {
 		log.Printf("failed to clear session cookie: %v", err)
 	}
 }

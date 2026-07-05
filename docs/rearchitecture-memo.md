@@ -27,9 +27,9 @@
 
 | 項目 | docs の方針 | 現実装の状況 | 影響 |
 |---|---|---|---|
-| 認証方式 | Google OAuth を用い、自前 JWT は原則持たない。認証状態はセッションまたは OAuth ベースで管理する | バックエンドで独自 JWT を発行し、フロントエンドは `access_token` cookie を見て画面遷移を制御している | 認証基盤、middleware、cookie 設計、API 認可方式を見直す必要がある |
-| User モデル | `users` は Adjusta 利用者の基本情報のみを保持し、Google アカウント識別情報と token は `accounts` で管理する | `users` に `refresh_token` と `refresh_token_expiry` を保持している | User と Token の責務が混在しており、モデル再定義が必要 |
-| OAuth トークン管理 | Google Calendar API 用トークンを安全に保存する | `OAuthToken` テーブルと `users.refresh_token` が併存している | `accounts` に集約する前提でトークン保存先の正規化が必要 |
+| 認証方式 | Google OAuth を用い、自前 JWT は原則持たない。認証状態はセッションまたは OAuth ベースで管理する | JWT 発行は撤去され、backend は `sessions` と session cookie を中心に認証状態を扱う形へ移行済み。frontend も `GET /api/users/me` と middleware の session 検証を起点に寄っている | 大枠は解消済み。OAuth state / callback / middleware / logout の責務境界と error handling は継続整理する |
+| User モデル | `users` は Adjusta 利用者の基本情報のみを保持し、Google アカウント識別情報と token は `accounts` で管理する | `users.refresh_token*` は撤去され、Google アカウント識別情報と token は `accounts` に集約済み | この差分は概ね解消済み。今後は Google 連携状態と Adjusta ログイン状態の扱いをさらに分離する |
+| OAuth トークン管理 | Google Calendar API 用トークンを安全に保存する | `OAuthToken` は撤去され、Google token は `accounts.access_token` / `refresh_token` / `expires_at` / `scope` で管理している | 保存先の正規化は概ね解消済み。Google token refresh 失敗時の再認可導線は継続課題 |
 | カレンダーの関係 | `users` と `calendars` は `user_calendars` を介した多対多 | `user_calendars` を導入し、`users` と `calendars` の関係は docs に沿った多対多へ移行済み | この差分は概ね解消済み。今後は `user_calendars.role` を前提に用途別ロジックを整理する |
 | カレンダー属性の置き場所 | `calendars` が `google_calendar_id`、`summary`、`description`、`timezone` を持つ | `calendars` に Google Calendar 情報を集約し、`google_calendar_infos` は廃止済み | この差分は解消済み。以後 `googlecalendarinfo` を正本として扱わない |
 | Event 所有者と登録先 | `events` は `user_id`、`primary_calendar_id`、`confirmed_date_id` を持つ | `events` は docs に沿って `user_id` / `primary_calendar_id` / `confirmed_date_id` を直接保持する形へ移行済み | この差分は概ね解消済み。認可、登録先、同期時の前提が明確になった |
@@ -113,8 +113,8 @@
 #### 4.1.7 現時点の変更の扱い
 
 - `accounts` に Google token を集約する変更は、最終アーキテクチャでも継続利用できる
-- 一方で、`accounts` を現行 JWT ベース実装へ接続したコードは暫定であり、Phase 2 で session 主体の実装へ置き換える前提で扱う
-- 今後 auth 実装を進める際は、「JWT を残すための改善」ではなく「JWT を撤去するための移行」に限定して変更を入れる
+- JWT ベース実装は撤去済みであり、今後 auth 実装を進める際は session と Google 連携状態の責務分離を前提に変更を入れる
+- 既存の session 主体実装は最終形の土台として扱い、OAuth state / callback / middleware / logout の境界を段階的に整理する
 
 ### 4.2 カレンダー用途の語彙
 
@@ -209,9 +209,9 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - `operation_logs`
 - `sync_jobs` または同等の補助テーブル
 
-### 5.4 現在の到達度（2026-06-17 時点）
+### 5.4 現在の到達度（2026-07-05 時点）
 
-現時点では、バックエンドの層構成は docs の目標形に概ね近づいており、`events` / `proposed_dates` の schema と同期語彙もかなり docs に寄ってきている。auth は session 主体の実装へ寄ってきており、今後は残る shared model 依存の削減、domain の純化、migration / drop 方針の整理が継続課題である。また、層を分けるために増やした port / adapter / Record のうち、単なる repository 操作の言い換えや詰め替えになっているものは薄くする段階に入る。
+現時点では、バックエンドの層構成は docs の目標形に概ね近づいており、`events` / `proposed_dates` の schema と同期語彙もかなり docs に寄ってきている。auth は session 主体の実装へ寄ってきており、composition root は `cmd/server` と `internal/app` に分かれた。migration は server 起動時の自動実行から `cmd/migrate` に分離し、開発 compose でも `migrate` service と DB healthcheck を使って明示的に実行する形へ移行した。今後は残る shared model 依存の削減、domain の純化、versioned migration 化の検討が継続課題である。また、層を分けるために増やした port / adapter / Record のうち、単なる repository 操作の言い換えや詰め替えになっているものは薄くする段階に入る。
 
 #### 5.4.1 バックエンド層ごとの到達度
 
@@ -220,15 +220,16 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 | interface | `backend/api/handlers` `backend/api/dto` `backend/api/middlewares` `backend/api/queryparser` `backend/api/requestctx` `backend/api/respond` `backend/api/validation` | 87% 前後 | HTTP 入出力、validation、request context、HTTP error 変換が概ねこの層に集約されている。events の request DTO は `api/dto` へ寄せ始め、`api.Server` と root `api` port package は廃止した | API response DTO と usecase output の分離は未完 |
 | application | `backend/internal/usecase` `backend/internal/google` `backend/internal/errors` | 82% 前後 | usecase ごとの port 分離、transaction orchestration、Google Calendar 連携の orchestration、イベント詳細アクセス時の候補予定再同期が進んでいる。events port では候補日程作成時の selected date DTO を usecase 側へ切り出し始めた | Google 連携の共通語彙を `internal/google` に寄せ始めたが、usecase 専用 DTO / domain model への分離は継続課題 |
 | domain | `backend/internal/domain` | 78% 前後 | repository interface の移動、priority / confirm ルール抽出、`events.confirmed_google_event_id` 正本化、transaction 技術要素の domain interface からの除去、ProposedDate repository の create/update option 分離、shared value の `domain/value` 配置が進んでいる | 状態遷移や同期方針の一部はまだ usecase 側にある |
-| infrastructure | `backend/internal/infrastructure` `backend/ent` | 85% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる。tx 付き repository の組み立ても infrastructure に集約された | ローカル DB で旧列・旧 index をどう落とすか、migration / drop 方針の整理が残る |
+| infrastructure | `backend/internal/infrastructure` `backend/ent` | 88% 前後 | repository 実装、UoW、Google Calendar adapter、auth/calendar/events adapter、ent schema の docs 寄せが進んでいる。tx 付き repository の組み立ても infrastructure に集約され、DB 接続と ent migration 実行は `internal/infrastructure/database` に閉じた | 現在の `cmd/migrate` は ent auto migration の薄い CLI であり、破壊的変更を扱う versioned migration 化は後続課題 |
 
 #### 5.4.2 現在の補助的な位置づけ
 
-- `backend/main.go` は 4 層のいずれかというより composition root として扱う
+- `backend/cmd/server` は HTTP server 起動の entrypoint、`backend/cmd/migrate` は DB migration 実行の entrypoint として扱う
+- `backend/internal/app` は composition root の組み立て、router 登録、HTTP server lifecycle を扱う
 - handler / middleware 用 port は、それぞれ `backend/api/handlers` / `backend/api/middlewares` に閉じる
 - `backend/internal/google` は Google 連携の共通語彙として扱い、大きくなりすぎる場合は usecase ごとの contract へ分ける
 - Google 連携の実装は `internal/infrastructure/googleoauth` / `internal/infrastructure/googlecalendar` へ寄っている
-- `cookie` `cache` `configs` は `internal/infrastructure` 配下へ移動済みで、命名や責務粒度は継続して整理する
+- `cookie` は HTTP 境界の `api/cookie`、cache は infrastructure、config は `internal/config` として整理済み。環境変数供給経路は DB 系を root `.env` + compose、アプリ固有設定を `backend/.env` + godotenv で扱っている
 - `EventTxStore` や usecase 専用 Record は、repository interface 移設前の保護層として有効だったが、domain repository interface が整ってきたため薄くする対象として扱う
 
 #### 5.4.3 この時点で解消できた差分
@@ -274,27 +275,33 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - イベント詳細アクセス時に、`sync_proposed_dates` と `adjusta_candidate` カレンダーを見て候補予定を再同期する流れを実装した
 - frontend 側の event API 型は、`status` / `sync_status` / `confirmed_google_event_id` を含めて backend 契約に近づけた
 - frontend の認証判定は、`authAtom` / `api/auth/cookie` ではなく `GET /api/users/me` と middleware 上の session 検証結果を起点にする形へ寄せた
+- `backend/main.go` を廃止し、HTTP server entrypoint を `backend/cmd/server`、composition root を `backend/internal/app` に分けた
+- `internal/app.Run` は graceful shutdown を扱い、DB 接続と ent migration 実行は `internal/infrastructure/database` に寄せた
+- server 起動時の auto migration を廃止し、`backend/cmd/migrate` で明示的に migration を実行する形へ分離した
+- `docker-compose.yml` では `migrate` service を profile 付きで追加し、`db` healthcheck と `depends_on.condition: service_healthy` により migration 実行前に Postgres 起動完了を待つ形にした
+- DB 接続文字列は root `.env` の `DB_USER` / `DB_PASSWORD` / `DB_NAME` から compose の `x-db-env` で組み立て、backend / migrate が同じ `DATABASE_URL` を参照する形にした
+- `user_calendars` の部分 unique index に明示的な storage key を付け、ent auto migration 時に `usercalendar_user_id` index 名が衝突する問題を解消した
 
 #### 5.4.4 主な残課題
 
-- ローカル DB / migration で、削除済み schema 要素に対応する旧列・旧 index をどう落とすか整理する
+- 現在の `cmd/migrate` は ent auto migration を明示実行する CLI であり、破壊的変更や履歴管理が必要になった段階で versioned migration へ移行する
 - auth の Phase 2 は進行中。session 主体の基盤は入ってきたが、OAuth state / callback / middleware / logout の責務境界と error handling は継続して整理する
 - Google 連携の共通語彙を置いた `backend/internal/google` が大きくなりすぎないか確認し、必要なら usecase ごとの contract へさらに分ける
 - 残る usecase 専用 store / adapter を見直し、単なる repository 操作の言い換えになっているものは domain repository interface を直接扱える形へ寄せる
 - domain model とほぼ同じ usecase Record を見直し、必要なものだけ残す
 - proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる
 - `backend/internal/usecase/events` は draft / confirmation / sync / google などの関心が増えているため、まず同一 package 内でファイル prefix による責務整理を進める。依存関係が十分薄くなった段階で、サブドメイン単位の package 分割も検討する
-- `cookie` `cache` `configs` の naming や責務粒度を、最終的な infrastructure 方針に合わせて整理する
+- 環境変数供給経路は DB 系とアプリ固有設定で分かれているため、必要になれば root `.env` + compose にさらに寄せる
 - frontend では API server data と draft state の責務分離をさらに進める
 
 #### 5.4.5 次の作業候補
 
-1. ローカル DB で旧列・旧 index の drop 方針を確認する
-2. auth の Phase 2 の残りとして、OAuth callback / auth middleware / logout の責務境界と error handling を整理する
-3. interface 層で API DTO と usecase input / output の境界を作り、usecase から appmodel 依存を減らす
-4. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
-5. domain rule と usecase orchestration の境界を再確認する
-6. `events` usecase は draft / confirmation / sync / google のファイル責務を明確にし、将来的なサブドメイン package 分割に備える
+1. auth の Phase 2 の残りとして、OAuth callback / auth middleware / logout の責務境界と error handling を整理する
+2. interface 層で API DTO と usecase input / output の境界を作り、互換レスポンス項目や HTTP DTO が usecase 側へ漏れない形へ寄せる
+3. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
+4. domain rule と usecase orchestration の境界を再確認する
+5. `events` usecase は draft / confirmation / sync / google のファイル責務を明確にし、将来的なサブドメイン package 分割に備える
+6. `cmd/migrate` は当面 ent auto migration の明示実行 CLI とし、破壊的変更が必要になった段階で versioned migration への差し替えを検討する
 
 ---
 
@@ -338,7 +345,8 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 補足:
 
 - `events` / `proposed_dates` を中心に ent schema の docs 寄せはかなり進んでいる
-- 残りは、削除した schema 要素を既存 DB からどう落とすかという migration / drop 方針の整理である
+- server 起動時の auto migration は廃止し、`cmd/migrate` で明示的に migration を実行する形へ移行済みである
+- 現在の `cmd/migrate` は ent auto migration の実行 CLI であり、破壊的変更を扱う versioned migration 化は後続で検討する
 
 ### Phase 2: 認証基盤の是正
 
@@ -468,7 +476,8 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - `backend/api/handlers/*`
 - `backend/api/middlewares/*`
 - `backend/api/respond/*`
-- `backend/main.go`
+- `backend/cmd/*`
+- `backend/internal/app/*`
 
 ### frontend
 
@@ -494,11 +503,10 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 次に着手する候補は以下の順とする。
 
-1. ローカル DB で旧 `events.google_event_id` や旧 edge 由来の要素をどう drop するか確認する
-2. auth の Phase 2 の残りとして、OAuth callback / auth middleware / logout の責務境界と error handling を整理する
-3. interface 層で API 入出力 DTO と usecase input / output の境界を作り、usecase に HTTP DTO を直接渡さない形へ寄せる
-4. `EventTxStore` / `events_adapter.go` の過剰な詰め替えを薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
-5. domain rule と usecase orchestration の境界を再確認し、状態遷移や同期方針を domain へ寄せる
-6. frontend の server data / draft state 整理へ進む
+1. auth の Phase 2 の残りとして、OAuth callback / auth middleware / logout の責務境界と error handling を整理する
+2. interface 層で API 入出力 DTO と usecase input / output の境界を作り、usecase に HTTP DTO を直接渡さない形へ寄せる
+3. domain rule と usecase orchestration の境界を再確認し、状態遷移や同期方針を domain へ寄せる
+4. frontend の server data / draft state 整理へ進む
+5. `cmd/migrate` は当面 ent auto migration の明示実行として運用し、破壊的変更が必要になった段階で versioned migration 化する
 
-以上を起点に、Phase 1 の後始末を軽く済ませつつ、auth Phase 2 の残り、interface DTO と usecase DTO の分離、過剰 adapter の薄化、domain 純化を並行して進める。
+以上を起点に、auth Phase 2 の残り、interface DTO と usecase DTO の分離、domain 純化、frontend の server data / draft state 整理を並行して進める。
