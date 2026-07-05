@@ -11,9 +11,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent/calendar"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
+	"github.com/koo-arch/adjusta-backend/ent/account"
+	"github.com/koo-arch/adjusta-backend/ent/event"
+	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -71,30 +73,30 @@ func (uc *UserCreate) SetEmail(s string) *UserCreate {
 	return uc
 }
 
-// SetRefreshToken sets the "refresh_token" field.
-func (uc *UserCreate) SetRefreshToken(s string) *UserCreate {
-	uc.mutation.SetRefreshToken(s)
+// SetName sets the "name" field.
+func (uc *UserCreate) SetName(s string) *UserCreate {
+	uc.mutation.SetName(s)
 	return uc
 }
 
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (uc *UserCreate) SetNillableRefreshToken(s *string) *UserCreate {
+// SetNillableName sets the "name" field if the given value is not nil.
+func (uc *UserCreate) SetNillableName(s *string) *UserCreate {
 	if s != nil {
-		uc.SetRefreshToken(*s)
+		uc.SetName(*s)
 	}
 	return uc
 }
 
-// SetRefreshTokenExpiry sets the "refresh_token_expiry" field.
-func (uc *UserCreate) SetRefreshTokenExpiry(t time.Time) *UserCreate {
-	uc.mutation.SetRefreshTokenExpiry(t)
+// SetAvatarURL sets the "avatar_url" field.
+func (uc *UserCreate) SetAvatarURL(s string) *UserCreate {
+	uc.mutation.SetAvatarURL(s)
 	return uc
 }
 
-// SetNillableRefreshTokenExpiry sets the "refresh_token_expiry" field if the given value is not nil.
-func (uc *UserCreate) SetNillableRefreshTokenExpiry(t *time.Time) *UserCreate {
-	if t != nil {
-		uc.SetRefreshTokenExpiry(*t)
+// SetNillableAvatarURL sets the "avatar_url" field if the given value is not nil.
+func (uc *UserCreate) SetNillableAvatarURL(s *string) *UserCreate {
+	if s != nil {
+		uc.SetAvatarURL(*s)
 	}
 	return uc
 }
@@ -113,38 +115,68 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 	return uc
 }
 
-// SetOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID.
-func (uc *UserCreate) SetOauthTokenID(id uuid.UUID) *UserCreate {
-	uc.mutation.SetOauthTokenID(id)
+// SetAccountID sets the "account" edge to the Account entity by ID.
+func (uc *UserCreate) SetAccountID(id uuid.UUID) *UserCreate {
+	uc.mutation.SetAccountID(id)
 	return uc
 }
 
-// SetNillableOauthTokenID sets the "oauth_token" edge to the OAuthToken entity by ID if the given value is not nil.
-func (uc *UserCreate) SetNillableOauthTokenID(id *uuid.UUID) *UserCreate {
+// SetNillableAccountID sets the "account" edge to the Account entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillableAccountID(id *uuid.UUID) *UserCreate {
 	if id != nil {
-		uc = uc.SetOauthTokenID(*id)
+		uc = uc.SetAccountID(*id)
 	}
 	return uc
 }
 
-// SetOauthToken sets the "oauth_token" edge to the OAuthToken entity.
-func (uc *UserCreate) SetOauthToken(o *OAuthToken) *UserCreate {
-	return uc.SetOauthTokenID(o.ID)
+// SetAccount sets the "account" edge to the Account entity.
+func (uc *UserCreate) SetAccount(a *Account) *UserCreate {
+	return uc.SetAccountID(a.ID)
 }
 
-// AddCalendarIDs adds the "calendars" edge to the Calendar entity by IDs.
-func (uc *UserCreate) AddCalendarIDs(ids ...uuid.UUID) *UserCreate {
-	uc.mutation.AddCalendarIDs(ids...)
+// AddSessionIDs adds the "sessions" edge to the Session entity by IDs.
+func (uc *UserCreate) AddSessionIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddSessionIDs(ids...)
 	return uc
 }
 
-// AddCalendars adds the "calendars" edges to the Calendar entity.
-func (uc *UserCreate) AddCalendars(c ...*Calendar) *UserCreate {
-	ids := make([]uuid.UUID, len(c))
-	for i := range c {
-		ids[i] = c[i].ID
+// AddSessions adds the "sessions" edges to the Session entity.
+func (uc *UserCreate) AddSessions(s ...*Session) *UserCreate {
+	ids := make([]uuid.UUID, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
-	return uc.AddCalendarIDs(ids...)
+	return uc.AddSessionIDs(ids...)
+}
+
+// AddUserCalendarIDs adds the "user_calendars" edge to the UserCalendar entity by IDs.
+func (uc *UserCreate) AddUserCalendarIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddUserCalendarIDs(ids...)
+	return uc
+}
+
+// AddUserCalendars adds the "user_calendars" edges to the UserCalendar entity.
+func (uc *UserCreate) AddUserCalendars(u ...*UserCalendar) *UserCreate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return uc.AddUserCalendarIDs(ids...)
+}
+
+// AddEventIDs adds the "events" edge to the Event entity by IDs.
+func (uc *UserCreate) AddEventIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddEventIDs(ids...)
+	return uc
+}
+
+// AddEvents adds the "events" edges to the Event entity.
+func (uc *UserCreate) AddEvents(e ...*Event) *UserCreate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return uc.AddEventIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -275,23 +307,23 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldEmail, field.TypeString, value)
 		_node.Email = value
 	}
-	if value, ok := uc.mutation.RefreshToken(); ok {
-		_spec.SetField(user.FieldRefreshToken, field.TypeString, value)
-		_node.RefreshToken = value
+	if value, ok := uc.mutation.Name(); ok {
+		_spec.SetField(user.FieldName, field.TypeString, value)
+		_node.Name = &value
 	}
-	if value, ok := uc.mutation.RefreshTokenExpiry(); ok {
-		_spec.SetField(user.FieldRefreshTokenExpiry, field.TypeTime, value)
-		_node.RefreshTokenExpiry = value
+	if value, ok := uc.mutation.AvatarURL(); ok {
+		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
+		_node.AvatarURL = &value
 	}
-	if nodes := uc.mutation.OauthTokenIDs(); len(nodes) > 0 {
+	if nodes := uc.mutation.AccountIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: false,
-			Table:   user.OauthTokenTable,
-			Columns: []string{user.OauthTokenColumn},
+			Table:   user.AccountTable,
+			Columns: []string{user.AccountColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(oauthtoken.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(account.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -299,15 +331,47 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := uc.mutation.CalendarsIDs(); len(nodes) > 0 {
+	if nodes := uc.mutation.SessionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.CalendarsTable,
-			Columns: []string{user.CalendarsColumn},
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.UserCalendarsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserCalendarsTable,
+			Columns: []string{user.UserCalendarsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.EventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.EventsTable,
+			Columns: []string{user.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

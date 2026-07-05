@@ -71,6 +71,16 @@ func DeletedAt(v time.Time) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// EventID applies equality check predicate on the "event_id" field. It's identical to EventIDEQ.
+func EventID(v uuid.UUID) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldEventID, v))
+}
+
+// GoogleEventID applies equality check predicate on the "google_event_id" field. It's identical to GoogleEventIDEQ.
+func GoogleEventID(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldGoogleEventID, v))
+}
+
 // StartTime applies equality check predicate on the "start_time" field. It's identical to StartTimeEQ.
 func StartTime(v time.Time) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldEQ(FieldStartTime, v))
@@ -84,6 +94,16 @@ func EndTime(v time.Time) predicate.ProposedDate {
 // Priority applies equality check predicate on the "priority" field. It's identical to PriorityEQ.
 func Priority(v int) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldEQ(FieldPriority, v))
+}
+
+// LastSyncedAt applies equality check predicate on the "last_synced_at" field. It's identical to LastSyncedAtEQ.
+func LastSyncedAt(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldLastSyncedAt, v))
+}
+
+// LastSyncError applies equality check predicate on the "last_sync_error" field. It's identical to LastSyncErrorEQ.
+func LastSyncError(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldLastSyncError, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -216,6 +236,101 @@ func DeletedAtNotNil() predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldNotNull(FieldDeletedAt))
 }
 
+// EventIDEQ applies the EQ predicate on the "event_id" field.
+func EventIDEQ(v uuid.UUID) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldEventID, v))
+}
+
+// EventIDNEQ applies the NEQ predicate on the "event_id" field.
+func EventIDNEQ(v uuid.UUID) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNEQ(FieldEventID, v))
+}
+
+// EventIDIn applies the In predicate on the "event_id" field.
+func EventIDIn(vs ...uuid.UUID) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIn(FieldEventID, vs...))
+}
+
+// EventIDNotIn applies the NotIn predicate on the "event_id" field.
+func EventIDNotIn(vs ...uuid.UUID) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotIn(FieldEventID, vs...))
+}
+
+// GoogleEventIDEQ applies the EQ predicate on the "google_event_id" field.
+func GoogleEventIDEQ(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDNEQ applies the NEQ predicate on the "google_event_id" field.
+func GoogleEventIDNEQ(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNEQ(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDIn applies the In predicate on the "google_event_id" field.
+func GoogleEventIDIn(vs ...string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIn(FieldGoogleEventID, vs...))
+}
+
+// GoogleEventIDNotIn applies the NotIn predicate on the "google_event_id" field.
+func GoogleEventIDNotIn(vs ...string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotIn(FieldGoogleEventID, vs...))
+}
+
+// GoogleEventIDGT applies the GT predicate on the "google_event_id" field.
+func GoogleEventIDGT(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldGT(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDGTE applies the GTE predicate on the "google_event_id" field.
+func GoogleEventIDGTE(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldGTE(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDLT applies the LT predicate on the "google_event_id" field.
+func GoogleEventIDLT(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldLT(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDLTE applies the LTE predicate on the "google_event_id" field.
+func GoogleEventIDLTE(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldLTE(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDContains applies the Contains predicate on the "google_event_id" field.
+func GoogleEventIDContains(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldContains(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDHasPrefix applies the HasPrefix predicate on the "google_event_id" field.
+func GoogleEventIDHasPrefix(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldHasPrefix(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDHasSuffix applies the HasSuffix predicate on the "google_event_id" field.
+func GoogleEventIDHasSuffix(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldHasSuffix(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDIsNil applies the IsNil predicate on the "google_event_id" field.
+func GoogleEventIDIsNil() predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIsNull(FieldGoogleEventID))
+}
+
+// GoogleEventIDNotNil applies the NotNil predicate on the "google_event_id" field.
+func GoogleEventIDNotNil() predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotNull(FieldGoogleEventID))
+}
+
+// GoogleEventIDEqualFold applies the EqualFold predicate on the "google_event_id" field.
+func GoogleEventIDEqualFold(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEqualFold(FieldGoogleEventID, v))
+}
+
+// GoogleEventIDContainsFold applies the ContainsFold predicate on the "google_event_id" field.
+func GoogleEventIDContainsFold(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldContainsFold(FieldGoogleEventID, v))
+}
+
 // StartTimeEQ applies the EQ predicate on the "start_time" field.
 func StartTimeEQ(v time.Time) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldEQ(FieldStartTime, v))
@@ -334,6 +449,171 @@ func PriorityLT(v int) predicate.ProposedDate {
 // PriorityLTE applies the LTE predicate on the "priority" field.
 func PriorityLTE(v int) predicate.ProposedDate {
 	return predicate.ProposedDate(sql.FieldLTE(FieldPriority, v))
+}
+
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v Status) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldStatus, v))
+}
+
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v Status) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNEQ(FieldStatus, v))
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...Status) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIn(FieldStatus, vs...))
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...Status) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// SyncStatusEQ applies the EQ predicate on the "sync_status" field.
+func SyncStatusEQ(v SyncStatus) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldSyncStatus, v))
+}
+
+// SyncStatusNEQ applies the NEQ predicate on the "sync_status" field.
+func SyncStatusNEQ(v SyncStatus) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNEQ(FieldSyncStatus, v))
+}
+
+// SyncStatusIn applies the In predicate on the "sync_status" field.
+func SyncStatusIn(vs ...SyncStatus) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIn(FieldSyncStatus, vs...))
+}
+
+// SyncStatusNotIn applies the NotIn predicate on the "sync_status" field.
+func SyncStatusNotIn(vs ...SyncStatus) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotIn(FieldSyncStatus, vs...))
+}
+
+// LastSyncedAtEQ applies the EQ predicate on the "last_synced_at" field.
+func LastSyncedAtEQ(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldLastSyncedAt, v))
+}
+
+// LastSyncedAtNEQ applies the NEQ predicate on the "last_synced_at" field.
+func LastSyncedAtNEQ(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNEQ(FieldLastSyncedAt, v))
+}
+
+// LastSyncedAtIn applies the In predicate on the "last_synced_at" field.
+func LastSyncedAtIn(vs ...time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIn(FieldLastSyncedAt, vs...))
+}
+
+// LastSyncedAtNotIn applies the NotIn predicate on the "last_synced_at" field.
+func LastSyncedAtNotIn(vs ...time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotIn(FieldLastSyncedAt, vs...))
+}
+
+// LastSyncedAtGT applies the GT predicate on the "last_synced_at" field.
+func LastSyncedAtGT(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldGT(FieldLastSyncedAt, v))
+}
+
+// LastSyncedAtGTE applies the GTE predicate on the "last_synced_at" field.
+func LastSyncedAtGTE(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldGTE(FieldLastSyncedAt, v))
+}
+
+// LastSyncedAtLT applies the LT predicate on the "last_synced_at" field.
+func LastSyncedAtLT(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldLT(FieldLastSyncedAt, v))
+}
+
+// LastSyncedAtLTE applies the LTE predicate on the "last_synced_at" field.
+func LastSyncedAtLTE(v time.Time) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldLTE(FieldLastSyncedAt, v))
+}
+
+// LastSyncedAtIsNil applies the IsNil predicate on the "last_synced_at" field.
+func LastSyncedAtIsNil() predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIsNull(FieldLastSyncedAt))
+}
+
+// LastSyncedAtNotNil applies the NotNil predicate on the "last_synced_at" field.
+func LastSyncedAtNotNil() predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotNull(FieldLastSyncedAt))
+}
+
+// LastSyncErrorEQ applies the EQ predicate on the "last_sync_error" field.
+func LastSyncErrorEQ(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEQ(FieldLastSyncError, v))
+}
+
+// LastSyncErrorNEQ applies the NEQ predicate on the "last_sync_error" field.
+func LastSyncErrorNEQ(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNEQ(FieldLastSyncError, v))
+}
+
+// LastSyncErrorIn applies the In predicate on the "last_sync_error" field.
+func LastSyncErrorIn(vs ...string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIn(FieldLastSyncError, vs...))
+}
+
+// LastSyncErrorNotIn applies the NotIn predicate on the "last_sync_error" field.
+func LastSyncErrorNotIn(vs ...string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotIn(FieldLastSyncError, vs...))
+}
+
+// LastSyncErrorGT applies the GT predicate on the "last_sync_error" field.
+func LastSyncErrorGT(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldGT(FieldLastSyncError, v))
+}
+
+// LastSyncErrorGTE applies the GTE predicate on the "last_sync_error" field.
+func LastSyncErrorGTE(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldGTE(FieldLastSyncError, v))
+}
+
+// LastSyncErrorLT applies the LT predicate on the "last_sync_error" field.
+func LastSyncErrorLT(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldLT(FieldLastSyncError, v))
+}
+
+// LastSyncErrorLTE applies the LTE predicate on the "last_sync_error" field.
+func LastSyncErrorLTE(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldLTE(FieldLastSyncError, v))
+}
+
+// LastSyncErrorContains applies the Contains predicate on the "last_sync_error" field.
+func LastSyncErrorContains(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldContains(FieldLastSyncError, v))
+}
+
+// LastSyncErrorHasPrefix applies the HasPrefix predicate on the "last_sync_error" field.
+func LastSyncErrorHasPrefix(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldHasPrefix(FieldLastSyncError, v))
+}
+
+// LastSyncErrorHasSuffix applies the HasSuffix predicate on the "last_sync_error" field.
+func LastSyncErrorHasSuffix(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldHasSuffix(FieldLastSyncError, v))
+}
+
+// LastSyncErrorIsNil applies the IsNil predicate on the "last_sync_error" field.
+func LastSyncErrorIsNil() predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldIsNull(FieldLastSyncError))
+}
+
+// LastSyncErrorNotNil applies the NotNil predicate on the "last_sync_error" field.
+func LastSyncErrorNotNil() predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldNotNull(FieldLastSyncError))
+}
+
+// LastSyncErrorEqualFold applies the EqualFold predicate on the "last_sync_error" field.
+func LastSyncErrorEqualFold(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldEqualFold(FieldLastSyncError, v))
+}
+
+// LastSyncErrorContainsFold applies the ContainsFold predicate on the "last_sync_error" field.
+func LastSyncErrorContainsFold(v string) predicate.ProposedDate {
+	return predicate.ProposedDate(sql.FieldContainsFold(FieldLastSyncError, v))
 }
 
 // HasEvent applies the HasEdge predicate on the "event" edge.

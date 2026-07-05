@@ -1,21 +1,13 @@
 package errors
 
-import "net/http"
-
-type ValidationError struct {
-	StatusCode int
-	Message    string
-	Details    map[string]string
-}
-
-func NewValidationError(details map[string]string) *ValidationError {
-	return &ValidationError{
-		StatusCode: http.StatusBadRequest,
-		Message:    "送信に失敗しました",
-		Details:    details,
+func NewValidationError(details map[string]string) *APIError {
+	validationDetails := make(map[string][]string, len(details))
+	for field, message := range details {
+		if message == "" {
+			continue
+		}
+		validationDetails[field] = []string{message}
 	}
-}
 
-func (e *ValidationError) Error() string {
-	return e.Message
+	return NewAPIErrorWithDetails(KindValidation, "送信に失敗しました", validationDetails)
 }

@@ -3,6 +3,7 @@
 package proposeddate
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent"
@@ -22,12 +23,24 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldEventID holds the string denoting the event_id field in the database.
+	FieldEventID = "event_id"
+	// FieldGoogleEventID holds the string denoting the google_event_id field in the database.
+	FieldGoogleEventID = "google_event_id"
 	// FieldStartTime holds the string denoting the start_time field in the database.
 	FieldStartTime = "start_time"
 	// FieldEndTime holds the string denoting the end_time field in the database.
 	FieldEndTime = "end_time"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
+	// FieldSyncStatus holds the string denoting the sync_status field in the database.
+	FieldSyncStatus = "sync_status"
+	// FieldLastSyncedAt holds the string denoting the last_synced_at field in the database.
+	FieldLastSyncedAt = "last_synced_at"
+	// FieldLastSyncError holds the string denoting the last_sync_error field in the database.
+	FieldLastSyncError = "last_sync_error"
 	// EdgeEvent holds the string denoting the event edge name in mutations.
 	EdgeEvent = "event"
 	// Table holds the table name of the proposeddate in the database.
@@ -38,7 +51,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "event" package.
 	EventInverseTable = "events"
 	// EventColumn is the table column denoting the event relation/edge.
-	EventColumn = "event_proposed_dates"
+	EventColumn = "event_id"
 )
 
 // Columns holds all SQL columns for proposeddate fields.
@@ -47,26 +60,21 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldEventID,
+	FieldGoogleEventID,
 	FieldStartTime,
 	FieldEndTime,
 	FieldPriority,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "proposed_dates"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"event_proposed_dates",
+	FieldStatus,
+	FieldSyncStatus,
+	FieldLastSyncedAt,
+	FieldLastSyncError,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -93,6 +101,62 @@ var (
 	DefaultID func() uuid.UUID
 )
 
+// Status defines the type for the "status" enum field.
+type Status string
+
+// StatusActive is the default value of the Status enum.
+const DefaultStatus = StatusActive
+
+// Status values.
+const (
+	StatusActive      Status = "active"
+	StatusConfirmed   Status = "confirmed"
+	StatusNotSelected Status = "not_selected"
+	StatusCancelled   Status = "cancelled"
+)
+
+func (s Status) String() string {
+	return string(s)
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s Status) error {
+	switch s {
+	case StatusActive, StatusConfirmed, StatusNotSelected, StatusCancelled:
+		return nil
+	default:
+		return fmt.Errorf("proposeddate: invalid enum value for status field: %q", s)
+	}
+}
+
+// SyncStatus defines the type for the "sync_status" enum field.
+type SyncStatus string
+
+// SyncStatusNotSynced is the default value of the SyncStatus enum.
+const DefaultSyncStatus = SyncStatusNotSynced
+
+// SyncStatus values.
+const (
+	SyncStatusNotSynced   SyncStatus = "not_synced"
+	SyncStatusPendingSync SyncStatus = "pending_sync"
+	SyncStatusSynced      SyncStatus = "synced"
+	SyncStatusSyncFailed  SyncStatus = "sync_failed"
+)
+
+func (ss SyncStatus) String() string {
+	return string(ss)
+}
+
+// SyncStatusValidator is a validator for the "sync_status" field enum values. It is called by the builders before save.
+func SyncStatusValidator(ss SyncStatus) error {
+	switch ss {
+	case SyncStatusNotSynced, SyncStatusPendingSync, SyncStatusSynced, SyncStatusSyncFailed:
+		return nil
+	default:
+		return fmt.Errorf("proposeddate: invalid enum value for sync_status field: %q", ss)
+	}
+}
+
 // OrderOption defines the ordering options for the ProposedDate queries.
 type OrderOption func(*sql.Selector)
 
@@ -116,6 +180,16 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
+// ByEventID orders the results by the event_id field.
+func ByEventID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEventID, opts...).ToFunc()
+}
+
+// ByGoogleEventID orders the results by the google_event_id field.
+func ByGoogleEventID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGoogleEventID, opts...).ToFunc()
+}
+
 // ByStartTime orders the results by the start_time field.
 func ByStartTime(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStartTime, opts...).ToFunc()
@@ -129,6 +203,26 @@ func ByEndTime(opts ...sql.OrderTermOption) OrderOption {
 // ByPriority orders the results by the priority field.
 func ByPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriority, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// BySyncStatus orders the results by the sync_status field.
+func BySyncStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSyncStatus, opts...).ToFunc()
+}
+
+// ByLastSyncedAt orders the results by the last_synced_at field.
+func ByLastSyncedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastSyncedAt, opts...).ToFunc()
+}
+
+// ByLastSyncError orders the results by the last_sync_error field.
+func ByLastSyncError(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastSyncError, opts...).ToFunc()
 }
 
 // ByEventField orders the results by event field.

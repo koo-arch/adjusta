@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
-	"github.com/koo-arch/adjusta-backend/ent/user"
 )
 
 // Calendar is the model entity for the Calendar schema.
@@ -25,53 +24,47 @@ type Calendar struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// GoogleCalendarID holds the value of the "google_calendar_id" field.
+	GoogleCalendarID *string `json:"google_calendar_id,omitempty"`
+	// Summary holds the value of the "summary" field.
+	Summary *string `json:"summary,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
+	// Timezone holds the value of the "timezone" field.
+	Timezone *string `json:"timezone,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CalendarQuery when eager-loading is set.
-	Edges          CalendarEdges `json:"edges"`
-	user_calendars *uuid.UUID
-	selectValues   sql.SelectValues
+	Edges        CalendarEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // CalendarEdges holds the relations/edges for other nodes in the graph.
 type CalendarEdges struct {
-	// User holds the value of the user edge.
-	User *User `json:"user,omitempty"`
-	// GoogleCalendarInfos holds the value of the google_calendar_infos edge.
-	GoogleCalendarInfos []*GoogleCalendarInfo `json:"google_calendar_infos,omitempty"`
-	// Events holds the value of the events edge.
-	Events []*Event `json:"events,omitempty"`
+	// UserCalendars holds the value of the user_calendars edge.
+	UserCalendars []*UserCalendar `json:"user_calendars,omitempty"`
+	// PrimaryEvents holds the value of the primary_events edge.
+	PrimaryEvents []*Event `json:"primary_events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
-// UserOrErr returns the User value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e CalendarEdges) UserOrErr() (*User, error) {
-	if e.User != nil {
-		return e.User, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: user.Label}
-	}
-	return nil, &NotLoadedError{edge: "user"}
-}
-
-// GoogleCalendarInfosOrErr returns the GoogleCalendarInfos value or an error if the edge
+// UserCalendarsOrErr returns the UserCalendars value or an error if the edge
 // was not loaded in eager-loading.
-func (e CalendarEdges) GoogleCalendarInfosOrErr() ([]*GoogleCalendarInfo, error) {
+func (e CalendarEdges) UserCalendarsOrErr() ([]*UserCalendar, error) {
+	if e.loadedTypes[0] {
+		return e.UserCalendars, nil
+	}
+	return nil, &NotLoadedError{edge: "user_calendars"}
+}
+
+// PrimaryEventsOrErr returns the PrimaryEvents value or an error if the edge
+// was not loaded in eager-loading.
+func (e CalendarEdges) PrimaryEventsOrErr() ([]*Event, error) {
 	if e.loadedTypes[1] {
-		return e.GoogleCalendarInfos, nil
+		return e.PrimaryEvents, nil
 	}
-	return nil, &NotLoadedError{edge: "google_calendar_infos"}
-}
-
-// EventsOrErr returns the Events value or an error if the edge
-// was not loaded in eager-loading.
-func (e CalendarEdges) EventsOrErr() ([]*Event, error) {
-	if e.loadedTypes[2] {
-		return e.Events, nil
-	}
-	return nil, &NotLoadedError{edge: "events"}
+	return nil, &NotLoadedError{edge: "primary_events"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -79,12 +72,12 @@ func (*Calendar) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case calendar.FieldGoogleCalendarID, calendar.FieldSummary, calendar.FieldDescription, calendar.FieldTimezone:
+			values[i] = new(sql.NullString)
 		case calendar.FieldCreatedAt, calendar.FieldUpdatedAt, calendar.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		case calendar.FieldID:
 			values[i] = new(uuid.UUID)
-		case calendar.ForeignKeys[0]: // user_calendars
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -125,12 +118,33 @@ func (c *Calendar) assignValues(columns []string, values []any) error {
 				c.DeletedAt = new(time.Time)
 				*c.DeletedAt = value.Time
 			}
-		case calendar.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field user_calendars", values[i])
+		case calendar.FieldGoogleCalendarID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field google_calendar_id", values[i])
 			} else if value.Valid {
-				c.user_calendars = new(uuid.UUID)
-				*c.user_calendars = *value.S.(*uuid.UUID)
+				c.GoogleCalendarID = new(string)
+				*c.GoogleCalendarID = value.String
+			}
+		case calendar.FieldSummary:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field summary", values[i])
+			} else if value.Valid {
+				c.Summary = new(string)
+				*c.Summary = value.String
+			}
+		case calendar.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				c.Description = new(string)
+				*c.Description = value.String
+			}
+		case calendar.FieldTimezone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field timezone", values[i])
+			} else if value.Valid {
+				c.Timezone = new(string)
+				*c.Timezone = value.String
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -145,19 +159,14 @@ func (c *Calendar) Value(name string) (ent.Value, error) {
 	return c.selectValues.Get(name)
 }
 
-// QueryUser queries the "user" edge of the Calendar entity.
-func (c *Calendar) QueryUser() *UserQuery {
-	return NewCalendarClient(c.config).QueryUser(c)
+// QueryUserCalendars queries the "user_calendars" edge of the Calendar entity.
+func (c *Calendar) QueryUserCalendars() *UserCalendarQuery {
+	return NewCalendarClient(c.config).QueryUserCalendars(c)
 }
 
-// QueryGoogleCalendarInfos queries the "google_calendar_infos" edge of the Calendar entity.
-func (c *Calendar) QueryGoogleCalendarInfos() *GoogleCalendarInfoQuery {
-	return NewCalendarClient(c.config).QueryGoogleCalendarInfos(c)
-}
-
-// QueryEvents queries the "events" edge of the Calendar entity.
-func (c *Calendar) QueryEvents() *EventQuery {
-	return NewCalendarClient(c.config).QueryEvents(c)
+// QueryPrimaryEvents queries the "primary_events" edge of the Calendar entity.
+func (c *Calendar) QueryPrimaryEvents() *EventQuery {
+	return NewCalendarClient(c.config).QueryPrimaryEvents(c)
 }
 
 // Update returns a builder for updating this Calendar.
@@ -192,6 +201,26 @@ func (c *Calendar) String() string {
 	if v := c.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := c.GoogleCalendarID; v != nil {
+		builder.WriteString("google_calendar_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.Summary; v != nil {
+		builder.WriteString("summary=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := c.Timezone; v != nil {
+		builder.WriteString("timezone=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

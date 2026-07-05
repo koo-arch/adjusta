@@ -16,13 +16,13 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/koo-arch/adjusta-backend/ent/account"
 	"github.com/koo-arch/adjusta-backend/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/ent/event"
-	"github.com/koo-arch/adjusta-backend/ent/googlecalendarinfo"
-	"github.com/koo-arch/adjusta-backend/ent/jwtkey"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
 	"github.com/koo-arch/adjusta-backend/ent/proposeddate"
+	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // Client is the client that holds all ent builders.
@@ -30,20 +30,20 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Account is the client for interacting with the Account builders.
+	Account *AccountClient
 	// Calendar is the client for interacting with the Calendar builders.
 	Calendar *CalendarClient
 	// Event is the client for interacting with the Event builders.
 	Event *EventClient
-	// GoogleCalendarInfo is the client for interacting with the GoogleCalendarInfo builders.
-	GoogleCalendarInfo *GoogleCalendarInfoClient
-	// JWTKey is the client for interacting with the JWTKey builders.
-	JWTKey *JWTKeyClient
-	// OAuthToken is the client for interacting with the OAuthToken builders.
-	OAuthToken *OAuthTokenClient
 	// ProposedDate is the client for interacting with the ProposedDate builders.
 	ProposedDate *ProposedDateClient
+	// Session is the client for interacting with the Session builders.
+	Session *SessionClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserCalendar is the client for interacting with the UserCalendar builders.
+	UserCalendar *UserCalendarClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -55,13 +55,13 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Account = NewAccountClient(c.config)
 	c.Calendar = NewCalendarClient(c.config)
 	c.Event = NewEventClient(c.config)
-	c.GoogleCalendarInfo = NewGoogleCalendarInfoClient(c.config)
-	c.JWTKey = NewJWTKeyClient(c.config)
-	c.OAuthToken = NewOAuthTokenClient(c.config)
 	c.ProposedDate = NewProposedDateClient(c.config)
+	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.UserCalendar = NewUserCalendarClient(c.config)
 }
 
 type (
@@ -152,15 +152,15 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                ctx,
-		config:             cfg,
-		Calendar:           NewCalendarClient(cfg),
-		Event:              NewEventClient(cfg),
-		GoogleCalendarInfo: NewGoogleCalendarInfoClient(cfg),
-		JWTKey:             NewJWTKeyClient(cfg),
-		OAuthToken:         NewOAuthTokenClient(cfg),
-		ProposedDate:       NewProposedDateClient(cfg),
-		User:               NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Account:      NewAccountClient(cfg),
+		Calendar:     NewCalendarClient(cfg),
+		Event:        NewEventClient(cfg),
+		ProposedDate: NewProposedDateClient(cfg),
+		Session:      NewSessionClient(cfg),
+		User:         NewUserClient(cfg),
+		UserCalendar: NewUserCalendarClient(cfg),
 	}, nil
 }
 
@@ -178,22 +178,22 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                ctx,
-		config:             cfg,
-		Calendar:           NewCalendarClient(cfg),
-		Event:              NewEventClient(cfg),
-		GoogleCalendarInfo: NewGoogleCalendarInfoClient(cfg),
-		JWTKey:             NewJWTKeyClient(cfg),
-		OAuthToken:         NewOAuthTokenClient(cfg),
-		ProposedDate:       NewProposedDateClient(cfg),
-		User:               NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Account:      NewAccountClient(cfg),
+		Calendar:     NewCalendarClient(cfg),
+		Event:        NewEventClient(cfg),
+		ProposedDate: NewProposedDateClient(cfg),
+		Session:      NewSessionClient(cfg),
+		User:         NewUserClient(cfg),
+		UserCalendar: NewUserCalendarClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Calendar.
+//		Account.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -216,8 +216,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Calendar, c.Event, c.GoogleCalendarInfo, c.JWTKey, c.OAuthToken,
-		c.ProposedDate, c.User,
+		c.Account, c.Calendar, c.Event, c.ProposedDate, c.Session, c.User,
+		c.UserCalendar,
 	} {
 		n.Use(hooks...)
 	}
@@ -227,8 +227,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Calendar, c.Event, c.GoogleCalendarInfo, c.JWTKey, c.OAuthToken,
-		c.ProposedDate, c.User,
+		c.Account, c.Calendar, c.Event, c.ProposedDate, c.Session, c.User,
+		c.UserCalendar,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -237,22 +237,171 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AccountMutation:
+		return c.Account.mutate(ctx, m)
 	case *CalendarMutation:
 		return c.Calendar.mutate(ctx, m)
 	case *EventMutation:
 		return c.Event.mutate(ctx, m)
-	case *GoogleCalendarInfoMutation:
-		return c.GoogleCalendarInfo.mutate(ctx, m)
-	case *JWTKeyMutation:
-		return c.JWTKey.mutate(ctx, m)
-	case *OAuthTokenMutation:
-		return c.OAuthToken.mutate(ctx, m)
 	case *ProposedDateMutation:
 		return c.ProposedDate.mutate(ctx, m)
+	case *SessionMutation:
+		return c.Session.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *UserCalendarMutation:
+		return c.UserCalendar.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AccountClient is a client for the Account schema.
+type AccountClient struct {
+	config
+}
+
+// NewAccountClient returns a client for the Account from the given config.
+func NewAccountClient(c config) *AccountClient {
+	return &AccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `account.Hooks(f(g(h())))`.
+func (c *AccountClient) Use(hooks ...Hook) {
+	c.hooks.Account = append(c.hooks.Account, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `account.Intercept(f(g(h())))`.
+func (c *AccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Account = append(c.inters.Account, interceptors...)
+}
+
+// Create returns a builder for creating a Account entity.
+func (c *AccountClient) Create() *AccountCreate {
+	mutation := newAccountMutation(c.config, OpCreate)
+	return &AccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Account entities.
+func (c *AccountClient) CreateBulk(builders ...*AccountCreate) *AccountCreateBulk {
+	return &AccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AccountClient) MapCreateBulk(slice any, setFunc func(*AccountCreate, int)) *AccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AccountCreateBulk{err: fmt.Errorf("calling to AccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Account.
+func (c *AccountClient) Update() *AccountUpdate {
+	mutation := newAccountMutation(c.config, OpUpdate)
+	return &AccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountClient) UpdateOne(a *Account) *AccountUpdateOne {
+	mutation := newAccountMutation(c.config, OpUpdateOne, withAccount(a))
+	return &AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountClient) UpdateOneID(id uuid.UUID) *AccountUpdateOne {
+	mutation := newAccountMutation(c.config, OpUpdateOne, withAccountID(id))
+	return &AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Account.
+func (c *AccountClient) Delete() *AccountDelete {
+	mutation := newAccountMutation(c.config, OpDelete)
+	return &AccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AccountClient) DeleteOne(a *Account) *AccountDeleteOne {
+	return c.DeleteOneID(a.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AccountClient) DeleteOneID(id uuid.UUID) *AccountDeleteOne {
+	builder := c.Delete().Where(account.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountDeleteOne{builder}
+}
+
+// Query returns a query builder for Account.
+func (c *AccountClient) Query() *AccountQuery {
+	return &AccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Account entity by its id.
+func (c *AccountClient) Get(ctx context.Context, id uuid.UUID) (*Account, error) {
+	return c.Query().Where(account.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountClient) GetX(ctx context.Context, id uuid.UUID) *Account {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Account.
+func (c *AccountClient) QueryUser(a *Account) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, account.UserTable, account.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AccountClient) Hooks() []Hook {
+	return c.hooks.Account
+}
+
+// Interceptors returns the client interceptors.
+func (c *AccountClient) Interceptors() []Interceptor {
+	return c.inters.Account
+}
+
+func (c *AccountClient) mutate(ctx context.Context, m *AccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Account mutation op: %q", m.Op())
 	}
 }
 
@@ -364,15 +513,15 @@ func (c *CalendarClient) GetX(ctx context.Context, id uuid.UUID) *Calendar {
 	return obj
 }
 
-// QueryUser queries the user edge of a Calendar.
-func (c *CalendarClient) QueryUser(ca *Calendar) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
+// QueryUserCalendars queries the user_calendars edge of a Calendar.
+func (c *CalendarClient) QueryUserCalendars(ca *Calendar) *UserCalendarQuery {
+	query := (&UserCalendarClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ca.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(calendar.Table, calendar.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, calendar.UserTable, calendar.UserColumn),
+			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, calendar.UserCalendarsTable, calendar.UserCalendarsColumn),
 		)
 		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
 		return fromV, nil
@@ -380,31 +529,15 @@ func (c *CalendarClient) QueryUser(ca *Calendar) *UserQuery {
 	return query
 }
 
-// QueryGoogleCalendarInfos queries the google_calendar_infos edge of a Calendar.
-func (c *CalendarClient) QueryGoogleCalendarInfos(ca *Calendar) *GoogleCalendarInfoQuery {
-	query := (&GoogleCalendarInfoClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ca.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(calendar.Table, calendar.FieldID, id),
-			sqlgraph.To(googlecalendarinfo.Table, googlecalendarinfo.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, calendar.GoogleCalendarInfosTable, calendar.GoogleCalendarInfosPrimaryKey...),
-		)
-		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryEvents queries the events edge of a Calendar.
-func (c *CalendarClient) QueryEvents(ca *Calendar) *EventQuery {
+// QueryPrimaryEvents queries the primary_events edge of a Calendar.
+func (c *CalendarClient) QueryPrimaryEvents(ca *Calendar) *EventQuery {
 	query := (&EventClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ca.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(calendar.Table, calendar.FieldID, id),
 			sqlgraph.To(event.Table, event.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, calendar.EventsTable, calendar.EventsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, calendar.PrimaryEventsTable, calendar.PrimaryEventsColumn),
 		)
 		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
 		return fromV, nil
@@ -546,15 +679,47 @@ func (c *EventClient) GetX(ctx context.Context, id uuid.UUID) *Event {
 	return obj
 }
 
-// QueryCalendar queries the calendar edge of a Event.
-func (c *EventClient) QueryCalendar(e *Event) *CalendarQuery {
+// QueryUser queries the user edge of a Event.
+func (c *EventClient) QueryUser(e *Event) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(event.Table, event.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, event.UserTable, event.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPrimaryCalendar queries the primary_calendar edge of a Event.
+func (c *EventClient) QueryPrimaryCalendar(e *Event) *CalendarQuery {
 	query := (&CalendarClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := e.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(event.Table, event.FieldID, id),
 			sqlgraph.To(calendar.Table, calendar.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, event.CalendarTable, event.CalendarColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, event.PrimaryCalendarTable, event.PrimaryCalendarColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryConfirmedDate queries the confirmed_date edge of a Event.
+func (c *EventClient) QueryConfirmedDate(e *Event) *ProposedDateQuery {
+	query := (&ProposedDateClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(event.Table, event.FieldID, id),
+			sqlgraph.To(proposeddate.Table, proposeddate.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, event.ConfirmedDateTable, event.ConfirmedDateColumn),
 		)
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
@@ -580,8 +745,7 @@ func (c *EventClient) QueryProposedDates(e *Event) *ProposedDateQuery {
 
 // Hooks returns the client hooks.
 func (c *EventClient) Hooks() []Hook {
-	hooks := c.hooks.Event
-	return append(hooks[:len(hooks):len(hooks)], event.Hooks[:]...)
+	return c.hooks.Event
 }
 
 // Interceptors returns the client interceptors.
@@ -602,440 +766,6 @@ func (c *EventClient) mutate(ctx context.Context, m *EventMutation) (Value, erro
 		return (&EventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Event mutation op: %q", m.Op())
-	}
-}
-
-// GoogleCalendarInfoClient is a client for the GoogleCalendarInfo schema.
-type GoogleCalendarInfoClient struct {
-	config
-}
-
-// NewGoogleCalendarInfoClient returns a client for the GoogleCalendarInfo from the given config.
-func NewGoogleCalendarInfoClient(c config) *GoogleCalendarInfoClient {
-	return &GoogleCalendarInfoClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `googlecalendarinfo.Hooks(f(g(h())))`.
-func (c *GoogleCalendarInfoClient) Use(hooks ...Hook) {
-	c.hooks.GoogleCalendarInfo = append(c.hooks.GoogleCalendarInfo, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `googlecalendarinfo.Intercept(f(g(h())))`.
-func (c *GoogleCalendarInfoClient) Intercept(interceptors ...Interceptor) {
-	c.inters.GoogleCalendarInfo = append(c.inters.GoogleCalendarInfo, interceptors...)
-}
-
-// Create returns a builder for creating a GoogleCalendarInfo entity.
-func (c *GoogleCalendarInfoClient) Create() *GoogleCalendarInfoCreate {
-	mutation := newGoogleCalendarInfoMutation(c.config, OpCreate)
-	return &GoogleCalendarInfoCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of GoogleCalendarInfo entities.
-func (c *GoogleCalendarInfoClient) CreateBulk(builders ...*GoogleCalendarInfoCreate) *GoogleCalendarInfoCreateBulk {
-	return &GoogleCalendarInfoCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *GoogleCalendarInfoClient) MapCreateBulk(slice any, setFunc func(*GoogleCalendarInfoCreate, int)) *GoogleCalendarInfoCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &GoogleCalendarInfoCreateBulk{err: fmt.Errorf("calling to GoogleCalendarInfoClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*GoogleCalendarInfoCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &GoogleCalendarInfoCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for GoogleCalendarInfo.
-func (c *GoogleCalendarInfoClient) Update() *GoogleCalendarInfoUpdate {
-	mutation := newGoogleCalendarInfoMutation(c.config, OpUpdate)
-	return &GoogleCalendarInfoUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *GoogleCalendarInfoClient) UpdateOne(gci *GoogleCalendarInfo) *GoogleCalendarInfoUpdateOne {
-	mutation := newGoogleCalendarInfoMutation(c.config, OpUpdateOne, withGoogleCalendarInfo(gci))
-	return &GoogleCalendarInfoUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *GoogleCalendarInfoClient) UpdateOneID(id uuid.UUID) *GoogleCalendarInfoUpdateOne {
-	mutation := newGoogleCalendarInfoMutation(c.config, OpUpdateOne, withGoogleCalendarInfoID(id))
-	return &GoogleCalendarInfoUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for GoogleCalendarInfo.
-func (c *GoogleCalendarInfoClient) Delete() *GoogleCalendarInfoDelete {
-	mutation := newGoogleCalendarInfoMutation(c.config, OpDelete)
-	return &GoogleCalendarInfoDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *GoogleCalendarInfoClient) DeleteOne(gci *GoogleCalendarInfo) *GoogleCalendarInfoDeleteOne {
-	return c.DeleteOneID(gci.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *GoogleCalendarInfoClient) DeleteOneID(id uuid.UUID) *GoogleCalendarInfoDeleteOne {
-	builder := c.Delete().Where(googlecalendarinfo.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &GoogleCalendarInfoDeleteOne{builder}
-}
-
-// Query returns a query builder for GoogleCalendarInfo.
-func (c *GoogleCalendarInfoClient) Query() *GoogleCalendarInfoQuery {
-	return &GoogleCalendarInfoQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeGoogleCalendarInfo},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a GoogleCalendarInfo entity by its id.
-func (c *GoogleCalendarInfoClient) Get(ctx context.Context, id uuid.UUID) (*GoogleCalendarInfo, error) {
-	return c.Query().Where(googlecalendarinfo.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *GoogleCalendarInfoClient) GetX(ctx context.Context, id uuid.UUID) *GoogleCalendarInfo {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryCalendars queries the calendars edge of a GoogleCalendarInfo.
-func (c *GoogleCalendarInfoClient) QueryCalendars(gci *GoogleCalendarInfo) *CalendarQuery {
-	query := (&CalendarClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := gci.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(googlecalendarinfo.Table, googlecalendarinfo.FieldID, id),
-			sqlgraph.To(calendar.Table, calendar.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, googlecalendarinfo.CalendarsTable, googlecalendarinfo.CalendarsPrimaryKey...),
-		)
-		fromV = sqlgraph.Neighbors(gci.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *GoogleCalendarInfoClient) Hooks() []Hook {
-	return c.hooks.GoogleCalendarInfo
-}
-
-// Interceptors returns the client interceptors.
-func (c *GoogleCalendarInfoClient) Interceptors() []Interceptor {
-	inters := c.inters.GoogleCalendarInfo
-	return append(inters[:len(inters):len(inters)], googlecalendarinfo.Interceptors[:]...)
-}
-
-func (c *GoogleCalendarInfoClient) mutate(ctx context.Context, m *GoogleCalendarInfoMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&GoogleCalendarInfoCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&GoogleCalendarInfoUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&GoogleCalendarInfoUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&GoogleCalendarInfoDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown GoogleCalendarInfo mutation op: %q", m.Op())
-	}
-}
-
-// JWTKeyClient is a client for the JWTKey schema.
-type JWTKeyClient struct {
-	config
-}
-
-// NewJWTKeyClient returns a client for the JWTKey from the given config.
-func NewJWTKeyClient(c config) *JWTKeyClient {
-	return &JWTKeyClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `jwtkey.Hooks(f(g(h())))`.
-func (c *JWTKeyClient) Use(hooks ...Hook) {
-	c.hooks.JWTKey = append(c.hooks.JWTKey, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `jwtkey.Intercept(f(g(h())))`.
-func (c *JWTKeyClient) Intercept(interceptors ...Interceptor) {
-	c.inters.JWTKey = append(c.inters.JWTKey, interceptors...)
-}
-
-// Create returns a builder for creating a JWTKey entity.
-func (c *JWTKeyClient) Create() *JWTKeyCreate {
-	mutation := newJWTKeyMutation(c.config, OpCreate)
-	return &JWTKeyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of JWTKey entities.
-func (c *JWTKeyClient) CreateBulk(builders ...*JWTKeyCreate) *JWTKeyCreateBulk {
-	return &JWTKeyCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *JWTKeyClient) MapCreateBulk(slice any, setFunc func(*JWTKeyCreate, int)) *JWTKeyCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &JWTKeyCreateBulk{err: fmt.Errorf("calling to JWTKeyClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*JWTKeyCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &JWTKeyCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for JWTKey.
-func (c *JWTKeyClient) Update() *JWTKeyUpdate {
-	mutation := newJWTKeyMutation(c.config, OpUpdate)
-	return &JWTKeyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *JWTKeyClient) UpdateOne(jk *JWTKey) *JWTKeyUpdateOne {
-	mutation := newJWTKeyMutation(c.config, OpUpdateOne, withJWTKey(jk))
-	return &JWTKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *JWTKeyClient) UpdateOneID(id int) *JWTKeyUpdateOne {
-	mutation := newJWTKeyMutation(c.config, OpUpdateOne, withJWTKeyID(id))
-	return &JWTKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for JWTKey.
-func (c *JWTKeyClient) Delete() *JWTKeyDelete {
-	mutation := newJWTKeyMutation(c.config, OpDelete)
-	return &JWTKeyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *JWTKeyClient) DeleteOne(jk *JWTKey) *JWTKeyDeleteOne {
-	return c.DeleteOneID(jk.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *JWTKeyClient) DeleteOneID(id int) *JWTKeyDeleteOne {
-	builder := c.Delete().Where(jwtkey.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &JWTKeyDeleteOne{builder}
-}
-
-// Query returns a query builder for JWTKey.
-func (c *JWTKeyClient) Query() *JWTKeyQuery {
-	return &JWTKeyQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeJWTKey},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a JWTKey entity by its id.
-func (c *JWTKeyClient) Get(ctx context.Context, id int) (*JWTKey, error) {
-	return c.Query().Where(jwtkey.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *JWTKeyClient) GetX(ctx context.Context, id int) *JWTKey {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *JWTKeyClient) Hooks() []Hook {
-	return c.hooks.JWTKey
-}
-
-// Interceptors returns the client interceptors.
-func (c *JWTKeyClient) Interceptors() []Interceptor {
-	inters := c.inters.JWTKey
-	return append(inters[:len(inters):len(inters)], jwtkey.Interceptors[:]...)
-}
-
-func (c *JWTKeyClient) mutate(ctx context.Context, m *JWTKeyMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&JWTKeyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&JWTKeyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&JWTKeyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&JWTKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown JWTKey mutation op: %q", m.Op())
-	}
-}
-
-// OAuthTokenClient is a client for the OAuthToken schema.
-type OAuthTokenClient struct {
-	config
-}
-
-// NewOAuthTokenClient returns a client for the OAuthToken from the given config.
-func NewOAuthTokenClient(c config) *OAuthTokenClient {
-	return &OAuthTokenClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `oauthtoken.Hooks(f(g(h())))`.
-func (c *OAuthTokenClient) Use(hooks ...Hook) {
-	c.hooks.OAuthToken = append(c.hooks.OAuthToken, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `oauthtoken.Intercept(f(g(h())))`.
-func (c *OAuthTokenClient) Intercept(interceptors ...Interceptor) {
-	c.inters.OAuthToken = append(c.inters.OAuthToken, interceptors...)
-}
-
-// Create returns a builder for creating a OAuthToken entity.
-func (c *OAuthTokenClient) Create() *OAuthTokenCreate {
-	mutation := newOAuthTokenMutation(c.config, OpCreate)
-	return &OAuthTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of OAuthToken entities.
-func (c *OAuthTokenClient) CreateBulk(builders ...*OAuthTokenCreate) *OAuthTokenCreateBulk {
-	return &OAuthTokenCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *OAuthTokenClient) MapCreateBulk(slice any, setFunc func(*OAuthTokenCreate, int)) *OAuthTokenCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &OAuthTokenCreateBulk{err: fmt.Errorf("calling to OAuthTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*OAuthTokenCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &OAuthTokenCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for OAuthToken.
-func (c *OAuthTokenClient) Update() *OAuthTokenUpdate {
-	mutation := newOAuthTokenMutation(c.config, OpUpdate)
-	return &OAuthTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *OAuthTokenClient) UpdateOne(ot *OAuthToken) *OAuthTokenUpdateOne {
-	mutation := newOAuthTokenMutation(c.config, OpUpdateOne, withOAuthToken(ot))
-	return &OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *OAuthTokenClient) UpdateOneID(id uuid.UUID) *OAuthTokenUpdateOne {
-	mutation := newOAuthTokenMutation(c.config, OpUpdateOne, withOAuthTokenID(id))
-	return &OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for OAuthToken.
-func (c *OAuthTokenClient) Delete() *OAuthTokenDelete {
-	mutation := newOAuthTokenMutation(c.config, OpDelete)
-	return &OAuthTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *OAuthTokenClient) DeleteOne(ot *OAuthToken) *OAuthTokenDeleteOne {
-	return c.DeleteOneID(ot.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *OAuthTokenClient) DeleteOneID(id uuid.UUID) *OAuthTokenDeleteOne {
-	builder := c.Delete().Where(oauthtoken.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &OAuthTokenDeleteOne{builder}
-}
-
-// Query returns a query builder for OAuthToken.
-func (c *OAuthTokenClient) Query() *OAuthTokenQuery {
-	return &OAuthTokenQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeOAuthToken},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a OAuthToken entity by its id.
-func (c *OAuthTokenClient) Get(ctx context.Context, id uuid.UUID) (*OAuthToken, error) {
-	return c.Query().Where(oauthtoken.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *OAuthTokenClient) GetX(ctx context.Context, id uuid.UUID) *OAuthToken {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryUser queries the user edge of a OAuthToken.
-func (c *OAuthTokenClient) QueryUser(ot *OAuthToken) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := ot.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(oauthtoken.Table, oauthtoken.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, oauthtoken.UserTable, oauthtoken.UserColumn),
-		)
-		fromV = sqlgraph.Neighbors(ot.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *OAuthTokenClient) Hooks() []Hook {
-	return c.hooks.OAuthToken
-}
-
-// Interceptors returns the client interceptors.
-func (c *OAuthTokenClient) Interceptors() []Interceptor {
-	inters := c.inters.OAuthToken
-	return append(inters[:len(inters):len(inters)], oauthtoken.Interceptors[:]...)
-}
-
-func (c *OAuthTokenClient) mutate(ctx context.Context, m *OAuthTokenMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&OAuthTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&OAuthTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&OAuthTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&OAuthTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown OAuthToken mutation op: %q", m.Op())
 	}
 }
 
@@ -1190,6 +920,155 @@ func (c *ProposedDateClient) mutate(ctx context.Context, m *ProposedDateMutation
 	}
 }
 
+// SessionClient is a client for the Session schema.
+type SessionClient struct {
+	config
+}
+
+// NewSessionClient returns a client for the Session from the given config.
+func NewSessionClient(c config) *SessionClient {
+	return &SessionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `session.Hooks(f(g(h())))`.
+func (c *SessionClient) Use(hooks ...Hook) {
+	c.hooks.Session = append(c.hooks.Session, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `session.Intercept(f(g(h())))`.
+func (c *SessionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Session = append(c.inters.Session, interceptors...)
+}
+
+// Create returns a builder for creating a Session entity.
+func (c *SessionClient) Create() *SessionCreate {
+	mutation := newSessionMutation(c.config, OpCreate)
+	return &SessionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Session entities.
+func (c *SessionClient) CreateBulk(builders ...*SessionCreate) *SessionCreateBulk {
+	return &SessionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SessionClient) MapCreateBulk(slice any, setFunc func(*SessionCreate, int)) *SessionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SessionCreateBulk{err: fmt.Errorf("calling to SessionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SessionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SessionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Session.
+func (c *SessionClient) Update() *SessionUpdate {
+	mutation := newSessionMutation(c.config, OpUpdate)
+	return &SessionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SessionClient) UpdateOne(s *Session) *SessionUpdateOne {
+	mutation := newSessionMutation(c.config, OpUpdateOne, withSession(s))
+	return &SessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SessionClient) UpdateOneID(id uuid.UUID) *SessionUpdateOne {
+	mutation := newSessionMutation(c.config, OpUpdateOne, withSessionID(id))
+	return &SessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Session.
+func (c *SessionClient) Delete() *SessionDelete {
+	mutation := newSessionMutation(c.config, OpDelete)
+	return &SessionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SessionClient) DeleteOne(s *Session) *SessionDeleteOne {
+	return c.DeleteOneID(s.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SessionClient) DeleteOneID(id uuid.UUID) *SessionDeleteOne {
+	builder := c.Delete().Where(session.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SessionDeleteOne{builder}
+}
+
+// Query returns a query builder for Session.
+func (c *SessionClient) Query() *SessionQuery {
+	return &SessionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSession},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Session entity by its id.
+func (c *SessionClient) Get(ctx context.Context, id uuid.UUID) (*Session, error) {
+	return c.Query().Where(session.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SessionClient) GetX(ctx context.Context, id uuid.UUID) *Session {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Session.
+func (c *SessionClient) QueryUser(s *Session) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(session.Table, session.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, session.UserTable, session.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SessionClient) Hooks() []Hook {
+	return c.hooks.Session
+}
+
+// Interceptors returns the client interceptors.
+func (c *SessionClient) Interceptors() []Interceptor {
+	return c.inters.Session
+}
+
+func (c *SessionClient) mutate(ctx context.Context, m *SessionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SessionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SessionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SessionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Session mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1298,15 +1177,15 @@ func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	return obj
 }
 
-// QueryOauthToken queries the oauth_token edge of a User.
-func (c *UserClient) QueryOauthToken(u *User) *OAuthTokenQuery {
-	query := (&OAuthTokenClient{config: c.config}).Query()
+// QueryAccount queries the account edge of a User.
+func (c *UserClient) QueryAccount(u *User) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, user.OauthTokenTable, user.OauthTokenColumn),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.AccountTable, user.AccountColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -1314,15 +1193,47 @@ func (c *UserClient) QueryOauthToken(u *User) *OAuthTokenQuery {
 	return query
 }
 
-// QueryCalendars queries the calendars edge of a User.
-func (c *UserClient) QueryCalendars(u *User) *CalendarQuery {
-	query := (&CalendarClient{config: c.config}).Query()
+// QuerySessions queries the sessions edge of a User.
+func (c *UserClient) QuerySessions(u *User) *SessionQuery {
+	query := (&SessionClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(calendar.Table, calendar.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.CalendarsTable, user.CalendarsColumn),
+			sqlgraph.To(session.Table, session.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SessionsTable, user.SessionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUserCalendars queries the user_calendars edge of a User.
+func (c *UserClient) QueryUserCalendars(u *User) *UserCalendarQuery {
+	query := (&UserCalendarClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UserCalendarsTable, user.UserCalendarsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEvents queries the events edge of a User.
+func (c *UserClient) QueryEvents(u *User) *EventQuery {
+	query := (&EventClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(event.Table, event.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.EventsTable, user.EventsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -1357,14 +1268,179 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// UserCalendarClient is a client for the UserCalendar schema.
+type UserCalendarClient struct {
+	config
+}
+
+// NewUserCalendarClient returns a client for the UserCalendar from the given config.
+func NewUserCalendarClient(c config) *UserCalendarClient {
+	return &UserCalendarClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `usercalendar.Hooks(f(g(h())))`.
+func (c *UserCalendarClient) Use(hooks ...Hook) {
+	c.hooks.UserCalendar = append(c.hooks.UserCalendar, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `usercalendar.Intercept(f(g(h())))`.
+func (c *UserCalendarClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserCalendar = append(c.inters.UserCalendar, interceptors...)
+}
+
+// Create returns a builder for creating a UserCalendar entity.
+func (c *UserCalendarClient) Create() *UserCalendarCreate {
+	mutation := newUserCalendarMutation(c.config, OpCreate)
+	return &UserCalendarCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserCalendar entities.
+func (c *UserCalendarClient) CreateBulk(builders ...*UserCalendarCreate) *UserCalendarCreateBulk {
+	return &UserCalendarCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserCalendarClient) MapCreateBulk(slice any, setFunc func(*UserCalendarCreate, int)) *UserCalendarCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserCalendarCreateBulk{err: fmt.Errorf("calling to UserCalendarClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserCalendarCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserCalendarCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserCalendar.
+func (c *UserCalendarClient) Update() *UserCalendarUpdate {
+	mutation := newUserCalendarMutation(c.config, OpUpdate)
+	return &UserCalendarUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserCalendarClient) UpdateOne(uc *UserCalendar) *UserCalendarUpdateOne {
+	mutation := newUserCalendarMutation(c.config, OpUpdateOne, withUserCalendar(uc))
+	return &UserCalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserCalendarClient) UpdateOneID(id uuid.UUID) *UserCalendarUpdateOne {
+	mutation := newUserCalendarMutation(c.config, OpUpdateOne, withUserCalendarID(id))
+	return &UserCalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserCalendar.
+func (c *UserCalendarClient) Delete() *UserCalendarDelete {
+	mutation := newUserCalendarMutation(c.config, OpDelete)
+	return &UserCalendarDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UserCalendarClient) DeleteOne(uc *UserCalendar) *UserCalendarDeleteOne {
+	return c.DeleteOneID(uc.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UserCalendarClient) DeleteOneID(id uuid.UUID) *UserCalendarDeleteOne {
+	builder := c.Delete().Where(usercalendar.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserCalendarDeleteOne{builder}
+}
+
+// Query returns a query builder for UserCalendar.
+func (c *UserCalendarClient) Query() *UserCalendarQuery {
+	return &UserCalendarQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserCalendar},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UserCalendar entity by its id.
+func (c *UserCalendarClient) Get(ctx context.Context, id uuid.UUID) (*UserCalendar, error) {
+	return c.Query().Where(usercalendar.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserCalendarClient) GetX(ctx context.Context, id uuid.UUID) *UserCalendar {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a UserCalendar.
+func (c *UserCalendarClient) QueryUser(uc *UserCalendar) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := uc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usercalendar.Table, usercalendar.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, usercalendar.UserTable, usercalendar.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(uc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCalendar queries the calendar edge of a UserCalendar.
+func (c *UserCalendarClient) QueryCalendar(uc *UserCalendar) *CalendarQuery {
+	query := (&CalendarClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := uc.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usercalendar.Table, usercalendar.FieldID, id),
+			sqlgraph.To(calendar.Table, calendar.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, usercalendar.CalendarTable, usercalendar.CalendarColumn),
+		)
+		fromV = sqlgraph.Neighbors(uc.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *UserCalendarClient) Hooks() []Hook {
+	return c.hooks.UserCalendar
+}
+
+// Interceptors returns the client interceptors.
+func (c *UserCalendarClient) Interceptors() []Interceptor {
+	inters := c.inters.UserCalendar
+	return append(inters[:len(inters):len(inters)], usercalendar.Interceptors[:]...)
+}
+
+func (c *UserCalendarClient) mutate(ctx context.Context, m *UserCalendarMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserCalendarCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserCalendarUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserCalendarUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserCalendarDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserCalendar mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Calendar, Event, GoogleCalendarInfo, JWTKey, OAuthToken, ProposedDate,
-		User []ent.Hook
+		Account, Calendar, Event, ProposedDate, Session, User, UserCalendar []ent.Hook
 	}
 	inters struct {
-		Calendar, Event, GoogleCalendarInfo, JWTKey, OAuthToken, ProposedDate,
-		User []ent.Interceptor
+		Account, Calendar, Event, ProposedDate, Session, User,
+		UserCalendar []ent.Interceptor
 	}
 )

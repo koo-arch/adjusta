@@ -23,8 +23,12 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldSummary holds the string denoting the summary field in the database.
-	FieldSummary = "summary"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
+	// FieldPrimaryCalendarID holds the string denoting the primary_calendar_id field in the database.
+	FieldPrimaryCalendarID = "primary_calendar_id"
+	// FieldTitle holds the string denoting the title field in the database.
+	FieldTitle = "title"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
 	// FieldLocation holds the string denoting the location field in the database.
@@ -33,30 +37,52 @@ const (
 	FieldStatus = "status"
 	// FieldConfirmedDateID holds the string denoting the confirmed_date_id field in the database.
 	FieldConfirmedDateID = "confirmed_date_id"
-	// FieldGoogleEventID holds the string denoting the google_event_id field in the database.
-	FieldGoogleEventID = "google_event_id"
-	// FieldSlug holds the string denoting the slug field in the database.
-	FieldSlug = "slug"
-	// EdgeCalendar holds the string denoting the calendar edge name in mutations.
-	EdgeCalendar = "calendar"
+	// FieldConfirmedGoogleEventID holds the string denoting the confirmed_google_event_id field in the database.
+	FieldConfirmedGoogleEventID = "confirmed_google_event_id"
+	// FieldSyncStatus holds the string denoting the sync_status field in the database.
+	FieldSyncStatus = "sync_status"
+	// FieldLastSyncedAt holds the string denoting the last_synced_at field in the database.
+	FieldLastSyncedAt = "last_synced_at"
+	// FieldLastSyncError holds the string denoting the last_sync_error field in the database.
+	FieldLastSyncError = "last_sync_error"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
+	// EdgePrimaryCalendar holds the string denoting the primary_calendar edge name in mutations.
+	EdgePrimaryCalendar = "primary_calendar"
+	// EdgeConfirmedDate holds the string denoting the confirmed_date edge name in mutations.
+	EdgeConfirmedDate = "confirmed_date"
 	// EdgeProposedDates holds the string denoting the proposed_dates edge name in mutations.
 	EdgeProposedDates = "proposed_dates"
 	// Table holds the table name of the event in the database.
 	Table = "events"
-	// CalendarTable is the table that holds the calendar relation/edge.
-	CalendarTable = "events"
-	// CalendarInverseTable is the table name for the Calendar entity.
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "events"
+	// UserInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UserInverseTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_id"
+	// PrimaryCalendarTable is the table that holds the primary_calendar relation/edge.
+	PrimaryCalendarTable = "events"
+	// PrimaryCalendarInverseTable is the table name for the Calendar entity.
 	// It exists in this package in order to avoid circular dependency with the "calendar" package.
-	CalendarInverseTable = "calendars"
-	// CalendarColumn is the table column denoting the calendar relation/edge.
-	CalendarColumn = "calendar_events"
+	PrimaryCalendarInverseTable = "calendars"
+	// PrimaryCalendarColumn is the table column denoting the primary_calendar relation/edge.
+	PrimaryCalendarColumn = "primary_calendar_id"
+	// ConfirmedDateTable is the table that holds the confirmed_date relation/edge.
+	ConfirmedDateTable = "events"
+	// ConfirmedDateInverseTable is the table name for the ProposedDate entity.
+	// It exists in this package in order to avoid circular dependency with the "proposeddate" package.
+	ConfirmedDateInverseTable = "proposed_dates"
+	// ConfirmedDateColumn is the table column denoting the confirmed_date relation/edge.
+	ConfirmedDateColumn = "confirmed_date_id"
 	// ProposedDatesTable is the table that holds the proposed_dates relation/edge.
 	ProposedDatesTable = "proposed_dates"
 	// ProposedDatesInverseTable is the table name for the ProposedDate entity.
 	// It exists in this package in order to avoid circular dependency with the "proposeddate" package.
 	ProposedDatesInverseTable = "proposed_dates"
 	// ProposedDatesColumn is the table column denoting the proposed_dates relation/edge.
-	ProposedDatesColumn = "event_proposed_dates"
+	ProposedDatesColumn = "event_id"
 )
 
 // Columns holds all SQL columns for event fields.
@@ -65,30 +91,23 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldSummary,
+	FieldUserID,
+	FieldPrimaryCalendarID,
+	FieldTitle,
 	FieldDescription,
 	FieldLocation,
 	FieldStatus,
 	FieldConfirmedDateID,
-	FieldGoogleEventID,
-	FieldSlug,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "events"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"calendar_events",
+	FieldConfirmedGoogleEventID,
+	FieldSyncStatus,
+	FieldLastSyncedAt,
+	FieldLastSyncError,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -101,7 +120,6 @@ func ValidColumn(column string) bool {
 //
 //	import _ "github.com/koo-arch/adjusta-backend/ent/runtime"
 var (
-	Hooks        [1]ent.Hook
 	Interceptors [1]ent.Interceptor
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
@@ -109,6 +127,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	TitleValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -116,12 +136,13 @@ var (
 // Status defines the type for the "status" enum field.
 type Status string
 
-// StatusPending is the default value of the Status enum.
-const DefaultStatus = StatusPending
+// StatusActive is the default value of the Status enum.
+const DefaultStatus = StatusActive
 
 // Status values.
 const (
-	StatusPending   Status = "pending"
+	StatusDraft     Status = "draft"
+	StatusActive    Status = "active"
 	StatusConfirmed Status = "confirmed"
 	StatusCancelled Status = "cancelled"
 )
@@ -133,10 +154,38 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusPending, StatusConfirmed, StatusCancelled:
+	case StatusDraft, StatusActive, StatusConfirmed, StatusCancelled:
 		return nil
 	default:
 		return fmt.Errorf("event: invalid enum value for status field: %q", s)
+	}
+}
+
+// SyncStatus defines the type for the "sync_status" enum field.
+type SyncStatus string
+
+// SyncStatusNotSynced is the default value of the SyncStatus enum.
+const DefaultSyncStatus = SyncStatusNotSynced
+
+// SyncStatus values.
+const (
+	SyncStatusNotSynced   SyncStatus = "not_synced"
+	SyncStatusPendingSync SyncStatus = "pending_sync"
+	SyncStatusSynced      SyncStatus = "synced"
+	SyncStatusSyncFailed  SyncStatus = "sync_failed"
+)
+
+func (ss SyncStatus) String() string {
+	return string(ss)
+}
+
+// SyncStatusValidator is a validator for the "sync_status" field enum values. It is called by the builders before save.
+func SyncStatusValidator(ss SyncStatus) error {
+	switch ss {
+	case SyncStatusNotSynced, SyncStatusPendingSync, SyncStatusSynced, SyncStatusSyncFailed:
+		return nil
+	default:
+		return fmt.Errorf("event: invalid enum value for sync_status field: %q", ss)
 	}
 }
 
@@ -163,9 +212,19 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// BySummary orders the results by the summary field.
-func BySummary(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSummary, opts...).ToFunc()
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByPrimaryCalendarID orders the results by the primary_calendar_id field.
+func ByPrimaryCalendarID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrimaryCalendarID, opts...).ToFunc()
+}
+
+// ByTitle orders the results by the title field.
+func ByTitle(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTitle, opts...).ToFunc()
 }
 
 // ByDescription orders the results by the description field.
@@ -188,20 +247,44 @@ func ByConfirmedDateID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldConfirmedDateID, opts...).ToFunc()
 }
 
-// ByGoogleEventID orders the results by the google_event_id field.
-func ByGoogleEventID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldGoogleEventID, opts...).ToFunc()
+// ByConfirmedGoogleEventID orders the results by the confirmed_google_event_id field.
+func ByConfirmedGoogleEventID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConfirmedGoogleEventID, opts...).ToFunc()
 }
 
-// BySlug orders the results by the slug field.
-func BySlug(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSlug, opts...).ToFunc()
+// BySyncStatus orders the results by the sync_status field.
+func BySyncStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSyncStatus, opts...).ToFunc()
 }
 
-// ByCalendarField orders the results by calendar field.
-func ByCalendarField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByLastSyncedAt orders the results by the last_synced_at field.
+func ByLastSyncedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastSyncedAt, opts...).ToFunc()
+}
+
+// ByLastSyncError orders the results by the last_sync_error field.
+func ByLastSyncError(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastSyncError, opts...).ToFunc()
+}
+
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCalendarStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPrimaryCalendarField orders the results by primary_calendar field.
+func ByPrimaryCalendarField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPrimaryCalendarStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByConfirmedDateField orders the results by confirmed_date field.
+func ByConfirmedDateField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newConfirmedDateStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -218,11 +301,25 @@ func ByProposedDates(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newProposedDatesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newCalendarStep() *sqlgraph.Step {
+func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CalendarInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CalendarTable, CalendarColumn),
+		sqlgraph.To(UserInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+	)
+}
+func newPrimaryCalendarStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PrimaryCalendarInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PrimaryCalendarTable, PrimaryCalendarColumn),
+	)
+}
+func newConfirmedDateStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ConfirmedDateInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, ConfirmedDateTable, ConfirmedDateColumn),
 	)
 }
 func newProposedDatesStep() *sqlgraph.Step {

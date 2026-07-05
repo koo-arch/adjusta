@@ -13,21 +13,25 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent/calendar"
-	"github.com/koo-arch/adjusta-backend/ent/oauthtoken"
+	"github.com/koo-arch/adjusta-backend/ent/account"
+	"github.com/koo-arch/adjusta-backend/ent/event"
 	"github.com/koo-arch/adjusta-backend/ent/predicate"
+	"github.com/koo-arch/adjusta-backend/ent/session"
 	"github.com/koo-arch/adjusta-backend/ent/user"
+	"github.com/koo-arch/adjusta-backend/ent/usercalendar"
 )
 
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx            *QueryContext
-	order          []user.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.User
-	withOauthToken *OAuthTokenQuery
-	withCalendars  *CalendarQuery
+	ctx               *QueryContext
+	order             []user.OrderOption
+	inters            []Interceptor
+	predicates        []predicate.User
+	withAccount       *AccountQuery
+	withSessions      *SessionQuery
+	withUserCalendars *UserCalendarQuery
+	withEvents        *EventQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -64,9 +68,9 @@ func (uq *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 	return uq
 }
 
-// QueryOauthToken chains the current query on the "oauth_token" edge.
-func (uq *UserQuery) QueryOauthToken() *OAuthTokenQuery {
-	query := (&OAuthTokenClient{config: uq.config}).Query()
+// QueryAccount chains the current query on the "account" edge.
+func (uq *UserQuery) QueryAccount() *AccountQuery {
+	query := (&AccountClient{config: uq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := uq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -77,8 +81,8 @@ func (uq *UserQuery) QueryOauthToken() *OAuthTokenQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(oauthtoken.Table, oauthtoken.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, user.OauthTokenTable, user.OauthTokenColumn),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.AccountTable, user.AccountColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -86,9 +90,9 @@ func (uq *UserQuery) QueryOauthToken() *OAuthTokenQuery {
 	return query
 }
 
-// QueryCalendars chains the current query on the "calendars" edge.
-func (uq *UserQuery) QueryCalendars() *CalendarQuery {
-	query := (&CalendarClient{config: uq.config}).Query()
+// QuerySessions chains the current query on the "sessions" edge.
+func (uq *UserQuery) QuerySessions() *SessionQuery {
+	query := (&SessionClient{config: uq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := uq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -99,8 +103,52 @@ func (uq *UserQuery) QueryCalendars() *CalendarQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(calendar.Table, calendar.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.CalendarsTable, user.CalendarsColumn),
+			sqlgraph.To(session.Table, session.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.SessionsTable, user.SessionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUserCalendars chains the current query on the "user_calendars" edge.
+func (uq *UserQuery) QueryUserCalendars() *UserCalendarQuery {
+	query := (&UserCalendarClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UserCalendarsTable, user.UserCalendarsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryEvents chains the current query on the "events" edge.
+func (uq *UserQuery) QueryEvents() *EventQuery {
+	query := (&EventClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(event.Table, event.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.EventsTable, user.EventsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -295,38 +343,62 @@ func (uq *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:         uq.config,
-		ctx:            uq.ctx.Clone(),
-		order:          append([]user.OrderOption{}, uq.order...),
-		inters:         append([]Interceptor{}, uq.inters...),
-		predicates:     append([]predicate.User{}, uq.predicates...),
-		withOauthToken: uq.withOauthToken.Clone(),
-		withCalendars:  uq.withCalendars.Clone(),
+		config:            uq.config,
+		ctx:               uq.ctx.Clone(),
+		order:             append([]user.OrderOption{}, uq.order...),
+		inters:            append([]Interceptor{}, uq.inters...),
+		predicates:        append([]predicate.User{}, uq.predicates...),
+		withAccount:       uq.withAccount.Clone(),
+		withSessions:      uq.withSessions.Clone(),
+		withUserCalendars: uq.withUserCalendars.Clone(),
+		withEvents:        uq.withEvents.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
 	}
 }
 
-// WithOauthToken tells the query-builder to eager-load the nodes that are connected to
-// the "oauth_token" edge. The optional arguments are used to configure the query builder of the edge.
-func (uq *UserQuery) WithOauthToken(opts ...func(*OAuthTokenQuery)) *UserQuery {
-	query := (&OAuthTokenClient{config: uq.config}).Query()
+// WithAccount tells the query-builder to eager-load the nodes that are connected to
+// the "account" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithAccount(opts ...func(*AccountQuery)) *UserQuery {
+	query := (&AccountClient{config: uq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	uq.withOauthToken = query
+	uq.withAccount = query
 	return uq
 }
 
-// WithCalendars tells the query-builder to eager-load the nodes that are connected to
-// the "calendars" edge. The optional arguments are used to configure the query builder of the edge.
-func (uq *UserQuery) WithCalendars(opts ...func(*CalendarQuery)) *UserQuery {
-	query := (&CalendarClient{config: uq.config}).Query()
+// WithSessions tells the query-builder to eager-load the nodes that are connected to
+// the "sessions" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithSessions(opts ...func(*SessionQuery)) *UserQuery {
+	query := (&SessionClient{config: uq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	uq.withCalendars = query
+	uq.withSessions = query
+	return uq
+}
+
+// WithUserCalendars tells the query-builder to eager-load the nodes that are connected to
+// the "user_calendars" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithUserCalendars(opts ...func(*UserCalendarQuery)) *UserQuery {
+	query := (&UserCalendarClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withUserCalendars = query
+	return uq
+}
+
+// WithEvents tells the query-builder to eager-load the nodes that are connected to
+// the "events" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithEvents(opts ...func(*EventQuery)) *UserQuery {
+	query := (&EventClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withEvents = query
 	return uq
 }
 
@@ -408,9 +480,11 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [2]bool{
-			uq.withOauthToken != nil,
-			uq.withCalendars != nil,
+		loadedTypes = [4]bool{
+			uq.withAccount != nil,
+			uq.withSessions != nil,
+			uq.withUserCalendars != nil,
+			uq.withEvents != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -431,51 +505,64 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := uq.withOauthToken; query != nil {
-		if err := uq.loadOauthToken(ctx, query, nodes, nil,
-			func(n *User, e *OAuthToken) { n.Edges.OauthToken = e }); err != nil {
+	if query := uq.withAccount; query != nil {
+		if err := uq.loadAccount(ctx, query, nodes, nil,
+			func(n *User, e *Account) { n.Edges.Account = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := uq.withCalendars; query != nil {
-		if err := uq.loadCalendars(ctx, query, nodes,
-			func(n *User) { n.Edges.Calendars = []*Calendar{} },
-			func(n *User, e *Calendar) { n.Edges.Calendars = append(n.Edges.Calendars, e) }); err != nil {
+	if query := uq.withSessions; query != nil {
+		if err := uq.loadSessions(ctx, query, nodes,
+			func(n *User) { n.Edges.Sessions = []*Session{} },
+			func(n *User, e *Session) { n.Edges.Sessions = append(n.Edges.Sessions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withUserCalendars; query != nil {
+		if err := uq.loadUserCalendars(ctx, query, nodes,
+			func(n *User) { n.Edges.UserCalendars = []*UserCalendar{} },
+			func(n *User, e *UserCalendar) { n.Edges.UserCalendars = append(n.Edges.UserCalendars, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withEvents; query != nil {
+		if err := uq.loadEvents(ctx, query, nodes,
+			func(n *User) { n.Edges.Events = []*Event{} },
+			func(n *User, e *Event) { n.Edges.Events = append(n.Edges.Events, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (uq *UserQuery) loadOauthToken(ctx context.Context, query *OAuthTokenQuery, nodes []*User, init func(*User), assign func(*User, *OAuthToken)) error {
+func (uq *UserQuery) loadAccount(ctx context.Context, query *AccountQuery, nodes []*User, init func(*User), assign func(*User, *Account)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[uuid.UUID]*User)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
 	}
-	query.withFKs = true
-	query.Where(predicate.OAuthToken(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.OauthTokenColumn), fks...))
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(account.FieldUserID)
+	}
+	query.Where(predicate.Account(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.AccountColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_oauth_token
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_oauth_token" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		fk := n.UserID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_oauth_token" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
-func (uq *UserQuery) loadCalendars(ctx context.Context, query *CalendarQuery, nodes []*User, init func(*User), assign func(*User, *Calendar)) error {
+func (uq *UserQuery) loadSessions(ctx context.Context, query *SessionQuery, nodes []*User, init func(*User), assign func(*User, *Session)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[uuid.UUID]*User)
 	for i := range nodes {
@@ -485,22 +572,81 @@ func (uq *UserQuery) loadCalendars(ctx context.Context, query *CalendarQuery, no
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
-	query.Where(predicate.Calendar(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.CalendarsColumn), fks...))
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(session.FieldUserID)
+	}
+	query.Where(predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.SessionsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_calendars
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_calendars" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		fk := n.UserID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_calendars" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadUserCalendars(ctx context.Context, query *UserCalendarQuery, nodes []*User, init func(*User), assign func(*User, *UserCalendar)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(usercalendar.FieldUserID)
+	}
+	query.Where(predicate.UserCalendar(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.UserCalendarsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadEvents(ctx context.Context, query *EventQuery, nodes []*User, init func(*User), assign func(*User, *Event)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(event.FieldUserID)
+	}
+	query.Where(predicate.Event(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.EventsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

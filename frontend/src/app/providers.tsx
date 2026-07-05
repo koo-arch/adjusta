@@ -1,19 +1,49 @@
 'use client'
-import React from 'react';
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import type { ReactNode } from 'react';
+import { QueryClientProvider, QueryClient, isServer } from "@tanstack/react-query";
 import { ReactQueryStreamedHydration } from '@tanstack/react-query-next-experimental';
+import ToastProvider from './ToastProvider';
 
 interface ProvidersProps {
-    children: React.ReactNode;
+    children: ReactNode;
 }
 
-const queryClient = new QueryClient();
+const makeQueryClient = () =>
+    new QueryClient({
+        defaultOptions: {
+            queries: {
+                staleTime: 30_000,
+                refetchOnWindowFocus: false,
+                retry: 1,
+            },
+        },
+    });
 
-const Providers: React.FC<ProvidersProps> = ({ children }) => {
+let browserQueryClient: QueryClient | undefined;
+
+const getQueryClient = () => {
+    if (isServer) {
+        // サーバーはリクエストごとに新規（共有しない）
+        return makeQueryClient();
+    }
+
+    // ブラウザはシングルトン（タブ内で使い回す）
+    if (!browserQueryClient) {
+        browserQueryClient = makeQueryClient();
+    }
+
+    return browserQueryClient;
+};
+
+const Providers = ({ children }: ProvidersProps) => {
+    const queryClient = getQueryClient();
+
     return (
         <QueryClientProvider client={queryClient}>
             <ReactQueryStreamedHydration>
-                {children}
+                <ToastProvider>
+                    {children}
+                </ToastProvider>
             </ReactQueryStreamedHydration>
         </QueryClientProvider>
     )

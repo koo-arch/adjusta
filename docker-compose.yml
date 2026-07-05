@@ -1,3 +1,6 @@
+x-db-env: &db-env
+  DATABASE_URL: "postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable"
+
 services:
   backend:
     build:
@@ -9,9 +12,26 @@ services:
       - ./backend:/backend
       - ./backend/config/service-account.json:/backend/config/service-account.json:ro
     environment:
+      <<: *db-env
       GOOGLE_APPLICATION_CREDENTIALS: "/backend/config/service-account.json"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+  migrate:
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile.dev
+    command: go run ./cmd/migrate
+    profiles: ["tools"]
+    volumes:
+      - ./backend:/backend
+    environment:
+      <<: *db-env
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - app-network
   frontend:
@@ -35,6 +55,11 @@ services:
       TZ: "${DB_TZ}"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
     networks:
       - app-network
 

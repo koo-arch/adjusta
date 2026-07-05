@@ -13,14 +13,14 @@ RUN go mod download
 COPY . .
 # ent のコード生成（intercept 機能を有効に）
 RUN go run -mod=mod entgo.io/ent/cmd/ent generate \
-    --feature intercept,schema/snapshot \
+    --feature intercept \
     ./ent/schema
 
 # Linux amd64 向けにクロスコンパイルする
 ENV CGO_ENABLED=0 \
   GOOS=linux \
   GOARCH=amd64
-RUN go build -mod=mod -o server .
+RUN go build -mod=mod -o server ./cmd/server
 
 # ── 2. runtime stage ─────────────────────────
 FROM alpine:3.18

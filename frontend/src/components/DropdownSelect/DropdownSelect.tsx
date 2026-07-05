@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React from 'react';
 import { Label, Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react';
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -35,7 +35,7 @@ interface DropdownSelectProps<T> extends VariantProps<typeof listboxStyle> {
     options: T[];
     onChange: (item: T | null) => void;
     renderLabel: (item: T | null) => React.ReactNode;
-    defaultSelected?: T;
+    value?: T | null;
     error?: boolean;
     helperText?: string;
     placeholder?: string;
@@ -46,29 +46,22 @@ const DropdownSelect = <T extends unknown>({
     options,
     onChange,
     renderLabel,
-    defaultSelected,
+    value,
     selectSize,
     shape,
     helperText,
     error,
     placeholder = '未選択', // プレースホルダーのデフォルト
 }: DropdownSelectProps<T>) => {
-    const [selected, setSelected] = useState<T | null>(defaultSelected || null);
-
-    const handleSelect = (item: T | null) => {
-        setSelected(item);
-        onChange(item);
-    }
-
     return (
         <div>
-            <Listbox value={selected} onChange={handleSelect}>
+            <Listbox value={value ?? null} onChange={onChange}>
                 {label && <Label className="font-medium text-md">{label}</Label>}
                 <div className="relative mt-2">
                     <ListboxButton
                         className={`${listboxStyle({ selectSize, shape, error })} cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2`}
                     >
-                        <span className="block truncate">{selected ? renderLabel(selected) : placeholder}</span>
+                        <span className="block truncate">{value ? renderLabel(value) : placeholder}</span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                             <ChevronUpDownIcon aria-hidden="true" className="h-5 w-5 text-gray-400" />
                         </span>
@@ -92,7 +85,7 @@ const DropdownSelect = <T extends unknown>({
                                     <span className={`block truncate ${focus ? 'font-semibold' : 'font-normal'}`}>
                                         {placeholder}
                                     </span>
-                                    {selected === null && (
+                                    {value === null && (
                                         <span className="absolute inset-y-0 right-0 flex items-center pr-4">
                                             <CheckIcon className="h-5 w-5 text-indigo-600" aria-hidden="true" />
                                         </span>
@@ -116,7 +109,7 @@ const DropdownSelect = <T extends unknown>({
                                         <span className={`block truncate ${focus ? 'font-semibold' : 'font-normal'}`}>
                                             {renderLabel(option)}
                                         </span>
-                                        {selected === option && (
+                                        {value === option && (
                                             <span className="absolute inset-y-0 right-0 flex items-center pr-4">
                                                 <CheckIcon className="h-5 w-5 text-indigo-600" aria-hidden="true" />
                                             </span>

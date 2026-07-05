@@ -2,10 +2,10 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"github.com/google/uuid"
-	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/ent/mixins"
 )
 
@@ -18,15 +18,18 @@ type Calendar struct {
 func (Calendar) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New).Unique().Immutable(),
+		field.String("google_calendar_id").Optional().Nillable().Unique(),
+		field.String("summary").Optional().Nillable(),
+		field.Text("description").Optional().Nillable(),
+		field.String("timezone").Optional().Nillable(),
 	}
 }
 
 // Edges of the Calendar.
 func (Calendar) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", User.Type).Ref("calendars").Unique(),
-		edge.To("google_calendar_infos", GoogleCalendarInfo.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("events", Event.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("user_calendars", UserCalendar.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("primary_events", Event.Type).Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

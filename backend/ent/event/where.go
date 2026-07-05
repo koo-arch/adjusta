@@ -71,9 +71,19 @@ func DeletedAt(v time.Time) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// Summary applies equality check predicate on the "summary" field. It's identical to SummaryEQ.
-func Summary(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldSummary, v))
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldUserID, v))
+}
+
+// PrimaryCalendarID applies equality check predicate on the "primary_calendar_id" field. It's identical to PrimaryCalendarIDEQ.
+func PrimaryCalendarID(v uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldPrimaryCalendarID, v))
+}
+
+// Title applies equality check predicate on the "title" field. It's identical to TitleEQ.
+func Title(v string) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldTitle, v))
 }
 
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
@@ -91,14 +101,19 @@ func ConfirmedDateID(v uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldEQ(FieldConfirmedDateID, v))
 }
 
-// GoogleEventID applies equality check predicate on the "google_event_id" field. It's identical to GoogleEventIDEQ.
-func GoogleEventID(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldGoogleEventID, v))
+// ConfirmedGoogleEventID applies equality check predicate on the "confirmed_google_event_id" field. It's identical to ConfirmedGoogleEventIDEQ.
+func ConfirmedGoogleEventID(v string) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldConfirmedGoogleEventID, v))
 }
 
-// Slug applies equality check predicate on the "slug" field. It's identical to SlugEQ.
-func Slug(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldSlug, v))
+// LastSyncedAt applies equality check predicate on the "last_synced_at" field. It's identical to LastSyncedAtEQ.
+func LastSyncedAt(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldLastSyncedAt, v))
+}
+
+// LastSyncError applies equality check predicate on the "last_sync_error" field. It's identical to LastSyncErrorEQ.
+func LastSyncError(v string) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldLastSyncError, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -231,79 +246,109 @@ func DeletedAtNotNil() predicate.Event {
 	return predicate.Event(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// SummaryEQ applies the EQ predicate on the "summary" field.
-func SummaryEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldSummary, v))
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldUserID, v))
 }
 
-// SummaryNEQ applies the NEQ predicate on the "summary" field.
-func SummaryNEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldNEQ(FieldSummary, v))
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldUserID, v))
 }
 
-// SummaryIn applies the In predicate on the "summary" field.
-func SummaryIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldIn(FieldSummary, vs...))
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldUserID, vs...))
 }
 
-// SummaryNotIn applies the NotIn predicate on the "summary" field.
-func SummaryNotIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldNotIn(FieldSummary, vs...))
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldUserID, vs...))
 }
 
-// SummaryGT applies the GT predicate on the "summary" field.
-func SummaryGT(v string) predicate.Event {
-	return predicate.Event(sql.FieldGT(FieldSummary, v))
+// PrimaryCalendarIDEQ applies the EQ predicate on the "primary_calendar_id" field.
+func PrimaryCalendarIDEQ(v uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldPrimaryCalendarID, v))
 }
 
-// SummaryGTE applies the GTE predicate on the "summary" field.
-func SummaryGTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldGTE(FieldSummary, v))
+// PrimaryCalendarIDNEQ applies the NEQ predicate on the "primary_calendar_id" field.
+func PrimaryCalendarIDNEQ(v uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldPrimaryCalendarID, v))
 }
 
-// SummaryLT applies the LT predicate on the "summary" field.
-func SummaryLT(v string) predicate.Event {
-	return predicate.Event(sql.FieldLT(FieldSummary, v))
+// PrimaryCalendarIDIn applies the In predicate on the "primary_calendar_id" field.
+func PrimaryCalendarIDIn(vs ...uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldPrimaryCalendarID, vs...))
 }
 
-// SummaryLTE applies the LTE predicate on the "summary" field.
-func SummaryLTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldLTE(FieldSummary, v))
+// PrimaryCalendarIDNotIn applies the NotIn predicate on the "primary_calendar_id" field.
+func PrimaryCalendarIDNotIn(vs ...uuid.UUID) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldPrimaryCalendarID, vs...))
 }
 
-// SummaryContains applies the Contains predicate on the "summary" field.
-func SummaryContains(v string) predicate.Event {
-	return predicate.Event(sql.FieldContains(FieldSummary, v))
+// TitleEQ applies the EQ predicate on the "title" field.
+func TitleEQ(v string) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldTitle, v))
 }
 
-// SummaryHasPrefix applies the HasPrefix predicate on the "summary" field.
-func SummaryHasPrefix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasPrefix(FieldSummary, v))
+// TitleNEQ applies the NEQ predicate on the "title" field.
+func TitleNEQ(v string) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldTitle, v))
 }
 
-// SummaryHasSuffix applies the HasSuffix predicate on the "summary" field.
-func SummaryHasSuffix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasSuffix(FieldSummary, v))
+// TitleIn applies the In predicate on the "title" field.
+func TitleIn(vs ...string) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldTitle, vs...))
 }
 
-// SummaryIsNil applies the IsNil predicate on the "summary" field.
-func SummaryIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldSummary))
+// TitleNotIn applies the NotIn predicate on the "title" field.
+func TitleNotIn(vs ...string) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldTitle, vs...))
 }
 
-// SummaryNotNil applies the NotNil predicate on the "summary" field.
-func SummaryNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldSummary))
+// TitleGT applies the GT predicate on the "title" field.
+func TitleGT(v string) predicate.Event {
+	return predicate.Event(sql.FieldGT(FieldTitle, v))
 }
 
-// SummaryEqualFold applies the EqualFold predicate on the "summary" field.
-func SummaryEqualFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldEqualFold(FieldSummary, v))
+// TitleGTE applies the GTE predicate on the "title" field.
+func TitleGTE(v string) predicate.Event {
+	return predicate.Event(sql.FieldGTE(FieldTitle, v))
 }
 
-// SummaryContainsFold applies the ContainsFold predicate on the "summary" field.
-func SummaryContainsFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldContainsFold(FieldSummary, v))
+// TitleLT applies the LT predicate on the "title" field.
+func TitleLT(v string) predicate.Event {
+	return predicate.Event(sql.FieldLT(FieldTitle, v))
+}
+
+// TitleLTE applies the LTE predicate on the "title" field.
+func TitleLTE(v string) predicate.Event {
+	return predicate.Event(sql.FieldLTE(FieldTitle, v))
+}
+
+// TitleContains applies the Contains predicate on the "title" field.
+func TitleContains(v string) predicate.Event {
+	return predicate.Event(sql.FieldContains(FieldTitle, v))
+}
+
+// TitleHasPrefix applies the HasPrefix predicate on the "title" field.
+func TitleHasPrefix(v string) predicate.Event {
+	return predicate.Event(sql.FieldHasPrefix(FieldTitle, v))
+}
+
+// TitleHasSuffix applies the HasSuffix predicate on the "title" field.
+func TitleHasSuffix(v string) predicate.Event {
+	return predicate.Event(sql.FieldHasSuffix(FieldTitle, v))
+}
+
+// TitleEqualFold applies the EqualFold predicate on the "title" field.
+func TitleEqualFold(v string) predicate.Event {
+	return predicate.Event(sql.FieldEqualFold(FieldTitle, v))
+}
+
+// TitleContainsFold applies the ContainsFold predicate on the "title" field.
+func TitleContainsFold(v string) predicate.Event {
+	return predicate.Event(sql.FieldContainsFold(FieldTitle, v))
 }
 
 // DescriptionEQ applies the EQ predicate on the "description" field.
@@ -496,26 +541,6 @@ func ConfirmedDateIDNotIn(vs ...uuid.UUID) predicate.Event {
 	return predicate.Event(sql.FieldNotIn(FieldConfirmedDateID, vs...))
 }
 
-// ConfirmedDateIDGT applies the GT predicate on the "confirmed_date_id" field.
-func ConfirmedDateIDGT(v uuid.UUID) predicate.Event {
-	return predicate.Event(sql.FieldGT(FieldConfirmedDateID, v))
-}
-
-// ConfirmedDateIDGTE applies the GTE predicate on the "confirmed_date_id" field.
-func ConfirmedDateIDGTE(v uuid.UUID) predicate.Event {
-	return predicate.Event(sql.FieldGTE(FieldConfirmedDateID, v))
-}
-
-// ConfirmedDateIDLT applies the LT predicate on the "confirmed_date_id" field.
-func ConfirmedDateIDLT(v uuid.UUID) predicate.Event {
-	return predicate.Event(sql.FieldLT(FieldConfirmedDateID, v))
-}
-
-// ConfirmedDateIDLTE applies the LTE predicate on the "confirmed_date_id" field.
-func ConfirmedDateIDLTE(v uuid.UUID) predicate.Event {
-	return predicate.Event(sql.FieldLTE(FieldConfirmedDateID, v))
-}
-
 // ConfirmedDateIDIsNil applies the IsNil predicate on the "confirmed_date_id" field.
 func ConfirmedDateIDIsNil() predicate.Event {
 	return predicate.Event(sql.FieldIsNull(FieldConfirmedDateID))
@@ -526,161 +551,287 @@ func ConfirmedDateIDNotNil() predicate.Event {
 	return predicate.Event(sql.FieldNotNull(FieldConfirmedDateID))
 }
 
-// GoogleEventIDEQ applies the EQ predicate on the "google_event_id" field.
-func GoogleEventIDEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDEQ applies the EQ predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDEQ(v string) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDNEQ applies the NEQ predicate on the "google_event_id" field.
-func GoogleEventIDNEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldNEQ(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDNEQ applies the NEQ predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDNEQ(v string) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDIn applies the In predicate on the "google_event_id" field.
-func GoogleEventIDIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldIn(FieldGoogleEventID, vs...))
+// ConfirmedGoogleEventIDIn applies the In predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDIn(vs ...string) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldConfirmedGoogleEventID, vs...))
 }
 
-// GoogleEventIDNotIn applies the NotIn predicate on the "google_event_id" field.
-func GoogleEventIDNotIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldNotIn(FieldGoogleEventID, vs...))
+// ConfirmedGoogleEventIDNotIn applies the NotIn predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDNotIn(vs ...string) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldConfirmedGoogleEventID, vs...))
 }
 
-// GoogleEventIDGT applies the GT predicate on the "google_event_id" field.
-func GoogleEventIDGT(v string) predicate.Event {
-	return predicate.Event(sql.FieldGT(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDGT applies the GT predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDGT(v string) predicate.Event {
+	return predicate.Event(sql.FieldGT(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDGTE applies the GTE predicate on the "google_event_id" field.
-func GoogleEventIDGTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldGTE(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDGTE applies the GTE predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDGTE(v string) predicate.Event {
+	return predicate.Event(sql.FieldGTE(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDLT applies the LT predicate on the "google_event_id" field.
-func GoogleEventIDLT(v string) predicate.Event {
-	return predicate.Event(sql.FieldLT(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDLT applies the LT predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDLT(v string) predicate.Event {
+	return predicate.Event(sql.FieldLT(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDLTE applies the LTE predicate on the "google_event_id" field.
-func GoogleEventIDLTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldLTE(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDLTE applies the LTE predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDLTE(v string) predicate.Event {
+	return predicate.Event(sql.FieldLTE(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDContains applies the Contains predicate on the "google_event_id" field.
-func GoogleEventIDContains(v string) predicate.Event {
-	return predicate.Event(sql.FieldContains(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDContains applies the Contains predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDContains(v string) predicate.Event {
+	return predicate.Event(sql.FieldContains(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDHasPrefix applies the HasPrefix predicate on the "google_event_id" field.
-func GoogleEventIDHasPrefix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasPrefix(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDHasPrefix applies the HasPrefix predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDHasPrefix(v string) predicate.Event {
+	return predicate.Event(sql.FieldHasPrefix(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDHasSuffix applies the HasSuffix predicate on the "google_event_id" field.
-func GoogleEventIDHasSuffix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasSuffix(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDHasSuffix applies the HasSuffix predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDHasSuffix(v string) predicate.Event {
+	return predicate.Event(sql.FieldHasSuffix(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDIsNil applies the IsNil predicate on the "google_event_id" field.
-func GoogleEventIDIsNil() predicate.Event {
-	return predicate.Event(sql.FieldIsNull(FieldGoogleEventID))
+// ConfirmedGoogleEventIDIsNil applies the IsNil predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDIsNil() predicate.Event {
+	return predicate.Event(sql.FieldIsNull(FieldConfirmedGoogleEventID))
 }
 
-// GoogleEventIDNotNil applies the NotNil predicate on the "google_event_id" field.
-func GoogleEventIDNotNil() predicate.Event {
-	return predicate.Event(sql.FieldNotNull(FieldGoogleEventID))
+// ConfirmedGoogleEventIDNotNil applies the NotNil predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDNotNil() predicate.Event {
+	return predicate.Event(sql.FieldNotNull(FieldConfirmedGoogleEventID))
 }
 
-// GoogleEventIDEqualFold applies the EqualFold predicate on the "google_event_id" field.
-func GoogleEventIDEqualFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldEqualFold(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDEqualFold applies the EqualFold predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDEqualFold(v string) predicate.Event {
+	return predicate.Event(sql.FieldEqualFold(FieldConfirmedGoogleEventID, v))
 }
 
-// GoogleEventIDContainsFold applies the ContainsFold predicate on the "google_event_id" field.
-func GoogleEventIDContainsFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldContainsFold(FieldGoogleEventID, v))
+// ConfirmedGoogleEventIDContainsFold applies the ContainsFold predicate on the "confirmed_google_event_id" field.
+func ConfirmedGoogleEventIDContainsFold(v string) predicate.Event {
+	return predicate.Event(sql.FieldContainsFold(FieldConfirmedGoogleEventID, v))
 }
 
-// SlugEQ applies the EQ predicate on the "slug" field.
-func SlugEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldEQ(FieldSlug, v))
+// SyncStatusEQ applies the EQ predicate on the "sync_status" field.
+func SyncStatusEQ(v SyncStatus) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldSyncStatus, v))
 }
 
-// SlugNEQ applies the NEQ predicate on the "slug" field.
-func SlugNEQ(v string) predicate.Event {
-	return predicate.Event(sql.FieldNEQ(FieldSlug, v))
+// SyncStatusNEQ applies the NEQ predicate on the "sync_status" field.
+func SyncStatusNEQ(v SyncStatus) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldSyncStatus, v))
 }
 
-// SlugIn applies the In predicate on the "slug" field.
-func SlugIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldIn(FieldSlug, vs...))
+// SyncStatusIn applies the In predicate on the "sync_status" field.
+func SyncStatusIn(vs ...SyncStatus) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldSyncStatus, vs...))
 }
 
-// SlugNotIn applies the NotIn predicate on the "slug" field.
-func SlugNotIn(vs ...string) predicate.Event {
-	return predicate.Event(sql.FieldNotIn(FieldSlug, vs...))
+// SyncStatusNotIn applies the NotIn predicate on the "sync_status" field.
+func SyncStatusNotIn(vs ...SyncStatus) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldSyncStatus, vs...))
 }
 
-// SlugGT applies the GT predicate on the "slug" field.
-func SlugGT(v string) predicate.Event {
-	return predicate.Event(sql.FieldGT(FieldSlug, v))
+// LastSyncedAtEQ applies the EQ predicate on the "last_synced_at" field.
+func LastSyncedAtEQ(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldLastSyncedAt, v))
 }
 
-// SlugGTE applies the GTE predicate on the "slug" field.
-func SlugGTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldGTE(FieldSlug, v))
+// LastSyncedAtNEQ applies the NEQ predicate on the "last_synced_at" field.
+func LastSyncedAtNEQ(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldLastSyncedAt, v))
 }
 
-// SlugLT applies the LT predicate on the "slug" field.
-func SlugLT(v string) predicate.Event {
-	return predicate.Event(sql.FieldLT(FieldSlug, v))
+// LastSyncedAtIn applies the In predicate on the "last_synced_at" field.
+func LastSyncedAtIn(vs ...time.Time) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldLastSyncedAt, vs...))
 }
 
-// SlugLTE applies the LTE predicate on the "slug" field.
-func SlugLTE(v string) predicate.Event {
-	return predicate.Event(sql.FieldLTE(FieldSlug, v))
+// LastSyncedAtNotIn applies the NotIn predicate on the "last_synced_at" field.
+func LastSyncedAtNotIn(vs ...time.Time) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldLastSyncedAt, vs...))
 }
 
-// SlugContains applies the Contains predicate on the "slug" field.
-func SlugContains(v string) predicate.Event {
-	return predicate.Event(sql.FieldContains(FieldSlug, v))
+// LastSyncedAtGT applies the GT predicate on the "last_synced_at" field.
+func LastSyncedAtGT(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldGT(FieldLastSyncedAt, v))
 }
 
-// SlugHasPrefix applies the HasPrefix predicate on the "slug" field.
-func SlugHasPrefix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasPrefix(FieldSlug, v))
+// LastSyncedAtGTE applies the GTE predicate on the "last_synced_at" field.
+func LastSyncedAtGTE(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldGTE(FieldLastSyncedAt, v))
 }
 
-// SlugHasSuffix applies the HasSuffix predicate on the "slug" field.
-func SlugHasSuffix(v string) predicate.Event {
-	return predicate.Event(sql.FieldHasSuffix(FieldSlug, v))
+// LastSyncedAtLT applies the LT predicate on the "last_synced_at" field.
+func LastSyncedAtLT(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldLT(FieldLastSyncedAt, v))
 }
 
-// SlugEqualFold applies the EqualFold predicate on the "slug" field.
-func SlugEqualFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldEqualFold(FieldSlug, v))
+// LastSyncedAtLTE applies the LTE predicate on the "last_synced_at" field.
+func LastSyncedAtLTE(v time.Time) predicate.Event {
+	return predicate.Event(sql.FieldLTE(FieldLastSyncedAt, v))
 }
 
-// SlugContainsFold applies the ContainsFold predicate on the "slug" field.
-func SlugContainsFold(v string) predicate.Event {
-	return predicate.Event(sql.FieldContainsFold(FieldSlug, v))
+// LastSyncedAtIsNil applies the IsNil predicate on the "last_synced_at" field.
+func LastSyncedAtIsNil() predicate.Event {
+	return predicate.Event(sql.FieldIsNull(FieldLastSyncedAt))
 }
 
-// HasCalendar applies the HasEdge predicate on the "calendar" edge.
-func HasCalendar() predicate.Event {
+// LastSyncedAtNotNil applies the NotNil predicate on the "last_synced_at" field.
+func LastSyncedAtNotNil() predicate.Event {
+	return predicate.Event(sql.FieldNotNull(FieldLastSyncedAt))
+}
+
+// LastSyncErrorEQ applies the EQ predicate on the "last_sync_error" field.
+func LastSyncErrorEQ(v string) predicate.Event {
+	return predicate.Event(sql.FieldEQ(FieldLastSyncError, v))
+}
+
+// LastSyncErrorNEQ applies the NEQ predicate on the "last_sync_error" field.
+func LastSyncErrorNEQ(v string) predicate.Event {
+	return predicate.Event(sql.FieldNEQ(FieldLastSyncError, v))
+}
+
+// LastSyncErrorIn applies the In predicate on the "last_sync_error" field.
+func LastSyncErrorIn(vs ...string) predicate.Event {
+	return predicate.Event(sql.FieldIn(FieldLastSyncError, vs...))
+}
+
+// LastSyncErrorNotIn applies the NotIn predicate on the "last_sync_error" field.
+func LastSyncErrorNotIn(vs ...string) predicate.Event {
+	return predicate.Event(sql.FieldNotIn(FieldLastSyncError, vs...))
+}
+
+// LastSyncErrorGT applies the GT predicate on the "last_sync_error" field.
+func LastSyncErrorGT(v string) predicate.Event {
+	return predicate.Event(sql.FieldGT(FieldLastSyncError, v))
+}
+
+// LastSyncErrorGTE applies the GTE predicate on the "last_sync_error" field.
+func LastSyncErrorGTE(v string) predicate.Event {
+	return predicate.Event(sql.FieldGTE(FieldLastSyncError, v))
+}
+
+// LastSyncErrorLT applies the LT predicate on the "last_sync_error" field.
+func LastSyncErrorLT(v string) predicate.Event {
+	return predicate.Event(sql.FieldLT(FieldLastSyncError, v))
+}
+
+// LastSyncErrorLTE applies the LTE predicate on the "last_sync_error" field.
+func LastSyncErrorLTE(v string) predicate.Event {
+	return predicate.Event(sql.FieldLTE(FieldLastSyncError, v))
+}
+
+// LastSyncErrorContains applies the Contains predicate on the "last_sync_error" field.
+func LastSyncErrorContains(v string) predicate.Event {
+	return predicate.Event(sql.FieldContains(FieldLastSyncError, v))
+}
+
+// LastSyncErrorHasPrefix applies the HasPrefix predicate on the "last_sync_error" field.
+func LastSyncErrorHasPrefix(v string) predicate.Event {
+	return predicate.Event(sql.FieldHasPrefix(FieldLastSyncError, v))
+}
+
+// LastSyncErrorHasSuffix applies the HasSuffix predicate on the "last_sync_error" field.
+func LastSyncErrorHasSuffix(v string) predicate.Event {
+	return predicate.Event(sql.FieldHasSuffix(FieldLastSyncError, v))
+}
+
+// LastSyncErrorIsNil applies the IsNil predicate on the "last_sync_error" field.
+func LastSyncErrorIsNil() predicate.Event {
+	return predicate.Event(sql.FieldIsNull(FieldLastSyncError))
+}
+
+// LastSyncErrorNotNil applies the NotNil predicate on the "last_sync_error" field.
+func LastSyncErrorNotNil() predicate.Event {
+	return predicate.Event(sql.FieldNotNull(FieldLastSyncError))
+}
+
+// LastSyncErrorEqualFold applies the EqualFold predicate on the "last_sync_error" field.
+func LastSyncErrorEqualFold(v string) predicate.Event {
+	return predicate.Event(sql.FieldEqualFold(FieldLastSyncError, v))
+}
+
+// LastSyncErrorContainsFold applies the ContainsFold predicate on the "last_sync_error" field.
+func LastSyncErrorContainsFold(v string) predicate.Event {
+	return predicate.Event(sql.FieldContainsFold(FieldLastSyncError, v))
+}
+
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.Event {
 	return predicate.Event(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CalendarTable, CalendarColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasCalendarWith applies the HasEdge predicate on the "calendar" edge with a given conditions (other predicates).
-func HasCalendarWith(preds ...predicate.Calendar) predicate.Event {
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.Event {
 	return predicate.Event(func(s *sql.Selector) {
-		step := newCalendarStep()
+		step := newUserStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPrimaryCalendar applies the HasEdge predicate on the "primary_calendar" edge.
+func HasPrimaryCalendar() predicate.Event {
+	return predicate.Event(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PrimaryCalendarTable, PrimaryCalendarColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPrimaryCalendarWith applies the HasEdge predicate on the "primary_calendar" edge with a given conditions (other predicates).
+func HasPrimaryCalendarWith(preds ...predicate.Calendar) predicate.Event {
+	return predicate.Event(func(s *sql.Selector) {
+		step := newPrimaryCalendarStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasConfirmedDate applies the HasEdge predicate on the "confirmed_date" edge.
+func HasConfirmedDate() predicate.Event {
+	return predicate.Event(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, ConfirmedDateTable, ConfirmedDateColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasConfirmedDateWith applies the HasEdge predicate on the "confirmed_date" edge with a given conditions (other predicates).
+func HasConfirmedDateWith(preds ...predicate.ProposedDate) predicate.Event {
+	return predicate.Event(func(s *sql.Selector) {
+		step := newConfirmedDateStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

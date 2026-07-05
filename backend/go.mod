@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/translate v1.12.4
 	entgo.io/ent v0.14.4
 	github.com/abadojack/whatlanggo v1.0.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
@@ -16,7 +15,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.224.0
 )

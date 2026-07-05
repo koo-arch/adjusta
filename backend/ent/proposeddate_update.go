@@ -56,6 +56,40 @@ func (pdu *ProposedDateUpdate) ClearDeletedAt() *ProposedDateUpdate {
 	return pdu
 }
 
+// SetEventID sets the "event_id" field.
+func (pdu *ProposedDateUpdate) SetEventID(u uuid.UUID) *ProposedDateUpdate {
+	pdu.mutation.SetEventID(u)
+	return pdu
+}
+
+// SetNillableEventID sets the "event_id" field if the given value is not nil.
+func (pdu *ProposedDateUpdate) SetNillableEventID(u *uuid.UUID) *ProposedDateUpdate {
+	if u != nil {
+		pdu.SetEventID(*u)
+	}
+	return pdu
+}
+
+// SetGoogleEventID sets the "google_event_id" field.
+func (pdu *ProposedDateUpdate) SetGoogleEventID(s string) *ProposedDateUpdate {
+	pdu.mutation.SetGoogleEventID(s)
+	return pdu
+}
+
+// SetNillableGoogleEventID sets the "google_event_id" field if the given value is not nil.
+func (pdu *ProposedDateUpdate) SetNillableGoogleEventID(s *string) *ProposedDateUpdate {
+	if s != nil {
+		pdu.SetGoogleEventID(*s)
+	}
+	return pdu
+}
+
+// ClearGoogleEventID clears the value of the "google_event_id" field.
+func (pdu *ProposedDateUpdate) ClearGoogleEventID() *ProposedDateUpdate {
+	pdu.mutation.ClearGoogleEventID()
+	return pdu
+}
+
 // SetStartTime sets the "start_time" field.
 func (pdu *ProposedDateUpdate) SetStartTime(t time.Time) *ProposedDateUpdate {
 	pdu.mutation.SetStartTime(t)
@@ -105,17 +139,71 @@ func (pdu *ProposedDateUpdate) AddPriority(i int) *ProposedDateUpdate {
 	return pdu
 }
 
-// SetEventID sets the "event" edge to the Event entity by ID.
-func (pdu *ProposedDateUpdate) SetEventID(id uuid.UUID) *ProposedDateUpdate {
-	pdu.mutation.SetEventID(id)
+// SetStatus sets the "status" field.
+func (pdu *ProposedDateUpdate) SetStatus(pr proposeddate.Status) *ProposedDateUpdate {
+	pdu.mutation.SetStatus(pr)
 	return pdu
 }
 
-// SetNillableEventID sets the "event" edge to the Event entity by ID if the given value is not nil.
-func (pdu *ProposedDateUpdate) SetNillableEventID(id *uuid.UUID) *ProposedDateUpdate {
-	if id != nil {
-		pdu = pdu.SetEventID(*id)
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (pdu *ProposedDateUpdate) SetNillableStatus(pr *proposeddate.Status) *ProposedDateUpdate {
+	if pr != nil {
+		pdu.SetStatus(*pr)
 	}
+	return pdu
+}
+
+// SetSyncStatus sets the "sync_status" field.
+func (pdu *ProposedDateUpdate) SetSyncStatus(ps proposeddate.SyncStatus) *ProposedDateUpdate {
+	pdu.mutation.SetSyncStatus(ps)
+	return pdu
+}
+
+// SetNillableSyncStatus sets the "sync_status" field if the given value is not nil.
+func (pdu *ProposedDateUpdate) SetNillableSyncStatus(ps *proposeddate.SyncStatus) *ProposedDateUpdate {
+	if ps != nil {
+		pdu.SetSyncStatus(*ps)
+	}
+	return pdu
+}
+
+// SetLastSyncedAt sets the "last_synced_at" field.
+func (pdu *ProposedDateUpdate) SetLastSyncedAt(t time.Time) *ProposedDateUpdate {
+	pdu.mutation.SetLastSyncedAt(t)
+	return pdu
+}
+
+// SetNillableLastSyncedAt sets the "last_synced_at" field if the given value is not nil.
+func (pdu *ProposedDateUpdate) SetNillableLastSyncedAt(t *time.Time) *ProposedDateUpdate {
+	if t != nil {
+		pdu.SetLastSyncedAt(*t)
+	}
+	return pdu
+}
+
+// ClearLastSyncedAt clears the value of the "last_synced_at" field.
+func (pdu *ProposedDateUpdate) ClearLastSyncedAt() *ProposedDateUpdate {
+	pdu.mutation.ClearLastSyncedAt()
+	return pdu
+}
+
+// SetLastSyncError sets the "last_sync_error" field.
+func (pdu *ProposedDateUpdate) SetLastSyncError(s string) *ProposedDateUpdate {
+	pdu.mutation.SetLastSyncError(s)
+	return pdu
+}
+
+// SetNillableLastSyncError sets the "last_sync_error" field if the given value is not nil.
+func (pdu *ProposedDateUpdate) SetNillableLastSyncError(s *string) *ProposedDateUpdate {
+	if s != nil {
+		pdu.SetLastSyncError(*s)
+	}
+	return pdu
+}
+
+// ClearLastSyncError clears the value of the "last_sync_error" field.
+func (pdu *ProposedDateUpdate) ClearLastSyncError() *ProposedDateUpdate {
+	pdu.mutation.ClearLastSyncError()
 	return pdu
 }
 
@@ -177,7 +265,28 @@ func (pdu *ProposedDateUpdate) defaults() error {
 	return nil
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (pdu *ProposedDateUpdate) check() error {
+	if v, ok := pdu.mutation.Status(); ok {
+		if err := proposeddate.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.status": %w`, err)}
+		}
+	}
+	if v, ok := pdu.mutation.SyncStatus(); ok {
+		if err := proposeddate.SyncStatusValidator(v); err != nil {
+			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.sync_status": %w`, err)}
+		}
+	}
+	if pdu.mutation.EventCleared() && len(pdu.mutation.EventIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "ProposedDate.event"`)
+	}
+	return nil
+}
+
 func (pdu *ProposedDateUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := pdu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(proposeddate.Table, proposeddate.Columns, sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID))
 	if ps := pdu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -195,6 +304,12 @@ func (pdu *ProposedDateUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if pdu.mutation.DeletedAtCleared() {
 		_spec.ClearField(proposeddate.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := pdu.mutation.GoogleEventID(); ok {
+		_spec.SetField(proposeddate.FieldGoogleEventID, field.TypeString, value)
+	}
+	if pdu.mutation.GoogleEventIDCleared() {
+		_spec.ClearField(proposeddate.FieldGoogleEventID, field.TypeString)
+	}
 	if value, ok := pdu.mutation.StartTime(); ok {
 		_spec.SetField(proposeddate.FieldStartTime, field.TypeTime, value)
 	}
@@ -206,6 +321,24 @@ func (pdu *ProposedDateUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pdu.mutation.AddedPriority(); ok {
 		_spec.AddField(proposeddate.FieldPriority, field.TypeInt, value)
+	}
+	if value, ok := pdu.mutation.Status(); ok {
+		_spec.SetField(proposeddate.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := pdu.mutation.SyncStatus(); ok {
+		_spec.SetField(proposeddate.FieldSyncStatus, field.TypeEnum, value)
+	}
+	if value, ok := pdu.mutation.LastSyncedAt(); ok {
+		_spec.SetField(proposeddate.FieldLastSyncedAt, field.TypeTime, value)
+	}
+	if pdu.mutation.LastSyncedAtCleared() {
+		_spec.ClearField(proposeddate.FieldLastSyncedAt, field.TypeTime)
+	}
+	if value, ok := pdu.mutation.LastSyncError(); ok {
+		_spec.SetField(proposeddate.FieldLastSyncError, field.TypeString, value)
+	}
+	if pdu.mutation.LastSyncErrorCleared() {
+		_spec.ClearField(proposeddate.FieldLastSyncError, field.TypeString)
 	}
 	if pdu.mutation.EventCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -282,6 +415,40 @@ func (pduo *ProposedDateUpdateOne) ClearDeletedAt() *ProposedDateUpdateOne {
 	return pduo
 }
 
+// SetEventID sets the "event_id" field.
+func (pduo *ProposedDateUpdateOne) SetEventID(u uuid.UUID) *ProposedDateUpdateOne {
+	pduo.mutation.SetEventID(u)
+	return pduo
+}
+
+// SetNillableEventID sets the "event_id" field if the given value is not nil.
+func (pduo *ProposedDateUpdateOne) SetNillableEventID(u *uuid.UUID) *ProposedDateUpdateOne {
+	if u != nil {
+		pduo.SetEventID(*u)
+	}
+	return pduo
+}
+
+// SetGoogleEventID sets the "google_event_id" field.
+func (pduo *ProposedDateUpdateOne) SetGoogleEventID(s string) *ProposedDateUpdateOne {
+	pduo.mutation.SetGoogleEventID(s)
+	return pduo
+}
+
+// SetNillableGoogleEventID sets the "google_event_id" field if the given value is not nil.
+func (pduo *ProposedDateUpdateOne) SetNillableGoogleEventID(s *string) *ProposedDateUpdateOne {
+	if s != nil {
+		pduo.SetGoogleEventID(*s)
+	}
+	return pduo
+}
+
+// ClearGoogleEventID clears the value of the "google_event_id" field.
+func (pduo *ProposedDateUpdateOne) ClearGoogleEventID() *ProposedDateUpdateOne {
+	pduo.mutation.ClearGoogleEventID()
+	return pduo
+}
+
 // SetStartTime sets the "start_time" field.
 func (pduo *ProposedDateUpdateOne) SetStartTime(t time.Time) *ProposedDateUpdateOne {
 	pduo.mutation.SetStartTime(t)
@@ -331,17 +498,71 @@ func (pduo *ProposedDateUpdateOne) AddPriority(i int) *ProposedDateUpdateOne {
 	return pduo
 }
 
-// SetEventID sets the "event" edge to the Event entity by ID.
-func (pduo *ProposedDateUpdateOne) SetEventID(id uuid.UUID) *ProposedDateUpdateOne {
-	pduo.mutation.SetEventID(id)
+// SetStatus sets the "status" field.
+func (pduo *ProposedDateUpdateOne) SetStatus(pr proposeddate.Status) *ProposedDateUpdateOne {
+	pduo.mutation.SetStatus(pr)
 	return pduo
 }
 
-// SetNillableEventID sets the "event" edge to the Event entity by ID if the given value is not nil.
-func (pduo *ProposedDateUpdateOne) SetNillableEventID(id *uuid.UUID) *ProposedDateUpdateOne {
-	if id != nil {
-		pduo = pduo.SetEventID(*id)
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (pduo *ProposedDateUpdateOne) SetNillableStatus(pr *proposeddate.Status) *ProposedDateUpdateOne {
+	if pr != nil {
+		pduo.SetStatus(*pr)
 	}
+	return pduo
+}
+
+// SetSyncStatus sets the "sync_status" field.
+func (pduo *ProposedDateUpdateOne) SetSyncStatus(ps proposeddate.SyncStatus) *ProposedDateUpdateOne {
+	pduo.mutation.SetSyncStatus(ps)
+	return pduo
+}
+
+// SetNillableSyncStatus sets the "sync_status" field if the given value is not nil.
+func (pduo *ProposedDateUpdateOne) SetNillableSyncStatus(ps *proposeddate.SyncStatus) *ProposedDateUpdateOne {
+	if ps != nil {
+		pduo.SetSyncStatus(*ps)
+	}
+	return pduo
+}
+
+// SetLastSyncedAt sets the "last_synced_at" field.
+func (pduo *ProposedDateUpdateOne) SetLastSyncedAt(t time.Time) *ProposedDateUpdateOne {
+	pduo.mutation.SetLastSyncedAt(t)
+	return pduo
+}
+
+// SetNillableLastSyncedAt sets the "last_synced_at" field if the given value is not nil.
+func (pduo *ProposedDateUpdateOne) SetNillableLastSyncedAt(t *time.Time) *ProposedDateUpdateOne {
+	if t != nil {
+		pduo.SetLastSyncedAt(*t)
+	}
+	return pduo
+}
+
+// ClearLastSyncedAt clears the value of the "last_synced_at" field.
+func (pduo *ProposedDateUpdateOne) ClearLastSyncedAt() *ProposedDateUpdateOne {
+	pduo.mutation.ClearLastSyncedAt()
+	return pduo
+}
+
+// SetLastSyncError sets the "last_sync_error" field.
+func (pduo *ProposedDateUpdateOne) SetLastSyncError(s string) *ProposedDateUpdateOne {
+	pduo.mutation.SetLastSyncError(s)
+	return pduo
+}
+
+// SetNillableLastSyncError sets the "last_sync_error" field if the given value is not nil.
+func (pduo *ProposedDateUpdateOne) SetNillableLastSyncError(s *string) *ProposedDateUpdateOne {
+	if s != nil {
+		pduo.SetLastSyncError(*s)
+	}
+	return pduo
+}
+
+// ClearLastSyncError clears the value of the "last_sync_error" field.
+func (pduo *ProposedDateUpdateOne) ClearLastSyncError() *ProposedDateUpdateOne {
+	pduo.mutation.ClearLastSyncError()
 	return pduo
 }
 
@@ -416,7 +637,28 @@ func (pduo *ProposedDateUpdateOne) defaults() error {
 	return nil
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (pduo *ProposedDateUpdateOne) check() error {
+	if v, ok := pduo.mutation.Status(); ok {
+		if err := proposeddate.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.status": %w`, err)}
+		}
+	}
+	if v, ok := pduo.mutation.SyncStatus(); ok {
+		if err := proposeddate.SyncStatusValidator(v); err != nil {
+			return &ValidationError{Name: "sync_status", err: fmt.Errorf(`ent: validator failed for field "ProposedDate.sync_status": %w`, err)}
+		}
+	}
+	if pduo.mutation.EventCleared() && len(pduo.mutation.EventIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "ProposedDate.event"`)
+	}
+	return nil
+}
+
 func (pduo *ProposedDateUpdateOne) sqlSave(ctx context.Context) (_node *ProposedDate, err error) {
+	if err := pduo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(proposeddate.Table, proposeddate.Columns, sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID))
 	id, ok := pduo.mutation.ID()
 	if !ok {
@@ -451,6 +693,12 @@ func (pduo *ProposedDateUpdateOne) sqlSave(ctx context.Context) (_node *Proposed
 	if pduo.mutation.DeletedAtCleared() {
 		_spec.ClearField(proposeddate.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := pduo.mutation.GoogleEventID(); ok {
+		_spec.SetField(proposeddate.FieldGoogleEventID, field.TypeString, value)
+	}
+	if pduo.mutation.GoogleEventIDCleared() {
+		_spec.ClearField(proposeddate.FieldGoogleEventID, field.TypeString)
+	}
 	if value, ok := pduo.mutation.StartTime(); ok {
 		_spec.SetField(proposeddate.FieldStartTime, field.TypeTime, value)
 	}
@@ -462,6 +710,24 @@ func (pduo *ProposedDateUpdateOne) sqlSave(ctx context.Context) (_node *Proposed
 	}
 	if value, ok := pduo.mutation.AddedPriority(); ok {
 		_spec.AddField(proposeddate.FieldPriority, field.TypeInt, value)
+	}
+	if value, ok := pduo.mutation.Status(); ok {
+		_spec.SetField(proposeddate.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := pduo.mutation.SyncStatus(); ok {
+		_spec.SetField(proposeddate.FieldSyncStatus, field.TypeEnum, value)
+	}
+	if value, ok := pduo.mutation.LastSyncedAt(); ok {
+		_spec.SetField(proposeddate.FieldLastSyncedAt, field.TypeTime, value)
+	}
+	if pduo.mutation.LastSyncedAtCleared() {
+		_spec.ClearField(proposeddate.FieldLastSyncedAt, field.TypeTime)
+	}
+	if value, ok := pduo.mutation.LastSyncError(); ok {
+		_spec.SetField(proposeddate.FieldLastSyncError, field.TypeString, value)
+	}
+	if pduo.mutation.LastSyncErrorCleared() {
+		_spec.ClearField(proposeddate.FieldLastSyncError, field.TypeString)
 	}
 	if pduo.mutation.EventCleared() {
 		edge := &sqlgraph.EdgeSpec{

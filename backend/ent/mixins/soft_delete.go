@@ -37,7 +37,7 @@ func (SoftDeleteMixin) Interceptors() []ent.Interceptor {
 			if skip, _ := ctx.Value(softDeleteKey{}).(bool); skip {
 				return nil
 			}
-			
+
 			q.WhereP(func(s *sql.Selector) {
 				s.Where(sql.IsNull(s.C("deleted_at")))
 			})

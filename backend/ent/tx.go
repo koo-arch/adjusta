@@ -12,20 +12,20 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Account is the client for interacting with the Account builders.
+	Account *AccountClient
 	// Calendar is the client for interacting with the Calendar builders.
 	Calendar *CalendarClient
 	// Event is the client for interacting with the Event builders.
 	Event *EventClient
-	// GoogleCalendarInfo is the client for interacting with the GoogleCalendarInfo builders.
-	GoogleCalendarInfo *GoogleCalendarInfoClient
-	// JWTKey is the client for interacting with the JWTKey builders.
-	JWTKey *JWTKeyClient
-	// OAuthToken is the client for interacting with the OAuthToken builders.
-	OAuthToken *OAuthTokenClient
 	// ProposedDate is the client for interacting with the ProposedDate builders.
 	ProposedDate *ProposedDateClient
+	// Session is the client for interacting with the Session builders.
+	Session *SessionClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserCalendar is the client for interacting with the UserCalendar builders.
+	UserCalendar *UserCalendarClient
 
 	// lazily loaded.
 	client     *Client
@@ -157,13 +157,13 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Account = NewAccountClient(tx.config)
 	tx.Calendar = NewCalendarClient(tx.config)
 	tx.Event = NewEventClient(tx.config)
-	tx.GoogleCalendarInfo = NewGoogleCalendarInfoClient(tx.config)
-	tx.JWTKey = NewJWTKeyClient(tx.config)
-	tx.OAuthToken = NewOAuthTokenClient(tx.config)
 	tx.ProposedDate = NewProposedDateClient(tx.config)
+	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserCalendar = NewUserCalendarClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -173,7 +173,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Calendar.QueryXXX(), the query will be executed
+// applies a query, for example: Account.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

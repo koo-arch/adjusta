@@ -1,12 +1,8 @@
 import React from 'react';
-import UserInfo from '@/features/auth/UserInfo';
+import AccountPageContainer from '@/features/auth/containers/AccountPageContainer';
 
 const AccountPage = () => {
-    return (
-        <div className="mx-auto max-w-screen-md p-4">
-            <UserInfo />
-        </div>
-    )
-}
+    return <AccountPageContainer />;
+};
 
 export default AccountPage;

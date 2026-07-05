@@ -1,0 +1,45 @@
+package auth
+
+import (
+	"context"
+
+	"github.com/koo-arch/adjusta-backend/internal/google"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
+	"golang.org/x/oauth2"
+)
+
+type GoogleOAuthGateway struct {
+	client *infraGoogleOAuth.Client
+}
+
+func NewGoogleOAuthGateway(client *infraGoogleOAuth.Client) *GoogleOAuthGateway {
+	return &GoogleOAuthGateway{client: client}
+}
+
+func (g *GoogleOAuthGateway) AuthCodeURL(state string) string {
+	return g.client.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+}
+
+func (g *GoogleOAuthGateway) Exchange(ctx context.Context, code string) (*google.AuthToken, error) {
+	token, err := g.client.Exchange(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+
+	return &google.AuthToken{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+		Scope:        tokenScope(token),
+	}, nil
+}
+
+func tokenScope(token *oauth2.Token) *string {
+	rawScope := token.Extra("scope")
+	scope, ok := rawScope.(string)
+	if !ok || scope == "" {
+		return nil
+	}
+	return &scope
+}

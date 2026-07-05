@@ -24,6 +24,12 @@
 - Dev / build / lint / test コマンドは README または実際の構成を確認してから実行する。
 - コマンドが未整備の場合は、推測で追記しない。
 
+## Commit / Git
+- コミットメッセージは既存履歴に合わせて Conventional Commits 形式にする。
+- 形式は `type(scope): summary` を基本とする。
+- 例: `refactor(auth): clarify session boundary`、`fix(api): fix query status validation typo`
+- `type` は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` などから変更内容に合うものを選ぶ。
+
 ## Definition of Done
 - 変更理由と影響範囲を説明できること。
 - 変更ファイル一覧を示せること。

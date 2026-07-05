@@ -1,0 +1,105 @@
+package events
+
+import (
+	"sort"
+	"time"
+
+	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
+)
+
+func buildProposedDateOutputs(storedDates []*domainProposedDate.ProposedDate) []ProposedDateOutput {
+	proposedDates := make([]ProposedDateOutput, 0, len(storedDates))
+	for _, storedDate := range storedDates {
+		proposedDates = append(proposedDates, ProposedDateOutput{
+			ID:            &storedDate.ID,
+			GoogleEventID: storedDate.GoogleEventID,
+			Start:         &storedDate.StartTime,
+			End:           &storedDate.EndTime,
+			Priority:      storedDate.Priority,
+			Status:        storedDate.Status,
+			SyncStatus:    storedDate.SyncStatus,
+			LastSyncedAt:  storedDate.LastSyncedAt,
+			LastSyncError: storedDate.LastSyncError,
+		})
+	}
+
+	sort.Slice(proposedDates, func(i, j int) bool {
+		return proposedDates[i].Priority > proposedDates[j].Priority
+	})
+
+	return proposedDates
+}
+
+func buildEventDraftDetailOutput(storedEvent *domainEvent.Event) (*EventDraftDetailOutput, error) {
+	if storedEvent.ProposedDates == nil {
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+
+	return &EventDraftDetailOutput{
+		ID:                     storedEvent.ID,
+		Title:                  storedEvent.Title,
+		Location:               storedEvent.Location,
+		Description:            storedEvent.Description,
+		Status:                 storedEvent.Status,
+		SyncStatus:             storedEvent.SyncStatus,
+		ConfirmedDateID:        &storedEvent.ConfirmedDateID,
+		GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
+		ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
+		LastSyncedAt:           storedEvent.LastSyncedAt,
+		LastSyncError:          storedEvent.LastSyncError,
+		ProposedDates:          buildProposedDateOutputs(storedEvent.ProposedDates),
+	}, nil
+}
+
+func buildUpcomingEventOutput(storedEvent *domainEvent.Event) (*UpcomingEventOutput, error) {
+	if storedEvent.ProposedDates == nil {
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+
+	for _, storedDate := range storedEvent.ProposedDates {
+		if storedEvent.ConfirmedDateID != storedDate.ID {
+			continue
+		}
+
+		return &UpcomingEventOutput{
+			ID:                     storedEvent.ID,
+			Title:                  storedEvent.Title,
+			Location:               storedEvent.Location,
+			Description:            storedEvent.Description,
+			Status:                 storedEvent.Status,
+			SyncStatus:             storedEvent.SyncStatus,
+			ConfirmedDateID:        storedEvent.ConfirmedDateID,
+			GoogleEventID:          domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
+			ConfirmedGoogleEventID: storedEvent.ConfirmedGoogleEventID,
+			LastSyncedAt:           storedEvent.LastSyncedAt,
+			LastSyncError:          storedEvent.LastSyncError,
+			Start:                  storedDate.StartTime,
+			End:                    storedDate.EndTime,
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func buildNeedsActionDraftOutput(storedEvent *domainEvent.Event, currentTime time.Time) (*NeedsActionDraftOutput, error) {
+	if storedEvent.ProposedDates == nil {
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+	if len(storedEvent.ProposedDates) == 0 {
+		return nil, nil
+	}
+
+	storedDate := storedEvent.ProposedDates[0]
+	return &NeedsActionDraftOutput{
+		ID:             storedEvent.ID,
+		Title:          storedEvent.Title,
+		Location:       storedEvent.Location,
+		Description:    storedEvent.Description,
+		Status:         storedEvent.Status,
+		Start:          storedDate.StartTime,
+		End:            storedDate.EndTime,
+		NeedsAttention: currentTime.After(storedDate.StartTime),
+	}, nil
+}

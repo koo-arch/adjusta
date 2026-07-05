@@ -1,0 +1,74 @@
+package event
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/domain/value"
+)
+
+type EventCreateOptions struct {
+	Title       string
+	Location    string
+	Description string
+}
+
+type EventReadOptions struct {
+	WithProposedDates bool
+}
+
+type EventFilterOptions struct {
+	WithProposedDates  bool
+	EventOffset        int
+	EventLimit         int
+	ProposedDateOffset int
+	ProposedDateLimit  int
+}
+
+type EventSearchOptions struct {
+	Title                  *string
+	Location               *string
+	Description            *string
+	Status                 *value.EventStatus
+	SyncStatus             *value.SyncStatus
+	ConfirmedDateID        *uuid.UUID
+	ConfirmedGoogleEventID *string
+	WithProposedDates      bool
+	EventOffset            int
+	EventLimit             int
+	ProposedDateOffset     int
+	ProposedDateLimit      int
+	ProposedDateStartGTE   *time.Time
+	ProposedDateStartLTE   *time.Time
+	ProposedDateEndGTE     *time.Time
+	ProposedDateEndLTE     *time.Time
+	SortBy                 string
+	SortOrder              string
+}
+
+type EventUpdateOptions struct {
+	Title                  *string
+	Location               *string
+	Description            *string
+	Status                 *value.EventStatus
+	SyncStatus             *value.SyncStatus
+	ConfirmedDateID        *uuid.UUID
+	ConfirmedGoogleEventID *string
+	LastSyncedAt           *time.Time
+	ClearLastSyncedAt      bool
+	LastSyncError          *string
+	ClearLastSyncError     bool
+}
+
+type EventRepository interface {
+	Read(ctx context.Context, id uuid.UUID, opt EventReadOptions) (*Event, error)
+	FilterByCalendarID(ctx context.Context, calendarID uuid.UUID, opt EventFilterOptions) ([]*Event, error)
+	FindByIDAndUser(ctx context.Context, userID, eventID uuid.UUID, opt EventReadOptions) (*Event, error)
+	Create(ctx context.Context, userID uuid.UUID, opt EventCreateOptions, primaryCalendarID uuid.UUID) (*Event, error)
+	Update(ctx context.Context, id uuid.UUID, opt EventUpdateOptions) (*Event, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	SoftDelete(ctx context.Context, id uuid.UUID) error
+	Restore(ctx context.Context, id uuid.UUID) error
+	SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventSearchOptions) ([]*Event, error)
+}
