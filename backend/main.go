@@ -58,7 +58,7 @@ func main() {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
-	cacheStore := infraCache.NewCache()
+	calendarCache := infraCache.NewCalendarCache(5*time.Minute, 10*time.Minute)
 	repos := infraRepository.NewRepositories(client)
 	uow := infraRepository.NewUnitOfWork(client)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
@@ -89,6 +89,7 @@ func main() {
 		googleTokenManager,
 		infraGoogleCalendar.NewCalendarServiceFactory(),
 		infraCalendar.NewCalendarSyncTransaction(uow),
+		calendarCache,
 	)
 	eventUsecase := usecaseEvents.NewUsecase(
 		usecaseEvents.EventTxRepositories{
@@ -129,7 +130,7 @@ func main() {
 	)
 
 	authMiddleware := middlewares.NewAuthMiddleware(authenticator, cookieManager)
-	calendarMiddleware := middlewares.NewCalendarMiddleware(cacheStore, calendarSyncUsecase)
+	calendarMiddleware := middlewares.NewCalendarMiddleware(calendarSyncUsecase)
 	sessionMiddleware := middlewares.NewSessionMiddleware(cookieManager)
 
 	// ルートハンドラの定義

@@ -35,3 +35,9 @@ func (f CalendarServiceFactoryFunc) New(ctx context.Context, token *google.AuthT
 type SyncTransaction interface {
 	Do(ctx context.Context, fn func(repos SyncTxRepositories) error) error
 }
+
+type CalendarCache interface {
+	Get(userID uuid.UUID) ([]*ExternalCalendar, bool)
+	Set(userID uuid.UUID, calendars []*ExternalCalendar)
+	Invalidate(userID uuid.UUID)
+}

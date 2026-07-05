@@ -1,24 +1,19 @@
 package middlewares
 
 import (
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
-	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 )
 
 type CalendarMiddleware struct {
-	cache               *infraCache.Cache
 	calendarSyncUsecase CalendarSyncUsecase
 }
 
-func NewCalendarMiddleware(cache *infraCache.Cache, calendarSyncUsecase CalendarSyncUsecase) *CalendarMiddleware {
+func NewCalendarMiddleware(calendarSyncUsecase CalendarSyncUsecase) *CalendarMiddleware {
 	return &CalendarMiddleware{
-		cache:               cache,
 		calendarSyncUsecase: calendarSyncUsecase,
 	}
 }
@@ -34,16 +29,6 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 			return
 		}
 
-		// キャッシュにある場合はそれを使う
-		cache := cm.cache
-		cacheKey := fmt.Sprintf("calendars:%s", userid)
-		if cacheCalendar, found := cache.CalendarCache.Get(cacheKey); found {
-			c.Set("calendarList", cacheCalendar)
-			c.Next()
-			c.Abort()
-			return
-		}
-
 		calendarUsecase := cm.calendarSyncUsecase
 		calendarList, err := calendarUsecase.SyncGoogleCalendars(ctx, userid, email)
 		if err != nil {
@@ -52,7 +37,6 @@ func (cm *CalendarMiddleware) SyncGoogleCalendars() gin.HandlerFunc {
 			return
 		}
 
-		cache.CalendarCache.Set(cacheKey, calendarList, 5*time.Hour)
 		c.Set("calendarList", calendarList)
 		c.Next()
 	}
