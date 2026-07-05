@@ -3,24 +3,23 @@ package main
 import (
 	"context"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	apiCookie "github.com/koo-arch/adjusta-backend/api/cookie"
 	accountHandlers "github.com/koo-arch/adjusta-backend/api/handlers/account"
 	eventHandlers "github.com/koo-arch/adjusta-backend/api/handlers/events"
 	oauthHandlers "github.com/koo-arch/adjusta-backend/api/handlers/oauth"
 	userHandlers "github.com/koo-arch/adjusta-backend/api/handlers/user"
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
 	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/config"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
 	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/calendar"
-	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
-	infraCookie "github.com/koo-arch/adjusta-backend/internal/infrastructure/cookie"
 	infraEvents "github.com/koo-arch/adjusta-backend/internal/infrastructure/events"
 	infraGoogleCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/googlecalendar"
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
@@ -35,11 +34,10 @@ import (
 )
 
 func main() {
-	// 環境変数の読み込み
-	infraConfigs.LoadEnv()
+	cfg := config.New()
 
 	// DB接続
-	databaseURL := infraConfigs.GetEnv("DATABASE_URL")
+	databaseURL := cfg.DatabaseURL
 	if databaseURL == "" {
 		log.Fatal("DATABASE_URL is not set")
 	}
@@ -64,7 +62,9 @@ func main() {
 	repos := infraRepository.NewRepositories(client)
 	uow := infraRepository.NewUnitOfWork(client)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
-	sessionLifetime := time.Duration(infraCookie.DefaultCookieOptions().MaxAge) * time.Second
+	cookieManager := apiCookie.NewManager(cfg.Domain, cfg.GoEnv != "development")
+	cookieOptions := cookieManager.Options()
+	sessionLifetime := time.Duration(cookieOptions.MaxAge) * time.Second
 	authenticator := usecaseAuth.NewAuthenticator(
 		usecaseAuth.AuthRepositories{
 			User:    repos.User,
@@ -105,23 +105,21 @@ func main() {
 	router := gin.Default()
 
 	// CORSの設定
-	allowedOrigins := strings.Split(infraConfigs.GetEnv("CORS_ALLOW_ORIGINS"), ",")
-
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
+		AllowOrigins:     cfg.CORSAllowOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
-	store := cookie.NewStore([]byte(infraConfigs.GetEnv("SESSION_SECRET")))
-	store.Options(infraCookie.DefaultCookieOptions())
-	router.Use(sessions.Sessions(infraCookie.SessionCookieName, store))
+	store := cookie.NewStore([]byte(cfg.SessionSecret))
+	store.Options(cookieOptions)
+	router.Use(sessions.Sessions(apiCookie.SessionCookieName, store))
 
 	accountHandler := accountHandlers.NewHandler(accountProfileUsecase)
 	userHandler := userHandlers.NewHandler(accountProfileUsecase)
-	oauthHandler := oauthHandlers.NewHandler(oauthUsecase)
+	oauthHandler := oauthHandlers.NewHandler(oauthUsecase, cfg.RedirectURLAfterLogin, cookieManager)
 	eventHandler := eventHandlers.NewHandler(
 		eventUsecase,
 		eventUsecase,
@@ -130,9 +128,9 @@ func main() {
 		eventUsecase,
 	)
 
-	authMiddleware := middlewares.NewAuthMiddleware(authenticator)
+	authMiddleware := middlewares.NewAuthMiddleware(authenticator, cookieManager)
 	calendarMiddleware := middlewares.NewCalendarMiddleware(cacheStore, calendarSyncUsecase)
-	sessionMiddleware := middlewares.NewSessionMiddleware()
+	sessionMiddleware := middlewares.NewSessionMiddleware(cookieManager)
 
 	// ルートハンドラの定義
 	router.GET("/auth/google/login", oauthHandler.GoogleLoginHandler)
@@ -162,11 +160,7 @@ func main() {
 	}
 
 	// サーバー起動
-	port := infraConfigs.GetEnv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	if err := router.Run(":" + port); err != nil {
+	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}
 

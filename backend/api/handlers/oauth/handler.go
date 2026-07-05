@@ -5,17 +5,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api/cookie"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
-	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
 )
 
 type Handler struct {
-	oauthUsecase OAuthUsecase
+	oauthUsecase          OAuthUsecase
+	redirectURLAfterLogin string
+	cookieManager         *cookie.Manager
 }
 
-func NewHandler(oauthUsecase OAuthUsecase) *Handler {
-	return &Handler{oauthUsecase: oauthUsecase}
+func NewHandler(oauthUsecase OAuthUsecase, redirectURLAfterLogin string, cookieManager *cookie.Manager) *Handler {
+	return &Handler{
+		oauthUsecase:          oauthUsecase,
+		redirectURLAfterLogin: redirectURLAfterLogin,
+		cookieManager:         cookieManager,
+	}
 }
 
 func (oh *Handler) GoogleLoginHandler(c *gin.Context) {
@@ -38,7 +44,7 @@ func (oh *Handler) LogoutHandler(c *gin.Context) {
 		return
 	}
 
-	if err := sessionctx.Clear(c); err != nil {
+	if err := sessionctx.Clear(c, oh.cookieManager); err != nil {
 		log.Printf("failed to save cleared session: %v", err)
 		respond.Internal(c, "セッションの保存に失敗しました")
 		return
@@ -78,6 +84,6 @@ func (oh *Handler) GoogleCallbackHandler() gin.HandlerFunc {
 			return
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, infraConfigs.GetEnv("REDIRECT_URL_AFTER_LOGIN"))
+		c.Redirect(http.StatusTemporaryRedirect, oh.redirectURLAfterLogin)
 	}
 }

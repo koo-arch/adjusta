@@ -1,7 +1,7 @@
 package googleoauth
 
 import (
-	infraConfigs "github.com/koo-arch/adjusta-backend/internal/infrastructure/configs"
+	appconfig "github.com/koo-arch/adjusta-backend/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -9,12 +9,12 @@ import (
 var config oauth2.Config
 
 func init() {
-	infraConfigs.LoadEnv()
+	appConfig := appconfig.New()
 
 	config = oauth2.Config{
-		ClientID:     infraConfigs.GetEnv("GOOGLE_CLIENT_ID"),
-		ClientSecret: infraConfigs.GetEnv("GOOGLE_CLIENT_SECRET"),
-		RedirectURL:  infraConfigs.GetEnv("GOOGLE_REDIRECT_URI"),
+		ClientID:     appConfig.GoogleClientID,
+		ClientSecret: appConfig.GoogleClientSecret,
+		RedirectURL:  appConfig.GoogleRedirectURI,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",

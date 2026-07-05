@@ -45,4 +45,4 @@ docker-compose.override.yml
 .env
 
 # Google Cloud関連ファイル
-config
+/config

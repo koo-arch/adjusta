@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/koo-arch/adjusta-backend/api/cookie"
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
@@ -12,10 +13,14 @@ import (
 
 type AuthMiddleware struct {
 	sessionAuthenticator SessionAuthenticator
+	cookieManager        *cookie.Manager
 }
 
-func NewAuthMiddleware(sessionAuthenticator SessionAuthenticator) *AuthMiddleware {
-	return &AuthMiddleware{sessionAuthenticator: sessionAuthenticator}
+func NewAuthMiddleware(sessionAuthenticator SessionAuthenticator, cookieManager *cookie.Manager) *AuthMiddleware {
+	return &AuthMiddleware{
+		sessionAuthenticator: sessionAuthenticator,
+		cookieManager:        cookieManager,
+	}
 }
 
 func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
@@ -46,7 +51,7 @@ func (am *AuthMiddleware) AuthUser() gin.HandlerFunc {
 }
 
 func (am *AuthMiddleware) clearSession(c *gin.Context) {
-	if err := sessionctx.Clear(c); err != nil {
+	if err := sessionctx.Clear(c, am.cookieManager); err != nil {
 		log.Printf("failed to clear session cookie: %v", err)
 	}
 }
