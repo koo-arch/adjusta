@@ -34,6 +34,12 @@ func (s *CookieSessionStore) CompleteOAuthSignIn(c *gin.Context, token string) e
 	return session.Save()
 }
 
+func (s *CookieSessionStore) ClearOAuthState(c *gin.Context) error {
+	session := sessions.Default(c)
+	session.Delete(cookie.OAuthStateKey)
+	return session.Save()
+}
+
 func (s *CookieSessionStore) OAuthState(c *gin.Context) (string, bool) {
 	state, ok := sessions.Default(c).Get(cookie.OAuthStateKey).(string)
 	return state, ok

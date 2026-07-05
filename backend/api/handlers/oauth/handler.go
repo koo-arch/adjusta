@@ -56,8 +56,25 @@ func (oh *Handler) GoogleCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		state := c.Query("state")
 		code := c.Query("code")
+		oauthError := c.Query("error")
+		if oauthError != "" {
+			log.Printf("google oauth callback returned error: %s", oauthError)
+			if err := oh.cookieSessionStore.ClearOAuthState(c); err != nil {
+				log.Printf("failed to clear oauth state after callback error: %v", err)
+				respond.Internal(c, "認証状態の保存に失敗しました")
+				return
+			}
+			respond.BadRequest(c, "Google認証が完了しませんでした")
+			return
+		}
+
 		if code == "" {
 			log.Printf("missing code")
+			if err := oh.cookieSessionStore.ClearOAuthState(c); err != nil {
+				log.Printf("failed to clear oauth state after missing code: %v", err)
+				respond.Internal(c, "認証状態の保存に失敗しました")
+				return
+			}
 			respond.BadRequest(c, "codeがありません")
 			return
 		}
@@ -65,6 +82,11 @@ func (oh *Handler) GoogleCallbackHandler() gin.HandlerFunc {
 		expectedState, ok := oh.cookieSessionStore.OAuthState(c)
 		if !ok || expectedState == "" || state != expectedState {
 			log.Printf("invalid oauth state")
+			if err := oh.cookieSessionStore.ClearOAuthState(c); err != nil {
+				log.Printf("failed to clear invalid oauth state: %v", err)
+				respond.Internal(c, "認証状態の保存に失敗しました")
+				return
+			}
 			respond.BadRequest(c, "stateが不正です")
 			return
 		}
