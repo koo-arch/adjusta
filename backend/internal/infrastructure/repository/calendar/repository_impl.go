@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
-	"github.com/koo-arch/adjusta-backend/ent/calendar"
-	dbUserCalendar "github.com/koo-arch/adjusta-backend/ent/usercalendar"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
+	dbUserCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/usercalendar"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
 

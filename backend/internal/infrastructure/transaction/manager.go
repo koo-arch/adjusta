@@ -3,7 +3,7 @@ package transaction
 import (
 	"log"
 
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
 )
 
 func Handle(tx *ent.Tx, txErr *error) {

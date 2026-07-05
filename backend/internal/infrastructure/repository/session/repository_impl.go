@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
-	entSession "github.com/koo-arch/adjusta-backend/ent/session"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
+	entSession "github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
 

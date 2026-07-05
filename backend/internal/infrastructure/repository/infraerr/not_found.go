@@ -1,7 +1,7 @@
 package infraerr
 
 import (
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 

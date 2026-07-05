@@ -14,7 +14,7 @@ COPY . .
 # ent のコード生成（intercept 機能を有効に）
 RUN go run -mod=mod entgo.io/ent/cmd/ent generate \
     --feature intercept \
-    ./ent/schema
+    ./internal/infrastructure/ent/schema
 
 # Linux amd64 向けにクロスコンパイルする
 ENV CGO_ENABLED=0 \
