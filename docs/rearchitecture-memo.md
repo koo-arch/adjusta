@@ -214,7 +214,9 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 ### 5.4 現在の到達度（2026-07-05 時点）
 
-現時点では、バックエンドの層構成は docs の目標形に概ね近づいており、`events` / `proposed_dates` の schema と同期語彙もかなり docs に寄ってきている。auth は session 主体の実装へ寄ってきており、composition root は `cmd/server` と `internal/app` に分かれた。migration は server 起動時の自動実行から `cmd/migrate` に分離し、開発 compose でも `migrate` service と DB healthcheck を使って明示的に実行する形へ移行した。今後は残る shared model 依存の削減、domain の純化、versioned migration 化の検討が継続課題である。また、層を分けるために増やした port / adapter / Record のうち、単なる repository 操作の言い換えや詰め替えになっているものは薄くする段階に入る。
+現時点では、バックエンドの層構成は docs の目標形に概ね近づいており、`events` / `proposed_dates` の schema と同期語彙もかなり docs に寄ってきている。auth は session 主体の実装へ移行し、composition root は `cmd/server` と `internal/app` に分かれた。migration は server 起動時の自動実行から `cmd/migrate` に分離し、開発 compose でも `migrate` service と DB healthcheck を使って明示的に実行する形へ移行した。
+
+Phase 3 以降についても、backend は未着手というより大枠の再編成が進んだ状態である。今後の中心は、残る shared model 依存の削減、domain の純化、API DTO と usecase DTO の境界仕上げ、単なる repository 操作の言い換えになっている port / adapter / Record の整理である。一方で frontend は backend 契約への追従が進んでいるものの、Google 連携再認可要求の表示導線、401 と再認可要求の扱い分け、middleware の cookie presence fallback、server data と draft state の責務分離に改善余地が残る。
 
 #### 5.4.1 バックエンド層ごとの到達度
 
@@ -294,23 +296,25 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 #### 5.4.4 主な残課題
 
 - 現在の `cmd/migrate` は ent auto migration を明示実行する CLI であり、破壊的変更や履歴管理が必要になった段階で versioned migration へ移行する
-- auth の Phase 2 は大枠完了。session 主体の基盤、HTTP 境界の cookie session store、OAuth callback / logout 失敗系の処理、Google 連携再認可を Adjusta ログイン失効と分ける backend error kind は整った。frontend の再認可表示導線は後続課題として扱う
+- auth の Phase 2 は大枠完了。session 主体の基盤、HTTP 境界の cookie session store、OAuth callback / logout 失敗系の処理、Google 連携再認可を Adjusta ログイン失効と分ける backend error kind は整った。frontend では再認可表示導線と、401 / `google_reauthorization_required` の扱い分けを整える
 - Google 連携の共通語彙を置いた `backend/internal/google` が大きくなりすぎないか確認し、必要なら usecase ごとの contract へさらに分ける
 - 残る usecase 専用 store / adapter を見直し、単なる repository 操作の言い換えになっているものは domain repository interface を直接扱える形へ寄せる
 - domain model とほぼ同じ usecase Record を見直し、必要なものだけ残す
 - proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる
 - `backend/internal/usecase/events` は draft / confirmation / sync / google などの関心が増えているため、まず同一 package 内でファイル prefix による責務整理を進める。依存関係が十分薄くなった段階で、サブドメイン単位の package 分割も検討する
 - 環境変数供給経路は DB 系とアプリ固有設定で分かれているため、必要になれば root `.env` + compose にさらに寄せる
-- frontend では API server data と draft state の責務分離をさらに進める
+- frontend では Google 連携再認可要求の表示導線、middleware の session 検証 fallback、API server data と draft state の責務分離をさらに進める
 
 #### 5.4.5 次の作業候補
 
-1. interface 層で API DTO と usecase input / output の境界を作り、互換レスポンス項目や HTTP DTO が usecase 側へ漏れない形へ寄せる
-2. frontend で Google 連携再認可要求の表示導線を整える
-3. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
-4. domain rule と usecase orchestration の境界を再確認する
-5. `events` usecase は draft / confirmation / sync / google のファイル責務を明確にし、将来的なサブドメイン package 分割に備える
-6. `cmd/migrate` は当面 ent auto migration の明示実行 CLI とし、破壊的変更が必要になった段階で versioned migration への差し替えを検討する
+1. frontend で Google 連携再認可要求の表示導線を整え、401 と `google_reauthorization_required` の扱いを分ける
+2. interface 層で API DTO と usecase input / output の境界を仕上げ、互換レスポンス項目や HTTP DTO が usecase 側へ漏れない形へ寄せる
+3. frontend の middleware と認証系 data flow を見直し、cookie presence fallback と session 検証の責務を整理する
+4. frontend の API server data と draft state の責務分離を進める
+5. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
+6. domain rule と usecase orchestration の境界を再確認する
+7. `events` usecase は draft / confirmation / sync / google のファイル責務を明確にし、将来的なサブドメイン package 分割に備える
+8. `cmd/migrate` は当面 ent auto migration の明示実行 CLI とし、破壊的変更が必要になった段階で versioned migration への差し替えを検討する
 
 ---
 
@@ -378,6 +382,11 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - 認証関連の API / middleware 実装
 - JWT 非依存化された認証基盤
 
+補足:
+
+- backend は session 主体の認証基盤、HTTP 境界の cookie session store、OAuth callback / logout 失敗系の後始末、Google 連携再認可 error kind まで整っており、Phase 2 は大枠完了として扱う
+- frontend は session 検証に寄っているが、Google 連携再認可要求の表示導線と、middleware の cookie presence fallback の整理が残る
+
 ### Phase 3: backend の層構成整理
 
 目的:
@@ -398,7 +407,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 補足:
 
 - repository 実装の infrastructure 側集約、port 分離、adapter 整理はかなり進んでいる
-- 今後は shared model 依存の削減と domain 純化が中心課題になる
+- 今後は shared model 依存の削減、API DTO と usecase DTO の境界仕上げ、domain 純化が中心課題になる
 
 ### Phase 4: イベント・候補日程ユースケースの再構築
 
@@ -421,7 +430,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 補足:
 
 - create / update / finalize / detail access sync はかなり docs に寄ってきている
-- 候補予定削除時の Google 側方針や、残る edge case の整理は継続課題である
+- 候補予定削除時の Google 側方針、状態遷移ルールの domain 集約、残る edge case の整理は継続課題である
 
 ### Phase 5: frontend の追従
 
@@ -444,6 +453,7 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 補足:
 
 - event API 型の追従と、`confirmed_google_event_id` 前提の調整は進んでいる
+- 認証判定は `GET /api/users/me` と middleware の session 検証へ寄っているが、cookie presence fallback と Google 連携再認可要求の表示導線は改善余地がある
 - server data と draft state の責務分離はまだ途中である
 
 ### Phase 6: 同期失敗と移行対応
@@ -512,10 +522,11 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 
 次に着手する候補は以下の順とする。
 
-1. interface 層で API 入出力 DTO と usecase input / output の境界を作り、usecase に HTTP DTO を直接渡さない形へ寄せる
-2. frontend で Google 連携再認可要求の表示導線を整える
-3. domain rule と usecase orchestration の境界を再確認し、状態遷移や同期方針を domain へ寄せる
+1. frontend で Google 連携再認可要求の表示導線を整え、401 と `google_reauthorization_required` の扱いを分ける
+2. interface 層で API 入出力 DTO と usecase input / output の境界を仕上げ、usecase に HTTP DTO を直接渡さない形へ寄せる
+3. frontend の middleware と認証系 data flow を見直し、cookie presence fallback と session 検証の責務を整理する
 4. frontend の server data / draft state 整理へ進む
-5. `cmd/migrate` は当面 ent auto migration の明示実行として運用し、破壊的変更が必要になった段階で versioned migration 化する
+5. domain rule と usecase orchestration の境界を再確認し、状態遷移や同期方針を domain へ寄せる
+6. `cmd/migrate` は当面 ent auto migration の明示実行として運用し、破壊的変更が必要になった段階で versioned migration 化する
 
-以上を起点に、interface DTO と usecase DTO の分離、Google 連携再認可の frontend 導線、domain 純化、frontend の server data / draft state 整理を並行して進める。
+以上を起点に、Google 連携再認可の frontend 導線、interface DTO と usecase DTO の分離、frontend の server data / draft state 整理、domain 純化を並行して進める。
