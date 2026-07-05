@@ -24,8 +24,10 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 		}
 	}()
 
-	if err := infraDatabase.Migrate(ctx, client); err != nil {
-		return err
+	if cfg.AutoMigrate {
+		if err := infraDatabase.Migrate(ctx, client); err != nil {
+			return err
+		}
 	}
 
 	deps := buildDependencies(client, cfg)
