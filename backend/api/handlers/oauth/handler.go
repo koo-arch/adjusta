@@ -38,14 +38,15 @@ func (oh *Handler) GoogleLoginHandler(c *gin.Context) {
 func (oh *Handler) LogoutHandler(c *gin.Context) {
 	sessionToken, _ := oh.cookieSessionStore.SessionToken(c)
 
-	if err := oh.oauthUsecase.Logout(c.Request.Context(), sessionToken); err != nil {
-		respond.Error(c, err, "セッションの削除に失敗しました")
-		return
-	}
+	logoutErr := oh.oauthUsecase.Logout(c.Request.Context(), sessionToken)
 
 	if err := oh.cookieSessionStore.ClearSession(c); err != nil {
 		log.Printf("failed to save cleared session: %v", err)
 		respond.Internal(c, "セッションの保存に失敗しました")
+		return
+	}
+	if logoutErr != nil {
+		respond.Error(c, logoutErr, "セッションの削除に失敗しました")
 		return
 	}
 

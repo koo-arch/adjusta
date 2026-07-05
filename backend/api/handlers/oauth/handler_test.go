@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,6 +17,7 @@ import (
 
 type fakeOAuthUsecase struct {
 	completeGoogleSignInCalled bool
+	logoutErr                  error
 }
 
 func (f *fakeOAuthUsecase) GoogleLoginURL(state string) string {
@@ -28,7 +30,7 @@ func (f *fakeOAuthUsecase) CompleteGoogleSignIn(ctx context.Context, code string
 }
 
 func (f *fakeOAuthUsecase) Logout(ctx context.Context, sessionToken string) error {
-	return nil
+	return f.logoutErr
 }
 
 func TestGoogleCallbackHandlerReturnsBadRequestOnGoogleOAuthError(t *testing.T) {
@@ -59,6 +61,20 @@ func TestGoogleCallbackHandlerReturnsBadRequestOnInvalidState(t *testing.T) {
 	}
 }
 
+func TestLogoutHandlerClearsCookieWhenSessionDeleteFails(t *testing.T) {
+	usecase := &fakeOAuthUsecase{logoutErr: errors.New("delete failed")}
+	router := newOAuthTestRouter(usecase)
+
+	response := performOAuthRequest(router, "/auth/logout")
+
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("unexpected status: %d", response.Code)
+	}
+	if len(response.Result().Cookies()) == 0 {
+		t.Fatal("expected cleared session cookie")
+	}
+}
+
 func newOAuthTestRouter(usecase OAuthUsecase) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -67,6 +83,7 @@ func newOAuthTestRouter(usecase OAuthUsecase) *gin.Engine {
 	sessionStore := sessionctx.NewCookieSessionStore(apiCookie.NewManager("", false))
 	handler := NewHandler(usecase, "/", sessionStore)
 	router.GET("/auth/google/callback", handler.GoogleCallbackHandler())
+	router.GET("/auth/logout", handler.LogoutHandler)
 	return router
 }
 

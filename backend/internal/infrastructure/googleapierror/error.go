@@ -20,9 +20,9 @@ func Normalize(err error) error {
 	if stderrors.As(err, &gErr) {
 		switch gErr.Code {
 		case 401:
-			return internalErrors.NewUnauthorizedError("認証エラーが発生しました")
+			return internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
 		case 403:
-			return internalErrors.NewForbiddenError("アクセス権限がありません")
+			return internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
 		case 404:
 			return internalErrors.NewNotFoundError("リソースが見つかりません")
 		default:

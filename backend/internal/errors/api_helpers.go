@@ -28,6 +28,10 @@ func NewPartialContentError(message string, details map[string][]string) *APIErr
 	return NewAPIErrorWithDetails(KindPartial, message, details)
 }
 
+func NewGoogleReauthorizationRequiredError(message string) *APIError {
+	return NewAPIError(KindGoogleReauth, message)
+}
+
 func NormalizeAPIError(err error, fallbackMessage string) error {
 	if err == nil {
 		return nil

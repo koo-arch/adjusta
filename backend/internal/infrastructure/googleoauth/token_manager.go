@@ -36,7 +36,7 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*google
 	}
 
 	if entAccount.AccessToken == nil || entAccount.RefreshToken == nil || entAccount.ExpiresAt == nil {
-		return nil, internalErrors.NewUnauthorizedError("Googleアカウントの連携情報が不足しています。再認証してください")
+		return nil, internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
 	}
 
 	token := &oauth2.Token{
@@ -50,10 +50,10 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*google
 	if err != nil {
 		log.Printf("failed to get new token: %v", err)
 		if strings.Contains(err.Error(), "invalid_token") {
-			return nil, internalErrors.NewUnauthorizedError("トークンが無効です。再認証してください")
+			return nil, internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
 		}
 		if strings.Contains(err.Error(), "insufficient_scope") {
-			return nil, internalErrors.NewForbiddenError("トークンのスコープが不足しています。再認証してください")
+			return nil, internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
 		}
 		if strings.Contains(err.Error(), "network error") {
 			return nil, internalErrors.NewBadGatewayError("トークン取得サーバーに接続できませんでした")

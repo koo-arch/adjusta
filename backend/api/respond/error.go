@@ -34,6 +34,8 @@ func statusCodeForKind(kind internalErrors.Kind) int {
 		return http.StatusBadGateway
 	case internalErrors.KindPartial:
 		return http.StatusPartialContent
+	case internalErrors.KindGoogleReauth:
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}

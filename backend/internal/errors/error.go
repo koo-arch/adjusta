@@ -11,6 +11,7 @@ const (
 	KindBadGateway   Kind = "bad_gateway"
 	KindPartial      Kind = "partial"
 	KindValidation   Kind = "validation"
+	KindGoogleReauth Kind = "google_reauthorization_required"
 )
 
 type APIError struct {
