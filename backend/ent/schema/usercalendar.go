@@ -59,9 +59,11 @@ func (UserCalendar) Indexes() []ent.Index {
 		index.Fields("role"),
 		index.Fields("user_id").
 			Unique().
+			StorageKey("usercalendar_adjusta_candidate_user_id").
 			Annotations(entsql.IndexWhere("role = 'adjusta_candidate' AND deleted_at IS NULL")),
 		index.Fields("user_id").
 			Unique().
+			StorageKey("usercalendar_primary_user_id").
 			Annotations(entsql.IndexWhere("role = 'primary' AND deleted_at IS NULL")),
 	}
 }

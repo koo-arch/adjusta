@@ -19,7 +19,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	cfg, err := config.New()
+	cfg, err := config.NewServer()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -270,9 +270,6 @@ var (
 				Name:    "usercalendar_user_id",
 				Unique:  false,
 				Columns: []*schema.Column{UserCalendarsColumns[8]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "role = 'primary' AND deleted_at IS NULL",
-				},
 			},
 			{
 				Name:    "usercalendar_calendar_id",
@@ -285,14 +282,20 @@ var (
 				Columns: []*schema.Column{UserCalendarsColumns[4]},
 			},
 			{
-				Name:    "usercalendar_user_id",
+				Name:    "usercalendar_adjusta_candidate_user_id",
 				Unique:  true,
 				Columns: []*schema.Column{UserCalendarsColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "role = 'adjusta_candidate' AND deleted_at IS NULL",
+				},
 			},
 			{
-				Name:    "usercalendar_user_id",
+				Name:    "usercalendar_primary_user_id",
 				Unique:  true,
 				Columns: []*schema.Column{UserCalendarsColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "role = 'primary' AND deleted_at IS NULL",
+				},
 			},
 		},
 	}

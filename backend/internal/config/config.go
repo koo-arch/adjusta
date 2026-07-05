@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -21,16 +20,10 @@ type Config struct {
 	GoogleRedirectURI     string
 	GoEnv                 string
 	Domain                string
-	AutoMigrate           bool
 }
 
-func New() (Config, error) {
-	autoMigrate, err := defaultBool(os.Getenv("AUTO_MIGRATE"), true)
-	if err != nil {
-		return Config{}, fmt.Errorf("invalid AUTO_MIGRATE: %w", err)
-	}
-
-	cfg := Config{
+func New() Config {
+	return Config{
 		DatabaseURL:           os.Getenv("DATABASE_URL"),
 		Port:                  defaultString(os.Getenv("PORT"), "8080"),
 		SessionSecret:         os.Getenv("SESSION_SECRET"),
@@ -41,13 +34,22 @@ func New() (Config, error) {
 		GoogleRedirectURI:     os.Getenv("GOOGLE_REDIRECT_URI"),
 		GoEnv:                 os.Getenv("GO_ENV"),
 		Domain:                os.Getenv("DOMAIN"),
-		AutoMigrate:           autoMigrate,
 	}
+}
 
-	if err := cfg.validate(); err != nil {
+func NewServer() (Config, error) {
+	cfg := New()
+	if err := cfg.validateServer(); err != nil {
 		return Config{}, err
 	}
+	return cfg, nil
+}
 
+func NewDatabase() (Config, error) {
+	cfg := New()
+	if err := cfg.validateDatabase(); err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
 }
 
@@ -60,13 +62,6 @@ func defaultString(value, defaultValue string) string {
 		return defaultValue
 	}
 	return value
-}
-
-func defaultBool(value string, defaultValue bool) (bool, error) {
-	if value == "" {
-		return defaultValue, nil
-	}
-	return strconv.ParseBool(value)
 }
 
 func splitAndTrim(value string) []string {
@@ -85,7 +80,7 @@ func splitAndTrim(value string) []string {
 	return result
 }
 
-func (c Config) validate() error {
+func (c Config) validateServer() error {
 	var errs []error
 	required := map[string]string{
 		"DATABASE_URL":         c.DatabaseURL,
@@ -102,4 +97,11 @@ func (c Config) validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func (c Config) validateDatabase() error {
+	if c.DatabaseURL == "" {
+		return fmt.Errorf("DATABASE_URL is not set")
+	}
+	return nil
 }

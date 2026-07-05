@@ -24,12 +24,6 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 		}
 	}()
 
-	if cfg.AutoMigrate {
-		if err := infraDatabase.Migrate(ctx, client); err != nil {
-			return err
-		}
-	}
-
 	deps := buildDependencies(client, cfg)
 	router := newRouter(cfg, deps)
 
