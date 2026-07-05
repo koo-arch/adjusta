@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
 	infraTransaction "github.com/koo-arch/adjusta-backend/internal/infrastructure/transaction"
 )
 

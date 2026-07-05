@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/koo-arch/adjusta-backend/ent"
-	entAccount "github.com/koo-arch/adjusta-backend/ent/account"
 	repoAccount "github.com/koo-arch/adjusta-backend/internal/domain/account"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
+	entAccount "github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
 

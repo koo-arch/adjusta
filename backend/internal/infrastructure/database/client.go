@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/koo-arch/adjusta-backend/ent"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
 
-	_ "github.com/koo-arch/adjusta-backend/ent/runtime"
+	_ "github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/runtime"
 	_ "github.com/lib/pq"
 )
 
