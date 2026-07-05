@@ -3,13 +3,12 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/joho/godotenv"
 )
+
+const developmentEnv = "development"
 
 type Config struct {
 	DatabaseURL           string
@@ -26,10 +25,6 @@ type Config struct {
 }
 
 func New() (Config, error) {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
-
 	autoMigrate, err := defaultBool(os.Getenv("AUTO_MIGRATE"), true)
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid AUTO_MIGRATE: %w", err)
@@ -54,6 +49,10 @@ func New() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func (c Config) IsDevelopment() bool {
+	return c.GoEnv == developmentEnv
 }
 
 func defaultString(value, defaultValue string) string {

@@ -42,7 +42,7 @@ func buildDependencies(client *ent.Client, cfg config.Config) *dependencies {
 	uow := infraRepository.NewUnitOfWork(client)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
 	googleOAuthClient := infraGoogleOAuth.NewClient(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI)
-	cookieManager := apiCookie.NewManager(cfg.Domain, cfg.GoEnv != "development")
+	cookieManager := apiCookie.NewManager(cfg.Domain, !cfg.IsDevelopment())
 	cookieOptions := cookieManager.Options()
 	sessionLifetime := time.Duration(cookieOptions.MaxAge) * time.Second
 
