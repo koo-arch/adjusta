@@ -20,7 +20,7 @@ RUN go run -mod=mod entgo.io/ent/cmd/ent generate \
 ENV CGO_ENABLED=0 \
   GOOS=linux \
   GOARCH=amd64
-RUN go build -mod=mod -o server .
+RUN go build -mod=mod -o server ./cmd/server
 
 # ── 2. runtime stage ─────────────────────────
 FROM alpine:3.18
