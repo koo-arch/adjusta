@@ -15,11 +15,13 @@ import (
 
 type TokenManager struct {
 	accountRepo repoAccount.AccountRepository
+	client      *Client
 }
 
-func NewTokenManager(accountRepo repoAccount.AccountRepository) *TokenManager {
+func NewTokenManager(accountRepo repoAccount.AccountRepository, client *Client) *TokenManager {
 	return &TokenManager{
 		accountRepo: accountRepo,
+		client:      client,
 	}
 }
 
@@ -44,7 +46,7 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*google
 		Expiry:       *entAccount.ExpiresAt,
 	}
 
-	refreshedToken, err := oauth2.ReuseTokenSource(token, GetConfig().TokenSource(ctx, token)).Token()
+	refreshedToken, err := oauth2.ReuseTokenSource(token, tm.client.TokenSource(ctx, token)).Token()
 	if err != nil {
 		log.Printf("failed to get new token: %v", err)
 		if strings.Contains(err.Error(), "invalid_token") {

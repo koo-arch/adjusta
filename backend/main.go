@@ -62,6 +62,7 @@ func main() {
 	repos := infraRepository.NewRepositories(client)
 	uow := infraRepository.NewUnitOfWork(client)
 	calendarApp := infraGoogleCalendar.NewGoogleCalendarManager()
+	googleOAuthClient := infraGoogleOAuth.NewClient(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI)
 	cookieManager := apiCookie.NewManager(cfg.Domain, cfg.GoEnv != "development")
 	cookieOptions := cookieManager.Options()
 	sessionLifetime := time.Duration(cookieOptions.MaxAge) * time.Second
@@ -74,20 +75,20 @@ func main() {
 		infraAuth.NewAuthTransaction(uow),
 		sessionLifetime,
 	)
-	googleTokenManager := infraGoogleOAuth.NewTokenManager(repos.Account)
+	googleTokenManager := infraGoogleOAuth.NewTokenManager(repos.Account, googleOAuthClient)
 	accountProfileUsecase := usecaseAccount.NewProfileUsecase(
 		googleTokenManager,
-		infraAuth.NewGoogleUserInfoFetcher(),
+		infraAuth.NewGoogleUserInfoFetcher(googleOAuthClient),
 	)
 	oauthUsecase := usecaseAuth.NewOAuthUsecase(
 		authenticator,
-		infraAuth.NewGoogleOAuthGateway(),
-		infraAuth.NewGoogleUserInfoFetcher(),
+		infraAuth.NewGoogleOAuthGateway(googleOAuthClient),
+		infraAuth.NewGoogleUserInfoFetcher(googleOAuthClient),
 	)
 	calendarSyncUsecase := usecaseCalendar.NewSyncUsecase(
 		repos.User,
 		googleTokenManager,
-		infraGoogleCalendar.NewCalendarServiceFactory(),
+		infraGoogleCalendar.NewCalendarServiceFactory(googleOAuthClient),
 		infraCalendar.NewCalendarSyncTransaction(uow),
 		calendarCache,
 	)
@@ -99,7 +100,7 @@ func main() {
 			UserCalendar: repos.UserCalendar,
 		},
 		infraEvents.NewEventTransaction(uow),
-		infraGoogleCalendar.NewEventGateway(googleTokenManager, calendarApp),
+		infraGoogleCalendar.NewEventGateway(googleTokenManager, calendarApp, googleOAuthClient),
 	)
 
 	//Ginフレームワークのデフォルトの設定を使用してルータを作成

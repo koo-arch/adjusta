@@ -20,8 +20,8 @@ type Client struct {
 	Service *calendar.Service
 }
 
-func NewClient(ctx context.Context, token *oauth2.Token) (*Client, error) {
-	service, err := calendar.NewService(ctx, option.WithTokenSource(infraGoogleOAuth.GetConfig().TokenSource(ctx, token)))
+func NewClient(ctx context.Context, oauthClient *infraGoogleOAuth.Client, token *oauth2.Token) (*Client, error) {
+	service, err := calendar.NewService(ctx, option.WithTokenSource(oauthClient.TokenSource(ctx, token)))
 	if err != nil {
 		return nil, err
 	}

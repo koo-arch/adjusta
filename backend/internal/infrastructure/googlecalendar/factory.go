@@ -4,21 +4,24 @@ import (
 	"context"
 
 	"github.com/koo-arch/adjusta-backend/internal/google"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 )
 
-type calendarServiceFactory struct{}
+type calendarServiceFactory struct {
+	oauthClient *infraGoogleOAuth.Client
+}
 
 type calendarService struct {
 	service *Client
 }
 
-func NewCalendarServiceFactory() usecaseCalendar.CalendarServiceFactory {
-	return &calendarServiceFactory{}
+func NewCalendarServiceFactory(oauthClient *infraGoogleOAuth.Client) usecaseCalendar.CalendarServiceFactory {
+	return &calendarServiceFactory{oauthClient: oauthClient}
 }
 
 func (f *calendarServiceFactory) New(ctx context.Context, token *google.AuthToken) (usecaseCalendar.CalendarService, error) {
-	service, err := NewClient(ctx, toOAuth2Token(token))
+	service, err := NewClient(ctx, f.oauthClient, toOAuth2Token(token))
 	if err != nil {
 		return nil, normalizeGoogleAPIError(err)
 	}

@@ -7,18 +7,21 @@ import (
 
 	"github.com/google/uuid"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
+	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
 )
 
 type eventGateway struct {
 	googleTokenProvider usecaseEvents.GoogleTokenProvider
 	calendarManager     *GoogleCalendarManager
+	oauthClient         *infraGoogleOAuth.Client
 }
 
-func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, calendarManager *GoogleCalendarManager) usecaseEvents.GoogleCalendarGateway {
+func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, calendarManager *GoogleCalendarManager, oauthClient *infraGoogleOAuth.Client) usecaseEvents.GoogleCalendarGateway {
 	return &eventGateway{
 		googleTokenProvider: googleTokenProvider,
 		calendarManager:     calendarManager,
+		oauthClient:         oauthClient,
 	}
 }
 
@@ -119,7 +122,7 @@ func (g *eventGateway) newCalendarService(ctx context.Context, userID uuid.UUID)
 		return nil, err
 	}
 
-	calendarService, err := NewClient(ctx, toOAuth2Token(token))
+	calendarService, err := NewClient(ctx, g.oauthClient, toOAuth2Token(token))
 	if err != nil {
 		return nil, normalizeGoogleAPIError(err)
 	}

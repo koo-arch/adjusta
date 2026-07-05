@@ -8,18 +8,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type GoogleOAuthGateway struct{}
+type GoogleOAuthGateway struct {
+	client *infraGoogleOAuth.Client
+}
 
-func NewGoogleOAuthGateway() *GoogleOAuthGateway {
-	return &GoogleOAuthGateway{}
+func NewGoogleOAuthGateway(client *infraGoogleOAuth.Client) *GoogleOAuthGateway {
+	return &GoogleOAuthGateway{client: client}
 }
 
 func (g *GoogleOAuthGateway) AuthCodeURL(state string) string {
-	return infraGoogleOAuth.GetConfig().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	return g.client.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
 
 func (g *GoogleOAuthGateway) Exchange(ctx context.Context, code string) (*google.AuthToken, error) {
-	token, err := infraGoogleOAuth.GetConfig().Exchange(ctx, code)
+	token, err := g.client.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}

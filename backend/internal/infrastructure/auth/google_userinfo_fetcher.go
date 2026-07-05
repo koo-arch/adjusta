@@ -21,14 +21,16 @@ type googleUserInfo struct {
 
 const googleUserInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-type GoogleUserInfoFetcher struct{}
+type GoogleUserInfoFetcher struct {
+	client *infraGoogleOAuth.Client
+}
 
-func NewGoogleUserInfoFetcher() *GoogleUserInfoFetcher {
-	return &GoogleUserInfoFetcher{}
+func NewGoogleUserInfoFetcher(client *infraGoogleOAuth.Client) *GoogleUserInfoFetcher {
+	return &GoogleUserInfoFetcher{client: client}
 }
 
 func (f *GoogleUserInfoFetcher) FetchGoogleUserInfo(ctx context.Context, token *google.AuthToken) (*google.UserProfile, error) {
-	client := infraGoogleOAuth.GetConfig().Client(ctx, &oauth2.Token{
+	client := f.client.HTTPClient(ctx, &oauth2.Token{
 		AccessToken:  token.AccessToken,
 		TokenType:    token.TokenType,
 		RefreshToken: token.RefreshToken,
