@@ -28,7 +28,7 @@ func (qp *QueryParser) ParseSearchEventQuery() (*usecaseEvents.SearchDraftQuery,
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse status: %w", err)
 	}
-	eventStatus, err := qp.vaildateStatus(status)
+	eventStatus, err := qp.validateStatus(status)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate status: %w", err)
 	}
@@ -67,7 +67,7 @@ func (qp *QueryParser) ParseSearchEventQuery() (*usecaseEvents.SearchDraftQuery,
 	return &options, nil
 }
 
-func (qp *QueryParser) vaildateStatus(status *string) (*value.EventStatus, error) {
+func (qp *QueryParser) validateStatus(status *string) (*value.EventStatus, error) {
 	if status == nil {
 		return nil, nil
 	}
