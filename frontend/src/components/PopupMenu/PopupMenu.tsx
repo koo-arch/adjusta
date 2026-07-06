@@ -5,7 +5,7 @@ import { Menu, MenuItems, MenuItem, MenuButton } from '@headlessui/react';
 interface PopupMenuProps {
     items: Array<{ label: string; onClick: () => void }>;
     position?: { top: number; left: number };
-    buttonRef?: React.RefObject<HTMLButtonElement>;
+    buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const classNames = (...classes: string[]) => {

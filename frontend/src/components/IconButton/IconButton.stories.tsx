@@ -1,4 +1,4 @@
-import { Meta, StoryObj } from "@storybook/react";
+import { Meta, StoryObj } from "@storybook/nextjs";
 import IconButton from "./IconButton";
 import { PlusIcon } from "@heroicons/react/24/solid";
 

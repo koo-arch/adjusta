@@ -163,7 +163,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                         <DateTimePicker
                             label='開始日時'
                             selected={confirmDate.start}
-                            onChange={(date) => {
+                            onChange={(date: Date | null) => {
                                 setConfirmDate((prev) => ({ ...prev, start: date }));
                                 resetMutationErrorState();
                             }}
@@ -173,7 +173,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                         <DateTimePicker
                             label='終了日時'
                             selected={confirmDate.end}
-                            onChange={(date) => {
+                            onChange={(date: Date | null) => {
                                 setConfirmDate((prev) => ({ ...prev, end: date }));
                                 resetMutationErrorState();
                             }}

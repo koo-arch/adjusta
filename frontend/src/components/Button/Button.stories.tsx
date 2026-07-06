@@ -1,5 +1,5 @@
 import React from "react";
-import { Meta, StoryObj } from "@storybook/react";
+import { Meta, StoryObj } from "@storybook/nextjs";
 import { PlusIcon } from "@heroicons/react/20/solid";
 import Button from "./Button";
 

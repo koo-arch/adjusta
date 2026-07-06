@@ -1,4 +1,4 @@
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/nextjs';
 import PopupMenu from './PopupMenu';
 
 const meta: Meta<typeof PopupMenu> = {
