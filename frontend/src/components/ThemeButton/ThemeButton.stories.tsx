@@ -1,4 +1,4 @@
-import { Meta, StoryObj } from "@storybook/react";
+import { Meta, StoryObj } from "@storybook/nextjs";
 import ThemeButton from './ThemeButton';
 
 const meta: Meta<typeof ThemeButton> = {

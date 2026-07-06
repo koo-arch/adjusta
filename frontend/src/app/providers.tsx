@@ -1,7 +1,6 @@
 'use client'
 import type { ReactNode } from 'react';
 import { QueryClientProvider, QueryClient, isServer } from "@tanstack/react-query";
-import { ReactQueryStreamedHydration } from '@tanstack/react-query-next-experimental';
 import ToastProvider from './ToastProvider';
 
 interface ProvidersProps {
@@ -40,11 +39,9 @@ const Providers = ({ children }: ProvidersProps) => {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <ReactQueryStreamedHydration>
-                <ToastProvider>
-                    {children}
-                </ToastProvider>
-            </ReactQueryStreamedHydration>
+            <ToastProvider>
+                {children}
+            </ToastProvider>
         </QueryClientProvider>
     )
 }
