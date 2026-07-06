@@ -27,7 +27,7 @@ const hasValidSession = async (request: NextRequest) => {
     }
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const hasSessionCookie = request.cookies.has('session');
     const { pathname } = new URL(request.url);
 
