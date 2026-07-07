@@ -6,11 +6,8 @@ services:
 
     volumes:
       - .:/workspace:cached
-      - codex_config:/root/.codex
 
     command: sleep infinity
 
     networks:
       - app-network
-volumes:
-  codex_config:

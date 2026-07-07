@@ -13,12 +13,16 @@
 		},
 		"ghcr.io/devcontainers/features/node:2.0.0": {
 			"version": "25.9"
-		}
+		},
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
 	},
 	"shutdownAction": "stopCompose",
-	"remoteEnv": {
-		"PATH": "/usr/bin:${containerEnv:PATH}"
-	},
+	"mounts": [
+		"source=codex_config,target=/root/.codex,type=volume",
+		"source=claude-code-config-${devcontainerId},target=/root/.claude,type=volume",
+		"source=github-cli-config-${devcontainerId},target=/root/.config/gh,type=volume"
+	],
 	"customizations": {
 		"vscode": {
 			"settings": {
