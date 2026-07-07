@@ -1,14 +1,15 @@
 import React from 'react';
 import LoginButton from '@/features/auth/components/LoginButton';
-import scheduleManage from '../../../../../public/images/schedule_manage.jpg';
 import Card from '@/components/Card';
+
+const scheduleManageImage = '/images/schedule_manage.jpg';
 
 const LoginPageContainer = () => {
     return (
         <div className="mx-auto max-w-screen-sm p-4 mb-4">
             <Card
                 variant="outlined"
-                image={scheduleManage}
+                image={scheduleManageImage}
             >
                 <h1 className="text-center text-3xl font-extrabold mb-4">
                     Adjusta
