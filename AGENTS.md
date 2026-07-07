@@ -30,6 +30,15 @@
 - 例: `refactor(auth): clarify session boundary`、`fix(api): fix query status validation typo`
 - `type` は `feat` / `fix` / `refactor` / `docs` / `test` / `chore` などから変更内容に合うものを選ぶ。
 
+## Pull Request
+- PRタイトルは英語の sentence case とし、先頭を大文字にする。
+- PRタイトル例: `Add GitHub CLI to the dev container`
+- PR本文は `.github/pull_request_template.md` に従う。
+- `Overview` には変更内容の要約を書く。
+- `Background` には変更が必要になった理由・背景を書く。
+- `Verification` には実行した検証コマンドと結果を書く。
+- 未実行の検証がある場合は、その理由を `Notes` または `Verification` に明記する。
+
 ## Definition of Done
 - 変更理由と影響範囲を説明できること。
 - 変更ファイル一覧を示せること。
