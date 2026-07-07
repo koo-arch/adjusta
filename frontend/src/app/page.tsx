@@ -1,7 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
-import schduleManage from "../../public/images/schedule_manage.jpg";
 import Button from '@/components/Button';
+
+const scheduleManageImage = '/images/schedule_manage.jpg';
 
 const Home: React.FC = () => {
   return (
@@ -26,7 +27,7 @@ const Home: React.FC = () => {
       {/* Right Section */}
       <div className="w-full lg:w-1/2 h-64 lg:h-screen relative">
         <Image
-          src={schduleManage}
+          src={scheduleManageImage}
           alt="スケジュール管理のイメージ"
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
