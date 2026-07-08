@@ -3,19 +3,19 @@ import React from 'react';
 import Image from 'next/image';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import type { AuthUser } from '@/features/auth/types';
 import { UserIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/react/20/solid';
 
 interface UserButtonProps {
-    classNames: (...classes: string[]) => string;
+    user: AuthUser;
 }
 
-const UserButton: React.FC<UserButtonProps> = ({ classNames }) => {
-    const { logout } = useLogout();
-    const { isAuthenticated, user, isLoading } = useAuth();
+const classNames = (...classes: string[]) => {
+    return classes.filter(Boolean).join(' ')
+}
 
-    if (isLoading) return null;
-    if (!isAuthenticated || !user) return null;
+const UserButton: React.FC<UserButtonProps> = ({ user }) => {
+    const { logout } = useLogout();
 
     return (
         <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
@@ -26,7 +26,7 @@ const UserButton: React.FC<UserButtonProps> = ({ classNames }) => {
                         <span className="sr-only">Open user menu</span>
                         <Image
                             className="h-8 w-8 rounded-full"
-                            src={user?.picture}
+                            src={user.picture}
                             alt=""
                             width={32}
                             height={32}

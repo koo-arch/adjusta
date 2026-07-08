@@ -1,15 +1,9 @@
 'use client'
 import React from 'react';
 import IconButton from '@/components/IconButton';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { PlusIcon } from '@heroicons/react/20/solid';
 
 const DraftRegisterButton = () => {
-    const { isAuthenticated, user, isLoading } = useAuth();
-
-    if (isLoading) return null;
-    if (!isAuthenticated || !user) return null;
-
     return (
         <IconButton
             iconColor="primary"
