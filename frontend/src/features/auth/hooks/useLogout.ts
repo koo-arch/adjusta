@@ -1,13 +1,8 @@
 'use client'
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 import { logout as requestLogout } from '@/features/auth/api/logout';
-import { buildCurrentUserQueryKey } from '@/features/auth/queryKeys';
 
 export const useLogout = () => {
-    const queryClient = useQueryClient();
-    const router = useRouter();
-
     const mutation = useMutation({
         mutationFn: requestLogout,
         onSuccess: (result) => {
@@ -21,9 +16,8 @@ export const useLogout = () => {
                 return;
             }
 
-            queryClient.clear();
-            queryClient.setQueryData(buildCurrentUserQueryKey(), null);
-            router.push('/login');
+            // フルリロードで query cache / Jotai atom の認証済みデータを確実に破棄する(401経路と同じ理屈)
+            window.location.assign('/login');
         },
         onError: (error) => {
             console.error(error);
