@@ -9,6 +9,17 @@
 - Server Component と Client Component の責務を分ける。
 - server data、form/draft state、UI state を混同しない。
 
+## Route Groups
+- `src/app/*` は layout shell の違いで route group に分割する（public かどうかでは分けない）。
+  - `(marketing)`: 公開LP・訴求ページ。MarketingHeader + MarketingFooter。
+  - `(auth)`: 認証導線ページ（`/login` など）。認証状態を参照しない最小シェル。
+  - `(app)`: 認証後アプリ。Providers・Header・AuthErrorModal・`requireUser` を使える。
+- 不変条件:
+  - `(app)` 以外の route group は認証状態を参照しない。
+  - ログイン済み/未ログインの出し分けは proxy redirect と `(app)` 側の認証境界でのみ扱う。
+  - `(marketing)` と `(auth)` は `next/headers`・TanStack Query・`useAuth`・`requireUser`・認証 API 呼び出しを推移的に import しない（静的レンダリング維持）。
+  - cookie 保持者は `/` と `/login` の両方から `/dashboard` へ redirect する。期限切れ cookie は `/api/auth/session-expired`(Route Handler)が失効させて `/login` へ 303 するためループしない。RSC レンダリング中は Set-Cookie できないため、401 の着地はこの handler に集約する。
+
 ## Directory Rules
 - `src/app/*` にはルーティングとページエントリのみを置く。
 - `src/features/<domain>/<feature>/*` を機能単位の実装場所とする。
@@ -20,6 +31,7 @@
 - `src/features/<...>/queryKeys.ts` には TanStack Query の query key 定義を置く。
 - `src/components/ui/*` には shadcn/ui ベースの共通 UI を置く。
 - `src/components/common/*` には複数 feature で使う共通部品を置く。
+- `src/lib/server/*` には Server Component 専用の DAL（`serverApi` / `requireUser`）を置く。cookie 転送と 401 → `/login` redirect はここに集約する。
 
 ## Components
 - 画面単位の container と再利用可能な UI component を分ける。
@@ -34,7 +46,7 @@
 - `containers` では、`HydrationBoundary` による dehydrated state の受け渡しを行ってよい。
 - `containers` では、初期 UI 状態を Jotai に橋渡しする薄いラッパーを置いてよい。
 - `containers` では mutation を行わない。
-- 認証必須データ・ユーザー固有データ・秘匿データは server prefetch しない。
+- 認証必須データ・ユーザー固有データのサーバー側取得は DAL（`src/lib/server/api.ts` の `serverApi` / `requireUser`）経由に限る。DAL を通さないアドホックなサーバー fetch / prefetch は行わない。
 - prefetch する query key は `queryKeys.ts` の builder を使い、`useQuery` 側と一致させる。
 
 ## Component Rules

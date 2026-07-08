@@ -5,51 +5,21 @@ const publicRoutes: string[] = [
     '/login'
 ];
 
-const hasValidSession = async (request: NextRequest) => {
-    const backendURL = process.env.INTERNAL_BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!backendURL) {
-        return request.cookies.has('session');
-    }
-
-    try {
-        const response = await fetch(`${backendURL}/api/users/me`, {
-            method: 'GET',
-            headers: {
-                cookie: request.headers.get('cookie') || '',
-            },
-            cache: 'no-store',
-            redirect: 'manual',
-        });
-
-        return response.status === 200;
-    } catch {
-        return request.cookies.has('session');
-    }
-};
-
-export async function proxy(request: NextRequest) {
+// cookie の「存在」だけを見る楽観的な UX 振り分け。セッションの検証はしない。
+// 権威的な認証チェックは Go API(全 /api/* のセッションミドルウェア)であり、
+// 期限切れ cookie がここをすり抜けてもデータ取得は 401 になり
+// serverApi / QueryCache 側で cookie 失効後に /login へ回収される。
+export function proxy(request: NextRequest) {
     const hasSessionCookie = request.cookies.has('session');
-    const { pathname } = new URL(request.url);
+    const { pathname } = request.nextUrl;
 
-    if (!hasSessionCookie) {
-        if (!publicRoutes.includes(pathname)) {
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
-
-        return NextResponse.next();
+    if (!hasSessionCookie && !publicRoutes.includes(pathname)) {
+        return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    const isAuthenticated = await hasValidSession(request);
-
-    if (!isAuthenticated) {
-        if (!publicRoutes.includes(pathname)) {
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
-
-        return NextResponse.next();
-    }
-
-    if (publicRoutes.includes(pathname)) {
+    // RSC 経路の 401 でも /api/auth/session-expired が cookie を失効させるため、
+    // 期限切れ cookie が /login と /dashboard を往復し続ける状態にはならない。
+    if (hasSessionCookie && (pathname === '/' || pathname === '/login')) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 

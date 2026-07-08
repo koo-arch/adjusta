@@ -1,14 +1,13 @@
 'use client'
 import React, { useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import UserButton from '@/features/auth/components/UserButton';
 import DraftRegisterButton from '@/features/events/draft/components/DraftRegisterButton';
 import { usePathname } from 'next/navigation';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/20/solid';
 
 const navigation = [
-    { name: 'ホーム', href: '/' },
+    { name: 'ホーム', href: '/dashboard' },
     { name: 'イベント一覧', href: '/schedule/draft' },
 ]
 
@@ -50,7 +49,11 @@ const getHasPageShadow = () => {
     return window.scrollY > 0;
 };
 
-const Header: React.FC = () => {
+interface HeaderProps {
+    userMenu: React.ReactNode;
+}
+
+const Header: React.FC<HeaderProps> = ({ userMenu }) => {
     const pathname = usePathname();
     const hasShadow = useSyncExternalStore(
         subscribePageScroll,
@@ -58,7 +61,7 @@ const Header: React.FC = () => {
         () => false,
     );
 
-    const isActived = (href: string) => pathname === href || (href === '/' && pathname === '/dashboard');
+    const isActived = (href: string) => pathname === href;
 
     return (
         <Disclosure as="nav" className={`sticky top-0 z-10 bg-white transition-shadow ${hasShadow ? 'shadow-md' : ''}`}>
@@ -80,7 +83,7 @@ const Header: React.FC = () => {
                             </div>
                             <div className="flex flex-1 items-center justify-center md:items-stretch md:justify-start">
                                 <div className="flex flex-shrink-0 items-center">
-                                    <Link href="/">
+                                    <Link href="/dashboard">
                                         <div className="cursor-pointer text-xl font-extrabold">
                                             Adjusta
                                         </div>
@@ -102,7 +105,7 @@ const Header: React.FC = () => {
                             </div>
                             <div className="flex items-center space-x-4">
                                 <DraftRegisterButton />
-                                <UserButton classNames={classNames} />
+                                {userMenu}
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,3 @@
-import { getDefaultStore } from 'jotai/vanilla';
-import { authErrorAtom } from '@/features/auth/store/error';
-
 type QueryValue = string | number | boolean | Date | null | undefined;
 
 type QueryParams = object;
@@ -29,7 +26,6 @@ export class APIClientError extends Error {
     }
 }
 
-const store = getDefaultStore();
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '';
 
 const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`);
@@ -93,7 +89,9 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
-        return response.json() as Promise<T>;
+        // ゲートウェイ等が application/json で空ボディを返すケースに耐える
+        const text = await response.text();
+        return (text ? JSON.parse(text) : undefined) as T;
     }
 
     return response.text() as Promise<T>;
@@ -116,13 +114,6 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<A
     const isAllowedStatus = allowStatuses.includes(response.status);
 
     if (!response.ok && !isAllowedStatus) {
-        if (response.status === 401 && typeof window !== 'undefined') {
-            store.set(authErrorAtom, {
-                isOpen: true,
-                message: '認証エラーが発生しました。再ログインしてください。',
-            });
-        }
-
         const message =
             typeof data === 'object' &&
             data !== null &&
