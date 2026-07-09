@@ -1,6 +1,7 @@
-import type { SearchParams } from './types';
+import type { EventListParams, SearchParams } from './types';
 
-export const buildDraftEventListQueryKey = () => ['draftEventList'] as const;
+export const buildDraftEventListQueryKey = (params: EventListParams = {}) =>
+    ['draftEventList', params] as const;
 
 export const buildEventDetailQueryKey = (eventID?: string) =>
     ['eventDetail', eventID] as const;

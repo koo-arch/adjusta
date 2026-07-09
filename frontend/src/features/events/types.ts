@@ -4,6 +4,10 @@ export type ProposedDateStatus = 'active' | 'confirmed' | 'not_selected' | 'canc
 
 export type SyncStatus = 'not_synced' | 'pending_sync' | 'synced' | 'sync_failed';
 
+export type EventSortBy = 'created_at' | 'updated_at' | 'title' | 'status';
+
+export type SortOrder = 'asc' | 'desc';
+
 export interface EventProposedDate {
     id: string;
     google_event_id?: string;
@@ -37,6 +41,29 @@ export interface SearchParams {
     startTime?: string;
     endTime?: string;
     status?: EventStatus;
+    sort_by?: EventSortBy;
+    sort_order?: SortOrder;
+    page?: number;
+    per_page?: number;
+}
+
+export interface EventListParams {
+    page?: number;
+    per_page?: number;
+    sort_by?: EventSortBy;
+    sort_order?: SortOrder;
+}
+
+export interface Pagination {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+}
+
+export interface EventDraftListResponse {
+    items: EventDraftDetail[];
+    pagination: Pagination;
 }
 
 export interface UpcomingEvent extends Omit<EventDraftDetail, 'proposed_dates'> {

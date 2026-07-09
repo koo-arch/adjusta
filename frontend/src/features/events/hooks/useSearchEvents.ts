@@ -11,7 +11,8 @@ export const useSearchEvents = (params: SearchParams) => {
     });
 
     return {
-        searchEvents: data,
+        searchEvents: data?.items,
+        pagination: data?.pagination,
         isLoading,
         error
     };
