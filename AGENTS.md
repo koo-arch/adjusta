@@ -17,8 +17,26 @@
 - 変更は最小スコープで行い、無関係ファイルは編集しない。
 - 命名・import・コードスタイルは既存ファイルに合わせる。
 - API 入出力、DB schema、frontend type の変更時は影響範囲を確認する。
-- 仕様判断が必要な場合は、要件定義書・DB設計書を参照する。
+- 仕様判断が必要な場合は、Documentation のドキュメントマップと参照ルールに従う。
 - 推測で大きな設計変更をしない。
+
+## Documentation
+
+### ドキュメントマップ
+- `docs/requirements.md`: 要件定義（機能・画面・API 要件、優先度）。
+- `docs/db-design.md`: DB 設計（エンティティ・enum・制約・Soft Delete 方針）。
+- `docs/rearchitecture-memo.md`: DDD 再設計の経緯とレイヤー配置の判断理由。
+- `docs/screen-design.md`: 画面構成・各画面の表示内容・遷移・現実装との移行課題。
+- `frontend/DESIGN.md`: デザイン仕様の正（色・タイポグラフィ・余白・elevation）。
+- `docs/ui-guidelines.md`: コンポーネント利用規約・shadcn/ui 移行規定。
+- `docs/ui-review.md`: UI 改善バックログ（P1〜P3。UI 実装タスクの出典）。
+
+### 参照ルール
+- 機能の追加・変更時は、まず `docs/requirements.md` で対象機能の要件を確認する。
+- DB スキーマ・ent の schema 定義に触れる変更では、必ず `docs/db-design.md` を先に読む。
+- レイヤー間の依存方向やパッケージ配置に迷ったら `docs/rearchitecture-memo.md` を参照する。
+- 画面の構成・表示内容は `docs/screen-design.md` に、UI の見た目・コンポーネント選定は `frontend/DESIGN.md` と `docs/ui-guidelines.md` に従う。
+- ドキュメントと実装が食い違っている場合は、勝手にどちらかに合わせず報告する。
 
 ## Commands
 - Dev / build / lint / test コマンドは README または実際の構成を確認してから実行する。

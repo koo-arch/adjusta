@@ -93,6 +93,7 @@
 - domain vocabulary は backend / docs と揃える。
 
 ## Styling
+- デザイン仕様(色・タイポグラフィ・余白・elevation)は `frontend/DESIGN.md` に従う。
 - Tailwind を前提とする。
 - 既存の spacing、色、コンポーネント構成に合わせる。
 - 無関係なデザイン変更を含めない。
