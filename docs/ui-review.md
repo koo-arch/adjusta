@@ -240,16 +240,17 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 9 | ログインのエラー表示+押下フィードバック | login | 3.5 |
 | 10 | 一覧のステータス絞り込みタブ | list | 3.3 |
 | 11 | サードパーティ UI のテーマ統一(FullCalendar / react-datepicker / Splide / トースト) | calendar・form・dashboard | DESIGN.md「Third-Party Components」 |
+| 12 | 一覧のページネーション UI(バックエンドは既定 per_page=20 で実装済みのため、一覧画面の追随が必要。#10 のタブと同時対応を推奨) | list | 3.3、要件 9.3 |
 
 ### P3 — 磨き込み
 
 | # | 項目 | 対象 | 関連 |
 | --- | --- | --- | --- |
-| 12 | フォームの label 関連付け・aria 属性・button 化 | components | 2.6 |
-| 13 | レスポンシブの CSS 一本化 | EventForm | 2.5 |
-| 14 | LP の訴求セクション追加 | marketing | 3.6 |
-| 15 | アカウント画面の操作追加(ログアウト・連携状態 = screen-design 5.8 の Phase 1) | account | 3.7、screen-design 5.8 |
-| 16 | タイポ・ハードコード類の一掃 | 各所 | 2.7 |
+| 13 | フォームの label 関連付け・aria 属性・button 化 | components | 2.6 |
+| 14 | レスポンシブの CSS 一本化 | EventForm | 2.5 |
+| 15 | LP の訴求セクション追加 | marketing | 3.6 |
+| 16 | アカウント画面の操作追加(ログアウト・連携状態 = screen-design 5.8 の Phase 1) | account | 3.7、screen-design 5.8 |
+| 17 | タイポ・ハードコード類の一掃 | 各所 | 2.7 |
 
 ### ユーザー判断が必要な項目(バックログ着手前に決める)
 
