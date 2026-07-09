@@ -52,6 +52,14 @@ func (qp *QueryParser) ParseSearchEventQuery() (*usecaseEvents.SearchDraftQuery,
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse end_time: %w", err)
 	}
+	page, perPage, err := qp.ParsePagination()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse pagination: %w", err)
+	}
+	sortBy, sortOrder, err := qp.ParseEventSort()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse sort: %w", err)
+	}
 
 	options := usecaseEvents.SearchDraftQuery{
 		Title:        title,
@@ -62,9 +70,56 @@ func (qp *QueryParser) ParseSearchEventQuery() (*usecaseEvents.SearchDraftQuery,
 		StartTimeLTE: startTimeLTE,
 		EndTimeGTE:   endTimeGTE,
 		EndTimeLTE:   endTimeLTE,
+		SortBy:       sortBy,
+		SortOrder:    sortOrder,
+		Page:         page,
+		PerPage:      perPage,
 	}
 
 	return &options, nil
+}
+
+func (qp *QueryParser) ParseEventListQuery() (*usecaseEvents.SearchDraftQuery, error) {
+	page, perPage, err := qp.ParsePagination()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse pagination: %w", err)
+	}
+	sortBy, sortOrder, err := qp.ParseEventSort()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse sort: %w", err)
+	}
+
+	return &usecaseEvents.SearchDraftQuery{
+		SortBy:    sortBy,
+		SortOrder: sortOrder,
+		Page:      page,
+		PerPage:   perPage,
+	}, nil
+}
+
+func (qp *QueryParser) ParseEventSort() (string, string, error) {
+	sortBy, err := qp.ParseDefaultString("sort_by", "created_at")
+	if err != nil {
+		return "", "", err
+	}
+	sortOrder, err := qp.ParseDefaultString("sort_order", "desc")
+	if err != nil {
+		return "", "", err
+	}
+
+	switch *sortBy {
+	case "created_at", "updated_at", "title", "status":
+	default:
+		return "", "", fmt.Errorf("invalid sort_by: %s", *sortBy)
+	}
+
+	switch *sortOrder {
+	case "asc", "desc":
+	default:
+		return "", "", fmt.Errorf("invalid sort_order: %s", *sortOrder)
+	}
+
+	return *sortBy, *sortOrder, nil
 }
 
 func (qp *QueryParser) validateStatus(status *string) (*value.EventStatus, error) {
@@ -75,6 +130,8 @@ func (qp *QueryParser) validateStatus(status *string) (*value.EventStatus, error
 	var result value.EventStatus
 
 	switch *status {
+	case "draft":
+		result = value.StatusDraft
 	case "active", "pending":
 		result = value.StatusActive
 	case "confirmed":

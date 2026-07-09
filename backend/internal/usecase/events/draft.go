@@ -15,6 +15,14 @@ import (
 )
 
 func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, email string) ([]*EventDraftDetailOutput, error) {
+	result, err := uc.FetchDraftedEventsPage(ctx, userID, email, SearchDraftQuery{Page: 1, PerPage: 0})
+	if err != nil {
+		return nil, err
+	}
+	return result.Items, nil
+}
+
+func (uc *Usecase) FetchDraftedEventsPage(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) (*EventDraftListOutput, error) {
 	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
 	if err != nil {
 		return nil, err
@@ -22,6 +30,10 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 
 	eventOptions := EventSearchOptions{
 		WithProposedDates: true,
+		SortBy:            query.SortBy,
+		SortOrder:         query.SortOrder,
+		Page:              query.Page,
+		PerPage:           query.PerPage,
 	}
 	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
 	if err != nil {
@@ -29,6 +41,11 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 		if repoerr.IsNotFound(err) {
 			return nil, internalErrors.NewNotFoundError("イベントが見つかりませんでした")
 		}
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+	totalItems, err := uc.repos.Event.CountSearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
+	if err != nil {
+		log.Printf("failed to count events for account: %s, error: %v", email, err)
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
@@ -41,10 +58,21 @@ func (uc *Usecase) FetchAllDraftedEvents(ctx context.Context, userID uuid.UUID, 
 		draftedEvents = append(draftedEvents, draft)
 	}
 
-	return draftedEvents, nil
+	return &EventDraftListOutput{
+		Items:      draftedEvents,
+		Pagination: buildPaginationOutput(query.Page, query.PerPage, totalItems),
+	}, nil
 }
 
 func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) ([]*EventDraftDetailOutput, error) {
+	result, err := uc.SearchDraftedEventsPage(ctx, userID, email, query)
+	if err != nil {
+		return nil, err
+	}
+	return result.Items, nil
+}
+
+func (uc *Usecase) SearchDraftedEventsPage(ctx context.Context, userID uuid.UUID, email string, query SearchDraftQuery) (*EventDraftListOutput, error) {
 	storedCalendar, err := uc.loadPrimaryCalendar(ctx, uc.repos, userID, email)
 	if err != nil {
 		return nil, err
@@ -60,6 +88,10 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		StartTimeLTE:      query.StartTimeLTE,
 		EndTimeGTE:        query.EndTimeGTE,
 		EndTimeLTE:        query.EndTimeLTE,
+		SortBy:            query.SortBy,
+		SortOrder:         query.SortOrder,
+		Page:              query.Page,
+		PerPage:           query.PerPage,
 	}
 	storedEvents, err := uc.repos.Event.SearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
 	if err != nil {
@@ -67,6 +99,11 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		if repoerr.IsNotFound(err) {
 			return nil, internalErrors.NewNotFoundError("イベントが見つかりませんでした")
 		}
+		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
+	}
+	totalItems, err := uc.repos.Event.CountSearchEvents(ctx, userID, storedCalendar.ID, toEventSearchOptions(eventOptions))
+	if err != nil {
+		log.Printf("failed to count events for account: %s, error: %v", email, err)
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 	}
 
@@ -79,7 +116,31 @@ func (uc *Usecase) SearchDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		searchResult = append(searchResult, draft)
 	}
 
-	return searchResult, nil
+	return &EventDraftListOutput{
+		Items:      searchResult,
+		Pagination: buildPaginationOutput(query.Page, query.PerPage, totalItems),
+	}, nil
+}
+
+func buildPaginationOutput(page, perPage, totalItems int) PaginationOutput {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 20
+	}
+
+	totalPages := 0
+	if totalItems > 0 {
+		totalPages = (totalItems + perPage - 1) / perPage
+	}
+
+	return PaginationOutput{
+		Page:       page,
+		PerPage:    perPage,
+		TotalItems: totalItems,
+		TotalPages: totalPages,
+	}
 }
 
 func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq DraftCreationRequest) (*EventDraftDetailOutput, error) {

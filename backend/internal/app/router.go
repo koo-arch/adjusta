@@ -41,6 +41,8 @@ func registerRoutes(router *gin.Engine, deps *dependencies) {
 	{
 		auth.GET("/users/me", deps.userHandler.GetCurrentUserHandler())
 		auth.GET("/account/list", deps.accountHandler.FetchAccountsHandler())
+		auth.GET("/user-calendars", deps.accountHandler.ListCalendarSettingsHandler())
+		auth.PATCH("/user-calendars/:id", deps.accountHandler.UpdateCalendarSettingHandler())
 		calendar := auth.Group("/calendar").Use(deps.calendarMiddleware.SyncGoogleCalendars())
 		{
 			calendar.GET("/list", deps.eventHandler.FetchEventListHandler())

@@ -1,7 +1,9 @@
 import { apiClient } from '@/lib/api/client';
-import type { EventDraftDetail } from '@/features/events/types';
+import type { EventDraftListResponse, EventListParams } from '@/features/events/types';
 
-export const fetchDraftEventList = async () => {
-    const response = await apiClient.get<EventDraftDetail[]>('/api/calendar/event/draft/list');
+export const fetchDraftEventList = async (params: EventListParams = {}) => {
+    const response = await apiClient.get<EventDraftListResponse>('/api/calendar/event/draft/list', {
+        query: params,
+    });
     return response.data;
 };

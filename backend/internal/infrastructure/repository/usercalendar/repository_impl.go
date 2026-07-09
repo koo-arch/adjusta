@@ -24,6 +24,32 @@ func NewUserCalendarRepository(client *ent.Client) *UserCalendarRepositoryImpl {
 	return &UserCalendarRepositoryImpl{client: client}
 }
 
+func (r *UserCalendarRepositoryImpl) FindByIDAndUser(ctx context.Context, userID, id uuid.UUID) (*repoUserCalendar.UserCalendar, error) {
+	entity, err := r.client.UserCalendar.Query().
+		Where(
+			dbUserCalendar.IDEQ(id),
+			dbUserCalendar.UserIDEQ(userID),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelUserCalendar(entity), nil
+}
+
+func (r *UserCalendarRepositoryImpl) FindByRole(ctx context.Context, userID uuid.UUID, role value.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
+	entity, err := r.client.UserCalendar.Query().
+		Where(
+			dbUserCalendar.UserIDEQ(userID),
+			dbUserCalendar.RoleEQ(dbUserCalendar.Role(role)),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelUserCalendar(entity), nil
+}
+
 func (r *UserCalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoUserCalendar.UserCalendar, error) {
 	entities, err := r.client.UserCalendar.Query().
 		Where(dbUserCalendar.UserIDEQ(userID)).
@@ -68,6 +94,18 @@ func (r *UserCalendarRepositoryImpl) Ensure(ctx context.Context, userID, calenda
 	}
 	applyUserCalendarUpdateOptions(update, opt)
 	entity, err = update.Save(mixins.SkipSoftDelete(ctx))
+	if err != nil {
+		return nil, infraerr.MapNotFound(err)
+	}
+	return toModelUserCalendar(entity), nil
+}
+
+func (r *UserCalendarRepositoryImpl) Update(ctx context.Context, userID, id uuid.UUID, opt UserCalendarQueryOptions) (*repoUserCalendar.UserCalendar, error) {
+	update := r.client.UserCalendar.UpdateOneID(id).
+		Where(dbUserCalendar.UserIDEQ(userID))
+	applyUserCalendarUpdateOptions(update, opt)
+
+	entity, err := update.Save(ctx)
 	if err != nil {
 		return nil, infraerr.MapNotFound(err)
 	}

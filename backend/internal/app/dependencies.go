@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"time"
 
 	"github.com/gin-contrib/sessions"
+	"github.com/google/uuid"
 	apiCookie "github.com/koo-arch/adjusta-backend/api/cookie"
 	accountHandlers "github.com/koo-arch/adjusta-backend/api/handlers/account"
 	eventHandlers "github.com/koo-arch/adjusta-backend/api/handlers/events"
@@ -12,6 +14,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/middlewares"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 	"github.com/koo-arch/adjusta-backend/internal/config"
+	infraAccount "github.com/koo-arch/adjusta-backend/internal/infrastructure/account"
 	infraAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/auth"
 	infraCache "github.com/koo-arch/adjusta-backend/internal/infrastructure/cache"
 	infraCalendar "github.com/koo-arch/adjusta-backend/internal/infrastructure/calendar"
@@ -74,6 +77,17 @@ func buildDependencies(client *ent.Client, cfg config.Config) *dependencies {
 		infraCalendar.NewCalendarSyncTransaction(uow),
 		calendarCache,
 	)
+	calendarSettingsUsecase := usecaseAccount.NewCalendarSettingsUsecase(
+		usecaseAccount.CalendarSettingsRepositories{
+			Calendar:     repos.Calendar,
+			UserCalendar: repos.UserCalendar,
+		},
+		infraAccount.NewCalendarSettingsTransaction(uow),
+		usecaseAccount.CalendarResyncerFunc(func(ctx context.Context, userID uuid.UUID, email string) error {
+			_, err := calendarSyncUsecase.ResyncGoogleCalendars(ctx, userID, email)
+			return err
+		}),
+	)
 	eventUsecase := usecaseEvents.NewUsecase(
 		usecaseEvents.EventTxRepositories{
 			Calendar:     repos.Calendar,
@@ -86,7 +100,7 @@ func buildDependencies(client *ent.Client, cfg config.Config) *dependencies {
 	)
 
 	return &dependencies{
-		accountHandler:     accountHandlers.NewHandler(accountProfileUsecase),
+		accountHandler:     accountHandlers.NewHandler(accountProfileUsecase, calendarSettingsUsecase),
 		userHandler:        userHandlers.NewHandler(accountProfileUsecase),
 		oauthHandler:       oauthHandlers.NewHandler(oauthUsecase, cfg.RedirectURLAfterLogin, cookieSessionStore),
 		eventHandler:       eventHandlers.NewHandler(eventUsecase, eventUsecase, eventUsecase, eventUsecase, eventUsecase),

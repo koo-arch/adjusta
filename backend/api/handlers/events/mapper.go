@@ -95,6 +95,24 @@ func toEventDraftDetailResponses(events []*usecaseEvents.EventDraftDetailOutput)
 	return responses
 }
 
+func toEventDraftListResponse(result *usecaseEvents.EventDraftListOutput) *dto.EventDraftList {
+	if result == nil {
+		return &dto.EventDraftList{
+			Items: []*dto.EventDraftDetail{},
+		}
+	}
+
+	return &dto.EventDraftList{
+		Items: toEventDraftDetailResponses(result.Items),
+		Pagination: dto.Pagination{
+			Page:       result.Pagination.Page,
+			PerPage:    result.Pagination.PerPage,
+			TotalItems: result.Pagination.TotalItems,
+			TotalPages: result.Pagination.TotalPages,
+		},
+	}
+}
+
 func toUpcomingEventResponse(event usecaseEvents.UpcomingEventOutput) dto.UpcomingEvent {
 	return dto.UpcomingEvent{
 		ID:                     event.ID,

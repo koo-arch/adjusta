@@ -39,6 +39,16 @@ func NewSyncUsecase(
 	}
 }
 
+// ResyncGoogleCalendars はキャッシュを破棄して同期をやり直す。
+// キャッシュが残っていると SyncGoogleCalendars が同期をスキップするため、
+// カレンダー設定変更の即時反映にはこちらを使う。
+func (uc *SyncUsecase) ResyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*ExternalCalendar, error) {
+	if uc.calendarCache != nil {
+		uc.calendarCache.Invalidate(userID)
+	}
+	return uc.SyncGoogleCalendars(ctx, userID, email)
+}
+
 func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*ExternalCalendar, error) {
 	if uc.calendarCache != nil {
 		if calendars, ok := uc.calendarCache.Get(userID); ok {

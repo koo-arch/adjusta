@@ -117,3 +117,23 @@ func (qp *QueryParser) ParseDefaultBool(key string, defaultValue bool) (*bool, e
 
 	return &b, nil
 }
+
+func (qp *QueryParser) ParsePagination() (int, int, error) {
+	page, err := qp.ParseDefaultInt("page", 1)
+	if err != nil {
+		return 0, 0, err
+	}
+	perPage, err := qp.ParseDefaultInt("per_page", 20)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if *page < 1 {
+		return 0, 0, fmt.Errorf("page must be greater than or equal to 1")
+	}
+	if *perPage < 1 || *perPage > 100 {
+		return 0, 0, fmt.Errorf("per_page must be between 1 and 100")
+	}
+
+	return *page, *perPage, nil
+}

@@ -69,6 +69,18 @@ type EventDraftDetail struct {
 	ProposedDates          []ProposedDate    `json:"proposed_dates"`
 }
 
+type Pagination struct {
+	Page       int `json:"page"`
+	PerPage    int `json:"per_page"`
+	TotalItems int `json:"total_items"`
+	TotalPages int `json:"total_pages"`
+}
+
+type EventDraftList struct {
+	Items      []*EventDraftDetail `json:"items"`
+	Pagination Pagination          `json:"pagination"`
+}
+
 type UpcomingEvent struct {
 	ID                     uuid.UUID         `json:"id" binding:"required"`
 	Title                  string            `json:"title"`

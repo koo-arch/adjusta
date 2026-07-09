@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
@@ -189,38 +190,8 @@ func (r *EventRepositoryImpl) Restore(ctx context.Context, id uuid.UUID) error {
 func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) ([]*repoEvent.Event, error) {
 	query := r.client.Event.Query()
 
-	query = query.Where(
-		event.UserIDEQ(userID),
-		event.PrimaryCalendarIDEQ(calendarID),
-	)
-
-	if opt.Title != nil {
-		query = query.Where(event.TitleContains(*opt.Title))
-	}
-
-	if opt.Location != nil {
-		query = query.Where(event.LocationContains(*opt.Location))
-	}
-
-	if opt.Description != nil {
-		query = query.Where(event.DescriptionContains(*opt.Description))
-	}
-
-	if opt.Status != nil {
-		query = query.Where(event.StatusEQ(event.Status(*opt.Status)))
-	}
-
-	if opt.SyncStatus != nil {
-		query = query.Where(event.SyncStatusEQ(event.SyncStatus(*opt.SyncStatus)))
-	}
-
-	if opt.ConfirmedDateID != nil {
-		query = query.Where(event.ConfirmedDateIDEQ(*opt.ConfirmedDateID))
-	}
-
-	if opt.ConfirmedGoogleEventID != nil {
-		query = query.Where(event.ConfirmedGoogleEventIDEQ(*opt.ConfirmedGoogleEventID))
-	}
+	query = applyEventSearchFilters(query, userID, calendarID, opt)
+	query = applyEventSort(query, opt)
 
 	// イベントに対するオフセットとリミットを適用
 	if opt.EventOffset > 0 {
@@ -289,6 +260,89 @@ func (r *EventRepositoryImpl) SearchEvents(ctx context.Context, userID, calendar
 		return nil, err
 	}
 	return toEvents(entities), nil
+}
+
+func (r *EventRepositoryImpl) CountSearchEvents(ctx context.Context, userID, calendarID uuid.UUID, opt EventSearchOptions) (int, error) {
+	query := r.client.Event.Query()
+	query = applyEventSearchFilters(query, userID, calendarID, opt)
+
+	count, err := query.Count(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func applyEventSearchFilters(query *ent.EventQuery, userID, calendarID uuid.UUID, opt EventSearchOptions) *ent.EventQuery {
+	query = query.Where(
+		event.UserIDEQ(userID),
+		event.PrimaryCalendarIDEQ(calendarID),
+	)
+
+	if opt.Title != nil {
+		query = query.Where(event.TitleContains(*opt.Title))
+	}
+
+	if opt.Location != nil {
+		query = query.Where(event.LocationContains(*opt.Location))
+	}
+
+	if opt.Description != nil {
+		query = query.Where(event.DescriptionContains(*opt.Description))
+	}
+
+	if opt.Status != nil {
+		query = query.Where(event.StatusEQ(event.Status(*opt.Status)))
+	}
+
+	if opt.SyncStatus != nil {
+		query = query.Where(event.SyncStatusEQ(event.SyncStatus(*opt.SyncStatus)))
+	}
+
+	if opt.ConfirmedDateID != nil {
+		query = query.Where(event.ConfirmedDateIDEQ(*opt.ConfirmedDateID))
+	}
+
+	if opt.ConfirmedGoogleEventID != nil {
+		query = query.Where(event.ConfirmedGoogleEventIDEQ(*opt.ConfirmedGoogleEventID))
+	}
+
+	return query
+}
+
+func applyEventSort(query *ent.EventQuery, opt EventSearchOptions) *ent.EventQuery {
+	sortBy := opt.SortBy
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+	sortOrder := opt.SortOrder
+	if sortOrder == "" {
+		sortOrder = "desc"
+	}
+
+	desc := sortOrder == "desc"
+	switch sortBy {
+	case "updated_at":
+		if desc {
+			return query.Order(event.ByUpdatedAt(sql.OrderDesc()))
+		}
+		return query.Order(event.ByUpdatedAt(sql.OrderAsc()))
+	case "title":
+		if desc {
+			return query.Order(event.ByTitle(sql.OrderDesc()))
+		}
+		return query.Order(event.ByTitle(sql.OrderAsc()))
+	case "status":
+		if desc {
+			return query.Order(event.ByStatus(sql.OrderDesc()))
+		}
+		return query.Order(event.ByStatus(sql.OrderAsc()))
+	default:
+		if desc {
+			return query.Order(event.ByCreatedAt(sql.OrderDesc()))
+		}
+		return query.Order(event.ByCreatedAt(sql.OrderAsc()))
+	}
 }
 
 func toEvent(entity *ent.Event) *repoEvent.Event {
