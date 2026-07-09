@@ -71,4 +71,5 @@ type EventRepository interface {
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	Restore(ctx context.Context, id uuid.UUID) error
 	SearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventSearchOptions) ([]*Event, error)
+	CountSearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt EventSearchOptions) (int, error)
 }

@@ -94,6 +94,16 @@ func (f *fakeCalendarRepository) Read(ctx context.Context, id uuid.UUID) (*repoC
 	return nil, errors.New("calendar not found")
 }
 
+func (f *fakeCalendarRepository) FilterByIDs(ctx context.Context, ids []uuid.UUID) ([]*repoCalendar.Calendar, error) {
+	calendars := make([]*repoCalendar.Calendar, 0, len(ids))
+	for _, id := range ids {
+		if calendar, ok := f.calendars[id]; ok {
+			calendars = append(calendars, calendar)
+		}
+	}
+	return calendars, nil
+}
+
 func (f *fakeCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
 	if f.reader == nil || f.reader.listCalendarsByUserFn == nil {
 		return nil, errors.New("FilterByUserID should not be called")
@@ -230,6 +240,14 @@ func (f *fakeEventRepository) SearchEvents(ctx context.Context, id, calendarID u
 	})
 }
 
+func (f *fakeEventRepository) CountSearchEvents(ctx context.Context, id, calendarID uuid.UUID, opt repoEvent.EventSearchOptions) (int, error) {
+	events, err := f.SearchEvents(ctx, id, calendarID, opt)
+	if err != nil {
+		return 0, err
+	}
+	return len(events), nil
+}
+
 type fakeProposedDateRepository struct {
 	store *fakeEventTxStore
 }
@@ -305,6 +323,14 @@ type fakeUserCalendarRepository struct {
 	calendarRepo *fakeCalendarRepository
 }
 
+func (f *fakeUserCalendarRepository) FindByIDAndUser(ctx context.Context, userID, id uuid.UUID) (*repoUserCalendar.UserCalendar, error) {
+	return nil, errors.New("FindByIDAndUser should not be called")
+}
+
+func (f *fakeUserCalendarRepository) FindByRole(ctx context.Context, userID uuid.UUID, role value.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
+	return nil, errors.New("FindByRole should not be called")
+}
+
 func (f *fakeUserCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoUserCalendar.UserCalendar, error) {
 	var (
 		record *EventCalendar
@@ -333,6 +359,10 @@ func (f *fakeUserCalendarRepository) FilterByUserID(ctx context.Context, userID 
 
 func (f *fakeUserCalendarRepository) Ensure(ctx context.Context, userID, calendarID uuid.UUID, opt repoUserCalendar.UserCalendarQueryOptions) (*repoUserCalendar.UserCalendar, error) {
 	return nil, errors.New("Ensure should not be called")
+}
+
+func (f *fakeUserCalendarRepository) Update(ctx context.Context, userID, id uuid.UUID, opt repoUserCalendar.UserCalendarQueryOptions) (*repoUserCalendar.UserCalendar, error) {
+	return nil, errors.New("Update should not be called")
 }
 
 func (f *fakeUserCalendarRepository) SoftDeleteByUserAndCalendar(ctx context.Context, userID, calendarID uuid.UUID) error {

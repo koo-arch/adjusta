@@ -101,6 +101,10 @@ func (r *fakeSyncCalendarRepository) Read(ctx context.Context, id uuid.UUID) (*r
 	return nil, errors.New("unexpected calendar read")
 }
 
+func (r *fakeSyncCalendarRepository) FilterByIDs(ctx context.Context, ids []uuid.UUID) ([]*repoCalendar.Calendar, error) {
+	return nil, errors.New("unexpected calendar filter by ids")
+}
+
 func (r *fakeSyncCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
 	return nil, errors.New("unexpected calendar filter by user id")
 }
@@ -159,6 +163,14 @@ type fakeSyncUserCalendarRepository struct {
 	calendarRepo *fakeSyncCalendarRepository
 }
 
+func (r *fakeSyncUserCalendarRepository) FindByIDAndUser(ctx context.Context, userID, id uuid.UUID) (*repoUserCalendar.UserCalendar, error) {
+	return nil, errors.New("unexpected user calendar find by id and user")
+}
+
+func (r *fakeSyncUserCalendarRepository) FindByRole(ctx context.Context, userID uuid.UUID, role value.UserCalendarRole) (*repoUserCalendar.UserCalendar, error) {
+	return nil, errors.New("unexpected user calendar find by role")
+}
+
 func (r *fakeSyncUserCalendarRepository) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoUserCalendar.UserCalendar, error) {
 	relations, err := r.store.listUserCalendarRelationsFn(ctx, userID)
 	if err != nil {
@@ -194,6 +206,10 @@ func (r *fakeSyncUserCalendarRepository) Ensure(ctx context.Context, userID, cal
 		Role:              *opt.Role,
 		SyncProposedDates: opt.SyncProposedDates != nil && *opt.SyncProposedDates,
 	}, nil
+}
+
+func (r *fakeSyncUserCalendarRepository) Update(ctx context.Context, userID, id uuid.UUID, opt repoUserCalendar.UserCalendarQueryOptions) (*repoUserCalendar.UserCalendar, error) {
+	return nil, errors.New("unexpected user calendar update")
 }
 
 func (r *fakeSyncUserCalendarRepository) SoftDeleteByUserAndCalendar(ctx context.Context, userID, calendarID uuid.UUID) error {

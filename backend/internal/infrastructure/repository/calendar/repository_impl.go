@@ -36,6 +36,16 @@ func (r *CalendarRepositoryImpl) Read(ctx context.Context, id uuid.UUID) (*repoC
 	return toCalendar(entity), nil
 }
 
+func (r *CalendarRepositoryImpl) FilterByIDs(ctx context.Context, ids []uuid.UUID) ([]*repoCalendar.Calendar, error) {
+	entities, err := r.client.Calendar.Query().
+		Where(calendar.IDIn(ids...)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toCalendars(entities), nil
+}
+
 func (r *CalendarRepositoryImpl) FilterByUserID(ctx context.Context, userID uuid.UUID) ([]*repoCalendar.Calendar, error) {
 	entities, err := r.client.Calendar.Query().
 		Where(calendar.HasUserCalendarsWith(dbUserCalendar.UserIDEQ(userID))).

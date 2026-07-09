@@ -13,6 +13,13 @@ import (
 
 func (eh *Handler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		queryparser := queryparser.NewQueryParser(c)
+		query, err := queryparser.ParseEventListQuery()
+		if err != nil {
+			respond.BadRequest(c, "クエリが不正です")
+			return
+		}
+
 		ctx := c.Request.Context()
 
 		userid, email, err := requestctx.UserIDAndEmail(c)
@@ -23,14 +30,14 @@ func (eh *Handler) FetchAllEventDraftListHandler() gin.HandlerFunc {
 
 		eventUsecase := eh.draftUsecase
 
-		draftedEvents, err := eventUsecase.FetchAllDraftedEvents(ctx, userid, email)
+		draftedEvents, err := eventUsecase.FetchDraftedEventsPage(ctx, userid, email, *query)
 		if err != nil {
 			log.Printf("failed to fetch events: %v", err)
 			respond.Error(c, err, "イベントの取得に失敗しました")
 			return
 		}
 
-		respond.OK(c, toEventDraftDetailResponses(draftedEvents))
+		respond.OK(c, toEventDraftListResponse(draftedEvents))
 	}
 }
 
@@ -56,14 +63,14 @@ func (eh *Handler) SearchEventDraftHandler() gin.HandlerFunc {
 
 		eventUsecase := eh.draftUsecase
 
-		draftedEvents, err := eventUsecase.SearchDraftedEvents(ctx, userid, email, *query)
+		draftedEvents, err := eventUsecase.SearchDraftedEventsPage(ctx, userid, email, *query)
 		if err != nil {
 			log.Printf("failed to fetch events: %v", err)
 			respond.Error(c, err, "イベントの取得に失敗しました")
 			return
 		}
 
-		respond.OK(c, toEventDraftDetailResponses(draftedEvents))
+		respond.OK(c, toEventDraftListResponse(draftedEvents))
 	}
 }
 

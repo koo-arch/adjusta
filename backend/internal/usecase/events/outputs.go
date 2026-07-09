@@ -34,6 +34,18 @@ type EventDraftDetailOutput struct {
 	ProposedDates          []ProposedDateOutput
 }
 
+type PaginationOutput struct {
+	Page       int
+	PerPage    int
+	TotalItems int
+	TotalPages int
+}
+
+type EventDraftListOutput struct {
+	Items      []*EventDraftDetailOutput
+	Pagination PaginationOutput
+}
+
 type UpcomingEventOutput struct {
 	ID                     uuid.UUID
 	Title                  string
