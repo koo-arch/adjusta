@@ -51,7 +51,7 @@
 ## Pull Request
 - PRタイトルは英語の sentence case とし、先頭を大文字にする。
 - PRタイトル例: `Add GitHub CLI to the dev container`
-- PR本文は `.github/pull_request_template.md` に従う。
+- PR本文は `.github/pull_request_template.md` に従い、英語で書く。
 - `Overview` には変更内容の要約を書く。
 - `Background` には変更が必要になった理由・背景を書く。
 - `Verification` には実行した検証コマンドと結果を書く。
