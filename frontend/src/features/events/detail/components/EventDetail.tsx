@@ -21,7 +21,7 @@ const EventDetailSkeleton = () => (
                 <Skeleton className="h-8 w-64 max-w-full" />
                 <Skeleton className="h-5 w-20" />
             </div>
-            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-24" />
         </div>
         {Array.from({ length: 2 }).map((_, index) => (
             <Card key={index}>

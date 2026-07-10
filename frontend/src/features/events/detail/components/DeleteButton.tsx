@@ -35,9 +35,15 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({ eventID, title }) => {
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="outline" className="text-destructive hover:text-destructive" disabled={isPending}>
-                    <Trash2 className="size-4" />
-                    削除
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="削除"
+                    title="削除"
+                    className="text-muted-foreground hover:text-destructive [&_svg]:size-5"
+                    disabled={isPending}
+                >
+                    <Trash2 />
                 </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

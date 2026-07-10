@@ -86,9 +86,15 @@ const ProposedDatesSection: React.FC<ProposedDatesSectionProps> = ({ eventID, de
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                     {dates.length > 0 && (
-                        <Button variant="outline" onClick={handleCopy}>
-                            <Copy className="size-4" />
-                            候補をコピー
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="候補日程をコピー"
+                            title="候補日程をコピー"
+                            className="text-muted-foreground hover:text-foreground [&_svg]:size-5"
+                            onClick={handleCopy}
+                        >
+                            <Copy />
                         </Button>
                     )}
                     {detail.status !== 'cancelled' && (

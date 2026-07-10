@@ -26,11 +26,15 @@ const EventDetailHeader: React.FC<EventDetailHeaderProps> = ({ eventID, detail }
                     textSize="sm"
                 />
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-                <Button variant="outline" asChild>
-                    <Link href={`/events/${eventID}/edit`}>
-                        <Pencil className="size-4" />
-                        編集
+            <div className="flex shrink-0 items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground [&_svg]:size-5"
+                    asChild
+                >
+                    <Link href={`/events/${eventID}/edit`} aria-label="編集" title="編集">
+                        <Pencil />
                     </Link>
                 </Button>
                 <DeleteButton eventID={eventID} title={detail.title} />
