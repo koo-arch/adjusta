@@ -449,13 +449,17 @@ calendars × user_calendars の一覧。各行に以下を表示する:
 
 本書の URL・構成は理想形として再設計したものであり、現実装(2026-07 時点)とは以下の差分がある。実装を本書へ寄せる際の課題として列挙する(どちらに合わせるかは個別に判断・合意すること)。
 
-### 9.1 イベント系 URL の改名
+### 9.1 イベント系 URL の改名【解消済み】
 
 現実装は `/schedule/draft・/schedule/draft/register・/schedule/draft/[id]・/schedule/draft/[id]/edit` だが、draft 配下に確定済みイベントも含まれており命名が実態と乖離している。本書では `/events`、`/events/new`、`/events/[id]`、`/events/[id]/edit` へ再設計した。改名時は旧 URL からのリダイレクトの要否を検討する。
 
-### 9.2 `/schedule` ページの廃止
+**2026-07-10 解消**: 本書どおり `/events` 系へ改名し、内部リンク・ナビも更新済み。旧 URL からは `next.config.mjs` の `redirects()` で恒久リダイレクト(308)する。
+
+### 9.2 `/schedule` ページの廃止【解消済み】
 
 現実装の `/schedule`(カレンダー単体ページ)はナビ未接続かつ簡素であり、本書ではダッシュボードのカレンダー表示に統合し廃止する方針とした。
+
+**2026-07-10 解消**: ページと SchedulePageContainer を削除し、`/schedule` は `/dashboard` へ恒久リダイレクトする(Calendar コンポーネント自体はダッシュボード等で継続使用)。
 
 ### 9.3 LP・アカウントページの要件未記載【解消済み】
 

@@ -45,7 +45,7 @@ const EventDraftContent: React.FC = () => {
 
         const createdDraftID = await createDraftMutation.submit(payload);
         if (createdDraftID) {
-            router.push(`/schedule/draft/${createdDraftID}`);
+            router.push(`/events/${createdDraftID}`);
         }
     };
 

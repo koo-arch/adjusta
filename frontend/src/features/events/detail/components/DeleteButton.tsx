@@ -23,7 +23,7 @@ const DeleteButton: React.FC<EventDeleteProps> = ({ eventID }) => {
         }
 
         setIsOpen(false);
-        router.push('/schedule/draft');
+        router.push('/events');
     };
 
     return (

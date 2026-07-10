@@ -8,7 +8,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/20/solid';
 
 const navigation = [
     { name: 'ホーム', href: '/dashboard' },
-    { name: 'イベント一覧', href: '/schedule/draft' },
+    { name: 'イベント一覧', href: '/events' },
 ]
 
 const classNames = (...classes: string[]) => {

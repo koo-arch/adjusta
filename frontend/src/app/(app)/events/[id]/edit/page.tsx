@@ -1,14 +1,14 @@
 import React from 'react';
 import EventEditPageContainer from '@/features/events/edit/containers/EventEditPageContainer';
 
-interface EditPageProps {
+interface EventEditPageProps {
     params: {
         id: string;
     };
 }
 
-const EditPage = ({ params }: EditPageProps) => {
+const EventEditPage = ({ params }: EventEditPageProps) => {
     return <EventEditPageContainer eventID={params.id} />;
 }
 
-export default EditPage;
+export default EventEditPage;

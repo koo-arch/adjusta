@@ -19,7 +19,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ eventID }) => {
         return (
             <div className="py-8 text-center">
                 <p className="mb-4 text-sm text-gray-500">イベントが見つかりませんでした。</p>
-                <Link href="/schedule/draft" className="text-sm text-indigo-600 hover:underline">
+                <Link href="/events" className="text-sm text-indigo-600 hover:underline">
                     イベント一覧へ戻る
                 </Link>
             </div>

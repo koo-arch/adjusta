@@ -1,8 +1,8 @@
 import React from 'react';
 import DraftRegisterPageContainer from '@/features/events/draft/containers/DraftRegisterPageContainer';
 
-const DraftRegisterPage = () => {
+const NewEventPage = () => {
     return <DraftRegisterPageContainer />;
 }
 
-export default DraftRegisterPage;
+export default NewEventPage;
