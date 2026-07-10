@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import type { EventDraftForm } from '@/features/events/schema';
 import { createDraftEvent } from '@/features/events/draft/api/createDraftEvent';
 import {
-    buildDraftEventListQueryKey,
+    buildDraftEventSearchQueryKey,
     buildNeedsActionDraftsQueryKey,
 } from '@/features/events/queryKeys';
 
@@ -37,7 +37,7 @@ export const useCreateDraftMutation = (formScope: string) => {
             }
 
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: buildDraftEventListQueryKey() }),
+                queryClient.invalidateQueries({ queryKey: buildDraftEventSearchQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildNeedsActionDraftsQueryKey() }),
             ]);
             clearErrorState();

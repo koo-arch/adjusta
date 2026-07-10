@@ -1,8 +1,8 @@
 import React from 'react';
-import DraftListPageContainer from '@/features/events/draft/containers/DraftListPageContainer';
+import EventListPageContainer from '@/features/events/containers/EventListPageContainer';
 
 const EventsPage = () => {
-    return <DraftListPageContainer />;
+    return <EventListPageContainer />;
 }
 
 export default EventsPage;

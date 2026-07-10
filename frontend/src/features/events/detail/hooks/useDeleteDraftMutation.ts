@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { deleteDraftEvent } from '@/features/events/detail/api/deleteDraftEvent';
 import {
-    buildDraftEventListQueryKey,
+    buildDraftEventSearchQueryKey,
     buildEventDetailQueryKey,
     buildNeedsActionDraftsQueryKey,
     buildUpcomingEventsQueryKey,
@@ -27,7 +27,7 @@ export const useDeleteDraftMutation = (eventID: string) => {
 
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: buildEventDetailQueryKey(eventID) }),
-                queryClient.invalidateQueries({ queryKey: buildDraftEventListQueryKey() }),
+                queryClient.invalidateQueries({ queryKey: buildDraftEventSearchQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildNeedsActionDraftsQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildUpcomingEventsQueryKey() }),
             ]);

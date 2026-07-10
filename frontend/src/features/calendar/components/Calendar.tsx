@@ -45,7 +45,7 @@ const Calendar = <T extends CalendarEvent>({
     editEvent,
 }: CalendarProps<T>) => {
     const { events, isLoading: isGoogleEventLoading } = useFetchGoogleCalendarEvents();
-    const { searchEvents, isLoading: isSearchLoading } = useSearchEvents({ status: "active" });
+    const { searchEvents, isPending: isSearchLoading } = useSearchEvents({ status: "active" });
     const [allEvents, setAllEvents] = useAtom(allEventsAtom);
     const confirmedGoogleEventID = editEvent?.confirmed_google_event_id ?? editEvent?.google_event_id;
 
