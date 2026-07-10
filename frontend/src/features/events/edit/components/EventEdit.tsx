@@ -80,9 +80,9 @@ interface EventEditProps {
 }
 
 const EventEdit: React.FC<EventEditProps> = ({ eventID }) => {
-    const { eventDetail, isLoading, error } = useFetchEventDetail(eventID);
+    const { eventDetail, isPending, error } = useFetchEventDetail(eventID);
 
-    if (isLoading) {
+    if (isPending) {
         return <p>Loading...</p>;
     }
 
