@@ -2,25 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+/*
+ * デザイントークン(frontend/DESIGN.md 2章・6章)
+ * shadcn/ui のテーマ変数として HSL で定義する(ライトテーマ固定)。
+ * DESIGN.md の Secondary(pink-500)は補助アクション用のセマンティクスであり、
+ * shadcn の secondary(控えめなボタン面)とは別概念のため、ここでは gray-100 を割り当てる。
+ */
+@layer base {
+    :root {
+        --background: 210 20% 98%; /* gray-50 ページ背景 */
+        --foreground: 217 19% 27%; /* gray-700 本文 */
+        --card: 0 0% 100%; /* Surface */
+        --card-foreground: 217 19% 27%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 217 19% 27%;
+        --primary: 239 84% 67%; /* indigo-500 */
+        --primary-dark: 243 75% 59%; /* indigo-600 hover */
+        --primary-darker: 245 58% 51%; /* indigo-700 active */
+        --primary-foreground: 0 0% 100%;
+        --secondary: 220 14% 96%; /* gray-100 */
+        --secondary-foreground: 221 39% 11%; /* gray-900 */
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%; /* gray-500 補足テキスト */
+        --accent: 220 14% 96%;
+        --accent-foreground: 221 39% 11%;
+        --destructive: 0 84% 60%; /* red-500 */
+        --destructive-foreground: 0 0% 100%;
+        --border: 220 13% 91%; /* gray-200 */
+        --input: 216 12% 84%; /* gray-300 */
+        --ring: 239 84% 67%;
+        --radius: 0.5rem;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        /* 日本語本文の行間 1.7・字間 0.02em(DESIGN.md 3.5。見出しは各コンポーネントで詰める) */
+        line-height: 1.7;
+        letter-spacing: 0.02em;
+        /* 和文の禁則処理と長い英単語・URL の折り返し(DESIGN.md 3.6) */
+        line-break: strict;
+        overflow-wrap: break-word;
+    }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* --- サードパーティ UI の上書き(DESIGN.md 4. Third-Party Components) --- */
 
 /* Splideボタンの非表示ロジックを追加 */
 
