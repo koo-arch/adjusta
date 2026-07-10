@@ -4,7 +4,7 @@ import { fetchCalendarSettings } from '@/features/auth/api/fetchCalendarSettings
 import { buildCalendarSettingsQueryKey } from '@/features/auth/queryKeys';
 
 export const useCalendarSettings = () => {
-    const { data, isLoading, error } = useQuery({
+    const { data, isLoading, error, refetch } = useQuery({
         queryKey: buildCalendarSettingsQueryKey(),
         queryFn: fetchCalendarSettings,
     });
@@ -13,5 +13,6 @@ export const useCalendarSettings = () => {
         calendarSettings: data,
         isLoading,
         error,
+        refetch,
     };
 };

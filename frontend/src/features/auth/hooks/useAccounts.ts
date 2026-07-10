@@ -4,7 +4,7 @@ import { fetchAccount } from '@/features/auth/api/fetchAccount';
 import { buildAccountQueryKey } from '@/features/auth/queryKeys';
 
 export const useAccounts = () => {
-    const { data, isLoading, error } = useQuery({
+    const { data, isLoading, error, refetch } = useQuery({
         queryKey: buildAccountQueryKey(),
         queryFn: fetchAccount,
     });
@@ -13,5 +13,6 @@ export const useAccounts = () => {
         account: data,
         isLoading,
         error,
+        refetch,
     };
 };

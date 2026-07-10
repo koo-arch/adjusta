@@ -249,7 +249,7 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 13 | フォームの label 関連付け・aria 属性・button 化 | components | 2.6 |
 | 14 | レスポンシブの CSS 一本化 | EventForm | 2.5 |
 | 15 | LP の訴求セクション追加 | marketing | 3.6 |
-| 16 | アカウント画面の操作追加(ログアウト・連携状態 = screen-design 5.8 の Phase 1) | account | 3.7、screen-design 5.8 |
+| 16 | ~~アカウント画面の操作追加(ログアウト・連携状態 = screen-design 5.8 の Phase 1)~~ **対応済み(2026-07-09)**: Phase 2(カレンダー設定)含め shadcn/ui ベースで実装 | account | 3.7、screen-design 5.8 |
 | 17 | タイポ・ハードコード類の一掃 | 各所 | 2.7 |
 
 ### ユーザー判断が必要な項目(バックログ着手前に決める)
@@ -257,7 +257,7 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 項目 | 選択肢 |
 | --- | --- |
 | ~~ダークモード方針~~ | **決定済み(2026-07-09): light 固定、ダークは将来拡張**(`frontend/DESIGN.md` 参照)。既存 `dark:` 残骸の整理は P3 相当 |
-| ~~UI 基盤~~ | **決定済み(2026-07-09): shadcn/ui へ段階的移行**(`ui-guidelines.md` 3.5 の移行規定参照。AGENTS.md の `src/components/ui/*` 記述は目指す方向として確定)。a11y 課題(2.6)の多くは Radix ベースへの置換で解消見込み |
+| ~~UI 基盤~~ | **決定済み(2026-07-09): shadcn/ui へ段階的移行**(`ui-guidelines.md` 3.5 の移行規定参照。AGENTS.md の `src/components/ui/*` 記述は目指す方向として確定)。a11y 課題(2.6)の多くは Radix ベースへの置換で解消見込み。**セットアップ済み(2026-07-09)**: components.json + `src/components/ui/`(button / card / badge / switch / skeleton / alert-dialog / radio-group)+ DESIGN.md トークンの CSS 変数化(globals.css)・Noto Sans JP + Inter 導入。アカウント画面から利用開始 |
 | LP 拡充のスコープ | P3 の最小追加のみ / 本格的な LP 制作として別プロジェクト化 |
 
 ---
