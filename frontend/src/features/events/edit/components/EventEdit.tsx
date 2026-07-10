@@ -3,6 +3,7 @@ import React from 'react';
 import { Provider, useAtomValue } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     descriptionAtomFamily,
     locationAtomFamily,
@@ -10,9 +11,11 @@ import {
     sendProposedDatesAtomFamily,
     titleAtomFamily,
 } from '@/features/events/store/calendar';
-import { isConfirmedAtomFamily } from '@/features/events/store/confirmation';
 import { useUpdateDraftMutation } from '@/features/events/edit/hooks/useUpdateDraftMutation';
 import { useFetchEventDetail } from '@/features/events/hooks/useFetchEventDetail';
+import { isNotFoundAPIError } from '@/lib/api/errors';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import EventForm from '@/features/events/components/form/EventForm';
 import type { EventDraftDetail } from '@/features/events/types';
 import type { EventUpdateForm } from '@/features/events/schema';
@@ -23,6 +26,7 @@ interface LoadedEventEditProps {
 }
 
 const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDetail }) => {
+    const router = useRouter();
     const updateDraftMutation = useUpdateDraftMutation(eventID);
 
     useHydrateAtoms([
@@ -30,14 +34,12 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
         [descriptionAtomFamily(eventID), eventDetail.description],
         [locationAtomFamily(eventID), eventDetail.location],
         [proposedDatesAtomFamily(eventID), eventDetail.proposed_dates],
-        [isConfirmedAtomFamily(eventID), eventDetail.status === 'confirmed'],
     ]);
 
     const title = useAtomValue(titleAtomFamily(eventID));
     const description = useAtomValue(descriptionAtomFamily(eventID));
     const location = useAtomValue(locationAtomFamily(eventID));
     const proposedDates = useAtomValue(sendProposedDatesAtomFamily(eventID));
-    const isConfirmed = useAtomValue(isConfirmedAtomFamily(eventID));
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -48,11 +50,16 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
             title,
             description,
             location,
-            status: isConfirmed ? 'confirmed' as const : 'active' as const,
+            // 確定操作は詳細画面に一本化(ui-review 3.4)。編集では現在のステータスを維持する
+            status: eventDetail.status,
             proposed_dates: proposedDates,
         };
 
-        await updateDraftMutation.submit(payload);
+        const updated = await updateDraftMutation.submit(payload);
+        if (updated) {
+            // 保存後は詳細へ遷移する(作成フローと統一。ui-review P2 #6)
+            router.push(`/events/${eventID}`);
+        }
     };
 
     return (
@@ -60,6 +67,7 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
             <EventForm
                 formType="edit"
                 formScope={eventID}
+                submitLabel="保存する"
                 isSubmitting={updateDraftMutation.isPending}
                 eventDetail={eventDetail}
             />
@@ -75,24 +83,51 @@ const LoadedEventEdit: React.FC<LoadedEventEditProps> = ({ eventID, eventDetail 
     );
 };
 
+export const EventFormSkeleton = () => (
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-10 md:gap-6">
+        <div className="space-y-4 md:col-span-4">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-24 w-full" />
+        </div>
+        <div className="md:col-span-6">
+            <Skeleton className="h-96 w-full" />
+        </div>
+    </div>
+);
+
 interface EventEditProps {
     eventID: string;
 }
 
 const EventEdit: React.FC<EventEditProps> = ({ eventID }) => {
-    const { eventDetail, isPending, error } = useFetchEventDetail(eventID);
+    const { eventDetail, isPending, error, refetch } = useFetchEventDetail(eventID);
 
     if (isPending) {
-        return <p>Loading...</p>;
+        return <EventFormSkeleton />;
+    }
+
+    if (isNotFoundAPIError(error)) {
+        return (
+            <div className="flex flex-col items-center gap-4 py-16 text-center">
+                <p className="text-sm text-muted-foreground">イベントが見つかりませんでした。</p>
+                <Button variant="outline" asChild>
+                    <Link href="/events">イベント一覧へ戻る</Link>
+                </Button>
+            </div>
+        );
     }
 
     if (error || !eventDetail) {
         return (
-            <div className="py-8 text-center">
-                <p className="mb-4 text-sm text-gray-500">イベントが見つかりませんでした。</p>
-                <Link href="/events" className="text-sm text-indigo-600 hover:underline">
-                    イベント一覧へ戻る
-                </Link>
+            <div className="flex flex-col items-center gap-4 py-16 text-center">
+                <p className="text-sm text-muted-foreground">
+                    イベントの取得に失敗しました。時間をおいて再度お試しください。
+                </p>
+                <Button variant="outline" onClick={() => refetch()}>
+                    再試行
+                </Button>
             </div>
         );
     }

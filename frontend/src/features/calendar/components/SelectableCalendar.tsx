@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useRef } from 'react';
+import { toast } from 'react-toastify';
 import type { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import Calendar from '@/features/calendar/components/Calendar';
@@ -33,6 +34,14 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
     const buttonRef = useRef<HTMLButtonElement>(null);
 
     const handleDateSelect = (e: DateSelectArg) => {
+        // 月ビューの選択は全日(時刻なし)になるため候補にしない
+        if (e.allDay) {
+            toast.info('月ビューでは時刻を選択できません。週ビューに切り替えるか「日時を追加」を使ってください', {
+                toastId: 'all-day-select-info',
+            });
+            return;
+        }
+
         const newDate = {
             id : new Date().getTime().toString(),
             start: e.start,
@@ -97,12 +106,13 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
 
     return (
         <div>
-            <Calendar 
+            <Calendar
                 initialView="timeGridWeek"
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
-                    right: '',
+                    // 離れた日付の候補選択のために週/月ビューを切替可能にする(ui-review P2 #7)
+                    right: 'timeGridWeek,dayGridMonth',
                 }}
                 select={handleDateSelect}
                 selectedEvents={selectedEvents}

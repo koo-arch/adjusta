@@ -1,8 +1,7 @@
 'use client'
 import React from 'react';
 import { useAtomValue } from 'jotai';
-import Button from '@/components/Button';
-import { useMediaQuery } from 'react-responsive';
+import { Button } from '@/components/ui/button';
 import CalendarForm from './CalendarForm';
 import EventBasicForm from './EventBasicForm';
 import SelectEventList from './SelectEventList';
@@ -11,6 +10,7 @@ import { eventFormMessagesAtomFamily } from '@/features/events/store/errors';
 
 interface EventFormBaseProps {
     formScope: string;
+    submitLabel: string;
     isSubmitting?: boolean;
     eventDetail?: EventDraftDetail;
 }
@@ -26,79 +26,62 @@ type EditEventFormProps = EventFormBaseProps & {
 type EventFormProps = DraftEventFormProps | EditEventFormProps;
 
 const EventForm: React.FC<EventFormProps> = (props) => {
-    const isMobile = useMediaQuery({ maxWidth: 768 });
     const formErrors = useAtomValue(eventFormMessagesAtomFamily(props.formScope));
-    const { formScope, isSubmitting, eventDetail } = props;
+    const { formScope, submitLabel, isSubmitting, eventDetail } = props;
 
     return (
-        <div>
-            <div className="mx-auto grid grid-cols-1 md:grid-cols-10 gap-6 mb-4">
-                <div className="md:col-span-4 space-y-6">
-                    <section>
-                        <EventBasicForm formScope={formScope} />
-                    </section>
-                    {isMobile && (
-                        <section>
-                            {props.formType === 'draft' ? (
-                                <CalendarForm
-                                    formType="draft"
-                                    formScope={formScope}
-                                    editingEvent={eventDetail}
-                                />
-                            ) : (
-                                <CalendarForm
-                                    formType="edit"
-                                    formScope={formScope}
-                                    editingEvent={eventDetail}
-                                />
-                            )}
-                        </section>
+        <div className="space-y-6">
+            {/* モバイルは 基本情報 → カレンダー → 選択日程 の縦積み、
+                md 以上は左(基本情報+選択日程)/右(カレンダー)の 2 カラム(CSS のみで分岐) */}
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-10 md:grid-rows-[auto_1fr] md:gap-x-6 md:gap-y-8">
+                <div className="md:col-span-4">
+                    <EventBasicForm formScope={formScope} />
+                </div>
+                <div className="md:col-span-6 md:col-start-5 md:row-span-2 md:row-start-1">
+                    {props.formType === 'draft' ? (
+                        <CalendarForm
+                            formType="draft"
+                            formScope={formScope}
+                            editingEvent={eventDetail}
+                        />
+                    ) : (
+                        <CalendarForm
+                            formType="edit"
+                            formScope={formScope}
+                            editingEvent={eventDetail}
+                        />
                     )}
-                    <section>
-                        {props.formType === 'draft' ? (
-                            <SelectEventList
-                                formType="draft"
-                                formScope={formScope}
-                            />
-                        ) : (
-                            <SelectEventList
-                                formType="edit"
-                                formScope={formScope}
-                            />
-                        )}
-                    </section>
                 </div>
-                {!isMobile && (
-                    <section className="md:col-span-6">
-                        {props.formType === 'draft' ? (
-                            <CalendarForm
-                                formType="draft"
-                                formScope={formScope}
-                                editingEvent={eventDetail}
-                            />
-                        ) : (
-                            <CalendarForm
-                                formType="edit"
-                                formScope={formScope}
-                                editingEvent={eventDetail}
-                            />
-                        )}
-                    </section>
-                )}
+                <div className="md:col-span-4 md:col-start-1">
+                    {props.formType === 'draft' ? (
+                        <SelectEventList
+                            formType="draft"
+                            formScope={formScope}
+                        />
+                    ) : (
+                        <SelectEventList
+                            formType="edit"
+                            formScope={formScope}
+                        />
+                    )}
+                </div>
             </div>
-            
-            <div className="border-t border-gray-300 mb-4"></div>
-            {formErrors.length > 0 && (
-                <div className="mb-4 space-y-2">
-                    {formErrors.map((message) => (
-                        <p key={message} className="text-sm text-red-500 text-center">
-                            {message}
-                        </p>
-                    ))}
+
+            <div className="space-y-4 border-t border-border pt-4">
+                {formErrors.length > 0 && (
+                    <div className="space-y-2">
+                        {formErrors.map((message) => (
+                            <p key={message} className="text-sm text-destructive">
+                                {message}
+                            </p>
+                        ))}
+                    </div>
+                )}
+                <div className="flex justify-end">
+                    <Button type="submit" disabled={isSubmitting}>
+                        {submitLabel}
+                    </Button>
                 </div>
-            )}
-            <div className="py-5 flex items-center justify-center">
-                <Button type="submit" disabled={isSubmitting}>登録する</Button>
             </div>
         </div>
     );

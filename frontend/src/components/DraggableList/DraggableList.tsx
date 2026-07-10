@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { DndContext, closestCenter, MouseSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from './SortableItem';
 
@@ -9,7 +9,6 @@ interface DraggableListProps<T> {
     onReorder: (newItems: T[]) => void;
     renderItem: (item: T, index: number) => React.ReactNode;
     getKey: (item: T) => string;
-    enableTopHighlight?: boolean;
 }
 
 const DraggableList = <T extends unknown>({
@@ -17,7 +16,6 @@ const DraggableList = <T extends unknown>({
     onReorder,
     renderItem,
     getKey,
-    enableTopHighlight,
 }: DraggableListProps<T>) => {
 
     // どの要素がドラッグされているかを管理するための変数
@@ -37,24 +35,23 @@ const DraggableList = <T extends unknown>({
         }
     }
 
-    const mouseSensor = useSensor(MouseSensor, {
+    // PointerSensor はマウス・タッチ・ペンを共通に扱う(モバイル対応。ui-review P2 #8)
+    const pointerSensor = useSensor(PointerSensor, {
         activationConstraint: {
             distance: 5,
         },
     });
     const keyboardSensor = useSensor(KeyboardSensor);
-    const sensors = useSensors(mouseSensor, keyboardSensor);
+    const sensors = useSensors(pointerSensor, keyboardSensor);
 
 
     return (
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
             <SortableContext items={items.map(getKey)} strategy={verticalListSortingStrategy}>
                 {items.map((item, index) => (
-                    <SortableItem 
+                    <SortableItem
                         key={getKey(item)}
                         id={getKey(item)}
-                        index={index}
-                        enableTopHighlight={enableTopHighlight}
                     >
                         {renderItem(item, index)}
                     </SortableItem>

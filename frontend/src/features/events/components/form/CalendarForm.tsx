@@ -26,10 +26,12 @@ type EditCalendarFormProps = {
 type CalendarFormProps = DraftCalendarFormProps | EditCalendarFormProps;
 
 const CalendarDescription = () => (
-    <>
-        <h2 className="text-lg font-bold mb-2">カレンダー</h2>
-        <p className="text-sm text-gray-500 mb-4">カレンダー上をクリックすることで日程選択ができます</p>
-    </>
+    <div className="mb-4">
+        <h2 className="text-lg font-bold leading-snug tracking-normal text-gray-900">カレンダー</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+            予定を確認しながら、ドラッグで候補日時を選択できます
+        </p>
+    </div>
 );
 
 const DraftCalendarSection: React.FC<DraftCalendarFormProps> = ({ formScope, editingEvent }) => {

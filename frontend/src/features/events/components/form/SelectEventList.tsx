@@ -2,10 +2,9 @@
 import React from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { proposedDatesAtomFamily, selectedDatesAtomFamily } from '@/features/events/store/calendar';
-import { isConfirmedAtomFamily } from '@/features/events/store/confirmation';
+import type { ProposedDate, SelectedDate } from '@/features/events/store/dates';
 import DraggableDateList from '@/features/events/components/form/DraggableDateList';
-import Card from '@/components/Card';
-import ToggleSwitch from '@/components/ToggleSwitch';
+import AddDateDialog from '@/features/events/components/form/AddDateDialog';
 import { clearEditedEventFieldStateAtomFamily, mergedEventFormErrorsAtomFamily } from '@/features/events/store/errors';
 
 type DraftSelectEventListProps = {
@@ -20,20 +19,42 @@ type EditSelectEventListProps = {
 
 type SelectEventListProps = DraftSelectEventListProps | EditSelectEventListProps;
 
+const SectionHeader: React.FC<{ onAdd: (date: { start: Date; end: Date }) => void }> = ({ onAdd }) => (
+    <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+            <h2 className="text-lg font-bold leading-snug tracking-normal text-gray-900">選択日程</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+                ドラッグまたは矢印ボタンで優先順位を入れ替えられます
+            </p>
+        </div>
+        <AddDateDialog onAdd={onAdd} />
+    </div>
+);
+
+const EmptyDates = () => (
+    <div className="rounded-md border border-dashed border-input py-10 text-center text-sm text-muted-foreground">
+        候補日程がまだありません。
+        <br />
+        カレンダーで範囲を選択するか、「日時を追加」から登録してください。
+    </div>
+);
+
 const DraftSelectEventList: React.FC<DraftSelectEventListProps> = (props) => {
     const [dates, setDates] = useAtom(selectedDatesAtomFamily(props.formScope));
     const errors = useAtomValue(mergedEventFormErrorsAtomFamily(props.formScope));
     const clearEditedFieldState = useSetAtom(clearEditedEventFieldStateAtomFamily(props.formScope));
 
-    return (
-        <Card variant="outlined" background="inherit">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold mb-2">選択日程</h2>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">ドラッグで優先順位の入れ替えができます</p>
+    const handleAdd = ({ start, end }: { start: Date; end: Date }) => {
+        const newDate: SelectedDate = { id: new Date().getTime().toString(), start, end };
+        setDates((prev) => [...prev, newDate]);
+        clearEditedFieldState('selected_dates');
+    };
 
+    return (
+        <section className="space-y-4">
+            <SectionHeader onAdd={handleAdd} />
             {errors.selected_dates && (
-                <p className="text-sm text-red-500 mb-4">{errors.selected_dates}</p>
+                <p className="text-sm text-destructive">{errors.selected_dates}</p>
             )}
             {dates.length > 0 ? (
                 <DraggableDateList
@@ -44,35 +65,35 @@ const DraftSelectEventList: React.FC<DraftSelectEventListProps> = (props) => {
                     }}
                 />
             ) : (
-                <p className="font-bold py-16 text-center">日程を選択してください</p>
+                <EmptyDates />
             )}
-        </Card>
+        </section>
     );
 };
 
 const EditSelectEventList: React.FC<EditSelectEventListProps> = (props) => {
     const [dates, setDates] = useAtom(proposedDatesAtomFamily(props.formScope));
-    const [isConfirmed, setIsConfirmed] = useAtom(isConfirmedAtomFamily(props.formScope));
     const errors = useAtomValue(mergedEventFormErrorsAtomFamily(props.formScope));
     const clearEditedFieldState = useSetAtom(clearEditedEventFieldStateAtomFamily(props.formScope));
 
-    return (
-        <Card variant="outlined" background="inherit">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold mb-2">選択日程</h2>
-                <ToggleSwitch
-                    checked={isConfirmed}
-                    onChange={(checked) => {
-                        setIsConfirmed(checked);
-                        clearEditedFieldState('confirmed');
-                    }}
-                    label="候補日程の確定"
-                />
-            </div>
-            <p className="text-sm text-gray-500 mb-4">ドラッグで優先順位の入れ替えができます</p>
+    const handleAdd = ({ start, end }: { start: Date; end: Date }) => {
+        setDates((prev) => {
+            const newDate: ProposedDate = {
+                id: new Date().getTime().toString(),
+                start,
+                end,
+                priority: prev.length + 1,
+            };
+            return [...prev, newDate];
+        });
+        clearEditedFieldState('proposed_dates');
+    };
 
+    return (
+        <section className="space-y-4">
+            <SectionHeader onAdd={handleAdd} />
             {errors.proposed_dates && (
-                <p className="text-sm text-red-500 mb-4">{errors.proposed_dates}</p>
+                <p className="text-sm text-destructive">{errors.proposed_dates}</p>
             )}
             {dates.length > 0 ? (
                 <DraggableDateList
@@ -81,12 +102,11 @@ const EditSelectEventList: React.FC<EditSelectEventListProps> = (props) => {
                         setDates(value);
                         clearEditedFieldState('proposed_dates');
                     }}
-                    enableTopHighlight={isConfirmed}
                 />
             ) : (
-                <p className="font-bold py-16 text-center">日程を選択してください</p>
+                <EmptyDates />
             )}
-        </Card>
+        </section>
     );
 };
 

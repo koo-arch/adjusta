@@ -1,15 +1,15 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
+import { GripVertical } from 'lucide-react';
 
 interface SortableItemProps {
     id: string;
     children: React.ReactNode;
-    index?: number;
-    enableTopHighlight?: boolean;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, children, index, enableTopHighlight }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ id, children }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
     const style = {
@@ -17,20 +17,26 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, children, index, enable
         transition: isDragging ? 'none' : transition,
     };
 
-    const baseStyle = `px-4 py-2 mb-3 text-white rounded-md shadow-md transition duration-300 ease-in-out cursor-grab`
-    const highlightStyle = enableTopHighlight && index === 0 
-        ? 'bg-orange-400 border-orange-300 hover:bg-orange-700' 
-        : 'bg-indigo-400 border-indigo-300 hover:bg-indigo-700';
-    
-
     return (
-        <div ref={setNodeRef}
+        <div
+            ref={setNodeRef}
             style={style}
-            className={`${baseStyle} ${highlightStyle}`}
-            {...attributes}
-            {...listeners}
+            className={cn(
+                'mb-2 flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 shadow-sm',
+                isDragging && 'z-10 opacity-80 shadow-md',
+            )}
         >
-            {children}
+            {/* ドラッグはハンドルに限定する(行内のボタン操作・モバイルのスクロールと衝突させない) */}
+            <button
+                type="button"
+                aria-label="ドラッグして並べ替え"
+                className="shrink-0 cursor-grab touch-none rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                {...attributes}
+                {...listeners}
+            >
+                <GripVertical className="size-4" />
+            </button>
+            <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
 };

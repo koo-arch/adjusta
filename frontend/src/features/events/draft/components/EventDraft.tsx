@@ -55,6 +55,7 @@ const EventDraftContent: React.FC = () => {
                 <EventForm
                     formType="draft"
                     formScope={draftFormScope}
+                    submitLabel="登録する"
                     isSubmitting={createDraftMutation.isPending}
                 />
             </form>
