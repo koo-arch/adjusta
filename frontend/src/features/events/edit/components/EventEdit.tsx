@@ -1,24 +1,21 @@
 'use client'
 import React from 'react';
-import { Provider, useAtomValue } from 'jotai';
+import { Provider } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
     descriptionAtomFamily,
     locationAtomFamily,
     proposedDatesAtomFamily,
-    sendProposedDatesAtomFamily,
     titleAtomFamily,
 } from '@/features/events/store/calendar';
-import { useUpdateDraftMutation } from '@/features/events/edit/hooks/useUpdateDraftMutation';
+import { useEventEditSubmit } from '@/features/events/edit/hooks/useEventEditSubmit';
 import { useFetchEventDetail } from '@/features/events/hooks/useFetchEventDetail';
 import { isNotFoundAPIError } from '@/lib/api/errors';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import EventForm from '@/features/events/components/form/EventForm';
 import type { EventDraftDetail } from '@/features/events/types';
-import type { EventUpdateForm } from '@/features/events/schema';
 
 interface LoadedEventEditProps {
     eventID: string;
@@ -26,9 +23,6 @@ interface LoadedEventEditProps {
 }
 
 const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDetail }) => {
-    const router = useRouter();
-    const updateDraftMutation = useUpdateDraftMutation(eventID);
-
     useHydrateAtoms([
         [titleAtomFamily(eventID), eventDetail.title],
         [descriptionAtomFamily(eventID), eventDetail.description],
@@ -36,31 +30,7 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
         [proposedDatesAtomFamily(eventID), eventDetail.proposed_dates],
     ]);
 
-    const title = useAtomValue(titleAtomFamily(eventID));
-    const description = useAtomValue(descriptionAtomFamily(eventID));
-    const location = useAtomValue(locationAtomFamily(eventID));
-    const proposedDates = useAtomValue(sendProposedDatesAtomFamily(eventID));
-
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const payload: EventUpdateForm = {
-            id: eventDetail.id,
-            form_type: 'edit' as const,
-            title,
-            description,
-            location,
-            // 確定操作は詳細画面に一本化(ui-review 3.4)。編集では現在のステータスを維持する
-            status: eventDetail.status,
-            proposed_dates: proposedDates,
-        };
-
-        const updated = await updateDraftMutation.submit(payload);
-        if (updated) {
-            // 保存後は詳細へ遷移する(作成フローと統一。ui-review P2 #6)
-            router.push(`/events/${eventID}`);
-        }
-    };
+    const { handleSubmit, isPending } = useEventEditSubmit(eventID, eventDetail);
 
     return (
         <form onSubmit={handleSubmit}>
@@ -68,13 +38,16 @@ const EventEditFormContent: React.FC<LoadedEventEditProps> = ({ eventID, eventDe
                 formType="edit"
                 formScope={eventID}
                 submitLabel="保存する"
-                isSubmitting={updateDraftMutation.isPending}
+                isSubmitting={isPending}
                 eventDetail={eventDetail}
             />
         </form>
     );
 };
 
+// Provider を張るコンポーネント自身は新しい store に繋がれないため、store を使う部分を
+// EventEditFormContent に分離している。useHydrateAtoms は store ごとに一度だけ効く(入力中に
+// サーバー値で上書きしない)ので、別イベントを開いたときは key による remount で再 hydrate する
 const LoadedEventEdit: React.FC<LoadedEventEditProps> = ({ eventID, eventDetail }) => {
     return (
         <Provider>

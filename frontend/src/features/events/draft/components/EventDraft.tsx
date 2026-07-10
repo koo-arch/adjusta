@@ -1,25 +1,19 @@
 'use client'
 import React from 'react';
-import { Provider, useAtomValue } from 'jotai';
+import { Provider } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
-import { useRouter } from 'next/navigation';
 import {
     descriptionAtomFamily,
     locationAtomFamily,
     selectedDatesAtomFamily,
-    sendSelectedDatesAtomFamily,
     titleAtomFamily,
 } from '@/features/events/store/calendar';
 import EventForm from '@/features/events/components/form/EventForm';
-import { useCreateDraftMutation } from '@/features/events/hooks/useCreateDraftMutation';
-import type { EventDraftForm } from '@/features/events/schema';
+import { useEventDraftSubmit } from '@/features/events/hooks/useEventDraftSubmit';
 
 const draftFormScope = 'draft';
 
 const EventDraftContent: React.FC = () => {
-    const router = useRouter();
-    const createDraftMutation = useCreateDraftMutation(draftFormScope);
-
     useHydrateAtoms([
         [titleAtomFamily(draftFormScope), ''],
         [descriptionAtomFamily(draftFormScope), ''],
@@ -27,42 +21,22 @@ const EventDraftContent: React.FC = () => {
         [selectedDatesAtomFamily(draftFormScope), []],
     ]);
 
-    const title = useAtomValue(titleAtomFamily(draftFormScope));
-    const description = useAtomValue(descriptionAtomFamily(draftFormScope));
-    const location = useAtomValue(locationAtomFamily(draftFormScope));
-    const selectedDates = useAtomValue(sendSelectedDatesAtomFamily(draftFormScope));
-
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const payload: EventDraftForm = {
-            form_type: 'draft' as const,
-            title,
-            description,
-            location,
-            selected_dates: selectedDates,
-        };
-
-        const createdDraftID = await createDraftMutation.submit(payload);
-        if (createdDraftID) {
-            router.push(`/events/${createdDraftID}`);
-        }
-    };
+    const { handleSubmit, isPending } = useEventDraftSubmit(draftFormScope);
 
     return (
-        <div>
-            <form onSubmit={handleSubmit}>
-                <EventForm
-                    formType="draft"
-                    formScope={draftFormScope}
-                    submitLabel="登録する"
-                    isSubmitting={createDraftMutation.isPending}
-                />
-            </form>
-        </div>
+        <form onSubmit={handleSubmit}>
+            <EventForm
+                formType="draft"
+                formScope={draftFormScope}
+                submitLabel="登録する"
+                isSubmitting={isPending}
+            />
+        </form>
     )
 }
 
+// Provider を張るコンポーネント自身は新しい store に繋がれない(Context は子にのみ届く)ため、
+// store を使う部分を EventDraftContent に分離している。Provider はフォーム状態をページ単位で隔離する
 const EventDraft: React.FC = () => {
     return (
         <Provider>
