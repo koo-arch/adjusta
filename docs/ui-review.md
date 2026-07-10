@@ -135,7 +135,7 @@
 - 最低限の**ステータス絞り込みタブ**(すべて / 調整中 / 確定済み / 下書き)を追加(`ToggleButton` 流用可)。フル検索は Could のまま後続
 - 一覧ヘッダー右に作成ボタンを常設
 
-**対応済み(2026-07-10)**: 上記 3 点+課題 1〜4 を shadcn/ui ベースで実装(タブは shadcn Tabs、ページネーションは `PaginationControls`)。データ取得は Google 同期ミドルウェアを通らない `GET /api/event/draft/search` に一本化し、タブ・ページは URL クエリに保持。loading はカード形スケルトン、error は再試行ボタン付きで空状態と描き分け。
+**対応済み(2026-07-10)**: 上記 3 点+課題 1〜4 を shadcn/ui ベースで実装(タブは shadcn Tabs、ページネーションは `PaginationControls`)。データ取得は Google 同期ミドルウェアを通らない `GET /api/event/draft/search` に一本化し、タブ・ページは URL クエリに保持。loading はカード形スケルトン、error は再試行ボタン付きで空状態と描き分け。さらに**タイトル検索窓**も追加(Enter で実行、IME 確定 Enter は無視、`?title=` に保持、0 件時はクリア導線)。場所・説明・期間の絞り込みは Could のまま後続。
 
 ### 3.4 イベント作成・編集(`features/events/draft/`, `edit/`, `components/form/`)
 

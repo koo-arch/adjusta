@@ -1,9 +1,9 @@
 'use client'
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useSearchEvents } from '@/features/events/hooks/useSearchEvents';
+import { STATUS_TABS, useEventListSearch, type StatusTab } from '@/features/events/hooks/useEventListSearch';
 import EventCard from './EventCard';
+import EventSearchForm from './EventSearchForm';
 import { PaginationControls } from '@/components/common/pagination/PaginationControls';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -13,21 +13,9 @@ import { EVENT_STATUS_LABELS } from '@/features/events/status';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 
-const STATUS_TABS = ['all', 'active', 'confirmed', 'draft', 'cancelled'] as const;
-
-type StatusTab = (typeof STATUS_TABS)[number];
-
 const TAB_LABELS: Record<StatusTab, string> = {
     all: 'すべて',
     ...EVENT_STATUS_LABELS,
-};
-
-const parseStatusTab = (value: string | null): StatusTab =>
-    STATUS_TABS.includes(value as StatusTab) ? (value as StatusTab) : 'all';
-
-const parsePage = (value: string | null): number => {
-    const page = Number(value);
-    return Number.isInteger(page) && page >= 1 ? page : 1;
 };
 
 const EventCardSkeleton = () => (
@@ -55,37 +43,19 @@ export const EventListSkeleton = () => (
 );
 
 const EventList: React.FC = () => {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const statusTab = parseStatusTab(searchParams.get('status'));
-    const page = parsePage(searchParams.get('page'));
-
-    const { searchEvents, pagination, isPending, isPlaceholderData, error, refetch } = useSearchEvents({
-        ...(statusTab === 'all' ? {} : { status: statusTab }),
-        page,
-    });
-
-    const buildHref = (tab: StatusTab, targetPage: number) => {
-        const params = new URLSearchParams();
-        if (tab !== 'all') {
-            params.set('status', tab);
-        }
-        if (targetPage > 1) {
-            params.set('page', String(targetPage));
-        }
-        const query = params.toString();
-        return query ? `${pathname}?${query}` : pathname;
-    };
-
-    const handleTabChange = (value: string) => {
-        // タブ切替はページを 1 に戻す。履歴は絞り込み条件で汚さない
-        router.replace(buildHref(parseStatusTab(value), 1), { scroll: false });
-    };
-
-    const handlePageChange = (nextPage: number) => {
-        router.push(buildHref(statusTab, nextPage));
-    };
+    const {
+        statusTab,
+        title,
+        selectTab,
+        search,
+        goToPage,
+        searchEvents,
+        pagination,
+        isPending,
+        isPlaceholderData,
+        error,
+        refetch,
+    } = useEventListSearch();
 
     const renderContent = () => {
         if (isPending) {
@@ -114,6 +84,20 @@ const EventList: React.FC = () => {
         }
 
         if (!searchEvents || searchEvents.length === 0) {
+            if (title !== '') {
+                return (
+                    <Card>
+                        <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+                            <p className="text-sm text-muted-foreground">
+                                「{title}」に一致するイベントはありません。
+                            </p>
+                            <Button variant="outline" onClick={() => search('')}>
+                                検索条件をクリア
+                            </Button>
+                        </CardContent>
+                    </Card>
+                );
+            }
             if (statusTab !== 'all') {
                 return (
                     <Card>
@@ -165,7 +149,7 @@ const EventList: React.FC = () => {
                         page={pagination.page}
                         total={pagination.total_items}
                         limit={pagination.per_page}
-                        onPageChange={handlePageChange}
+                        onPageChange={goToPage}
                     />
                 )}
             </div>
@@ -174,17 +158,20 @@ const EventList: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            <Tabs value={statusTab} onValueChange={handleTabChange}>
-                <div className="overflow-x-auto">
-                    <TabsList>
-                        {STATUS_TABS.map((tab) => (
-                            <TabsTrigger key={tab} value={tab}>
-                                {TAB_LABELS[tab]}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </div>
-            </Tabs>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <Tabs value={statusTab} onValueChange={selectTab}>
+                    <div className="overflow-x-auto">
+                        <TabsList>
+                            {STATUS_TABS.map((tab) => (
+                                <TabsTrigger key={tab} value={tab}>
+                                    {TAB_LABELS[tab]}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </div>
+                </Tabs>
+                <EventSearchForm defaultValue={title} onSearch={search} />
+            </div>
             {renderContent()}
         </div>
     );
