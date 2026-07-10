@@ -17,6 +17,7 @@ const EventDetailPageContainer: React.FC<EventDetailPageContainerProps> = ({ eve
                 <ChevronLeft className="size-4" />
                 イベント一覧へ
             </Link>
+            {/* 単一対象の詳細は囲いなしのフラット構成(DESIGN.md 6. サーフェス戦略) */}
             <EventDetail eventID={eventID} />
         </main>
     );
