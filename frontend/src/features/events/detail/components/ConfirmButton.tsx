@@ -96,9 +96,11 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
 
     return (
         <>
-            {/* 確定はこの画面の主目的なのでラベル付きボタンで置く(ui-guidelines) */}
+            {/* 確定はこの画面の主目的なのでラベル付きで置く(ui-guidelines)。
+                フラット構成に合わせ、塗りつぶしではなく primary 色のテキストボタンにする */}
             <UIButton
-                variant={isConfirmed ? 'outline' : 'default'}
+                variant="ghost"
+                className="text-primary hover:text-primary-dark"
                 onClick={() => setIsOpen(true)}
             >
                 <CalendarCheck className="size-4" />
