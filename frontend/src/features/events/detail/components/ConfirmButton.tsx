@@ -1,7 +1,7 @@
 'use client'
 import React, { useMemo, useState } from 'react';
 import Button from '@/components/Button';
-import IconButton from '@/components/IconButton';
+import { Button as UIButton } from '@/components/ui/button';
 import ToggleButton from '@/components/ToggleButton';
 import Modal from '@/components/Modal';
 import DropdownSelect from '@/components/DropdownSelect';
@@ -9,8 +9,7 @@ import { formatJaDateSpan } from '@/lib/date/format';
 import DateTimePicker from '@/components/DateTimePicker';
 import type { EventDraftDetail } from '@/features/events/types';
 import { useConfirmEventMutation } from '@/features/events/detail/hooks/useConfirmEventMutation';
-import { MdEditCalendar } from 'react-icons/md';
-import { FaRegCalendarCheck } from 'react-icons/fa6';
+import { CalendarCheck } from 'lucide-react';
 
 interface ConfirmButtonProps {
     eventID: string;
@@ -97,17 +96,14 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
 
     return (
         <>
-            <IconButton
-                iconColor={isConfirmed? 'primary': 'success'}
-                iconSize={"lg"}
+            {/* 確定はこの画面の主目的なのでラベル付きボタンで置く(ui-guidelines) */}
+            <UIButton
+                variant={isConfirmed ? 'outline' : 'default'}
                 onClick={() => setIsOpen(true)}
             >
-                {isConfirmed ? (
-                    <MdEditCalendar />
-                ) : (
-                    <FaRegCalendarCheck />
-                )}
-            </IconButton>
+                <CalendarCheck className="size-4" />
+                {isConfirmed ? '確定日程を変更' : '日程を確定'}
+            </UIButton>
             <Modal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}

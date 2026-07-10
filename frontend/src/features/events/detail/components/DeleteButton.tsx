@@ -1,56 +1,64 @@
 'use client'
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import Modal from '@/components/Modal';
-import Button from '@/components/Button';
-import IconButton from '@/components/IconButton';
-import { TrashIcon } from '@heroicons/react/20/solid';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import { useDeleteDraftMutation } from '@/features/events/detail/hooks/useDeleteDraftMutation';
 
-interface EventDeleteProps {
+interface DeleteButtonProps {
     eventID: string;
+    title: string;
 }
 
-const DeleteButton: React.FC<EventDeleteProps> = ({ eventID }) => {
-    const [isOpen, setIsOpen] = useState(false);
+const DeleteButton: React.FC<DeleteButtonProps> = ({ eventID, title }) => {
     const router = useRouter();
-    const deleteDraftMutation = useDeleteDraftMutation(eventID);
+    const { submit, isPending } = useDeleteDraftMutation(eventID);
 
-    const onSubmit = async () => {
-        const deleted = await deleteDraftMutation.submit();
-        if (!deleted) {
-            return;
+    const handleDelete = async () => {
+        const deleted = await submit();
+        if (deleted) {
+            router.push('/events');
         }
-
-        setIsOpen(false);
-        router.push('/events');
     };
 
     return (
-        <div>
-            <IconButton
-                iconColor={'danger'}
-                onClick={() => setIsOpen(true)}
-            >
-                <TrashIcon />
-            </IconButton>
-            <Modal
-                isOpen={isOpen}
-                description='このイベントを削除してよろしいですか？'
-                onClose={() => setIsOpen(false)}
-                actions={
-                    <Button
-                        type="submit"
-                        intent="danger"
-                        onClick={onSubmit}
-                        disabled={deleteDraftMutation.isPending}
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="outline" className="text-destructive hover:text-destructive" disabled={isPending}>
+                    <Trash2 className="size-4" />
+                    削除
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>イベントを削除しますか?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        「{title}」を候補日程ごと削除します。この操作は取り消せません。
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                        削除
-                    </Button>
-                }
-            />
-        </div>
-    )
-}
+                        削除する
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+};
 
 export default DeleteButton;

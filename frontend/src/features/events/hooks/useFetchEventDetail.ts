@@ -4,7 +4,7 @@ import { fetchEventDetail } from '@/features/events/api/fetchEventDetail';
 import { buildEventDetailQueryKey } from '@/features/events/queryKeys';
 
 export const useFetchEventDetail = (eventID: string) => {
-    const { data, isLoading, error } = useQuery({
+    const { data, isPending, error, refetch } = useQuery({
         queryKey: buildEventDetailQueryKey(eventID),
         queryFn: () => fetchEventDetail(eventID),
         enabled: !!eventID,
@@ -12,7 +12,8 @@ export const useFetchEventDetail = (eventID: string) => {
 
     return {
         eventDetail: data,
-        isLoading,
-        error
+        isPending,
+        error,
+        refetch,
     };
 }
