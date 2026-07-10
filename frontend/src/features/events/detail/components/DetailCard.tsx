@@ -21,7 +21,7 @@ const DetailCard: React.FC<DetailCardProps> = ({ detail, eventID }) => {
             <div className="space-y-6">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                     <h1 className="text-2xl font-bold text-gray-900">{detail.title}</h1>
-                    <EditButton to={`/schedule/draft/${eventID}/edit`} />
+                    <EditButton to={`/events/${eventID}/edit`} />
                 </div>
 
                 {isConfirmed && (

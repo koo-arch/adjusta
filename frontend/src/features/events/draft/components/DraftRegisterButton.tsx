@@ -8,7 +8,7 @@ const DraftRegisterButton = () => {
         <IconButton
             iconColor="primary"
             iconSize="lg"
-            to="/schedule/draft/register"
+            to="/events/new"
         >
             <PlusIcon />
         </IconButton>

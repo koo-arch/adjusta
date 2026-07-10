@@ -1,14 +1,14 @@
 import React from 'react';
 import EventDetailPageContainer from '@/features/events/detail/containers/EventDetailPageContainer';
 
-interface DraftDetailPageProps {
+interface EventDetailPageProps {
     params: {
         id: string;
     };
 }
 
-const DraftDetailPage = ({ params }: DraftDetailPageProps) => {
+const EventDetailPage = ({ params }: EventDetailPageProps) => {
     return <EventDetailPageContainer eventID={params.id} />;
 };
 
-export default DraftDetailPage;
+export default EventDetailPage;
