@@ -347,8 +347,8 @@ Google Calendar との同期は本画面アクセス時に行う(要件 12.3)。
 
 #### 実装フェーズ
 
-- **Phase 1(表示系)**: プロフィール / Google 連携 / ログアウト(既存 API のみで実装可。`ui-review.md` バックログ #16 に対応)
-- **Phase 2(カレンダー設定)**: カレンダー設定セクション(新規 API とセットで実装。移行課題 9.5)
+- **Phase 1(表示系)**: プロフィール / Google 連携 / ログアウト(既存 API のみで実装可。`ui-review.md` バックログ #16 に対応)— **実装済み(2026-07-09)**
+- **Phase 2(カレンダー設定)**: カレンダー設定セクション(新規 API とセットで実装。移行課題 9.5)— **実装済み(2026-07-09)**
 
 #### 表示データ
 
@@ -469,7 +469,9 @@ calendars × user_calendars の一覧。各行に以下を表示する:
 
 user_calendars の role / is_visible / sync_proposed_dates は DB 設計(`db-design.md` 5.5)に存在するが、これらを変更する画面・API は未整備。
 
-**2026-07-09 更新**: 画面仕様と API 要件(`GET /api/user-calendars`、`PATCH /api/user-calendars/:id`)は本書 5.8 で設計済み。requirements.md にも機能要件(5.7.2)・API 要件(9.2)として追記済み(優先度は Could)。残タスクはバックエンド実装(ent スキーマは既存のため handler / usecase / repository の追加)とフロントエンドの Phase 2 実装。
+**2026-07-09 更新**: 画面仕様と API 要件(`GET /api/user-calendars`、`PATCH /api/user-calendars/:id`)は本書 5.8 で設計済み。requirements.md にも機能要件(5.7.2)・API 要件(9.2)として追記済み(優先度は Could)。
+
+**2026-07-09 解消**: バックエンド API(handler / usecase / repository)とフロントエンド(/account の Phase 1・Phase 2)を実装済み。UI は shadcn/ui ベース(`src/components/ui/`)で、5.8 の操作仕様(primary 付け替え・楽観更新・候補同期トグルの挙動説明・再認可時の無効化・空/エラー状態)に対応。
 
 ### 9.6 登録先カレンダー選択 API の未整備
 
