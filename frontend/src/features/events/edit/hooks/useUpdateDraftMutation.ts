@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import type { EventUpdateForm } from '@/features/events/schema';
 import { updateDraftEvent } from '@/features/events/edit/api/updateDraftEvent';
 import {
-    buildDraftEventListQueryKey,
+    buildDraftEventSearchQueryKey,
     buildEventDetailQueryKey,
     buildNeedsActionDraftsQueryKey,
     buildUpcomingEventsQueryKey,
@@ -40,7 +40,7 @@ export const useUpdateDraftMutation = (eventID: string) => {
 
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: buildEventDetailQueryKey(eventID) }),
-                queryClient.invalidateQueries({ queryKey: buildDraftEventListQueryKey() }),
+                queryClient.invalidateQueries({ queryKey: buildDraftEventSearchQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildNeedsActionDraftsQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildUpcomingEventsQueryKey() }),
             ]);

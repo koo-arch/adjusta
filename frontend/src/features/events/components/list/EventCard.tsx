@@ -1,84 +1,62 @@
-'use client'
 import React from 'react';
-import Card from '@/components/Card';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import StatusBadge from '@/components/StatusBadge';
 import { formatJaDateSpan } from '@/lib/date/format';
-import { EventDraftDetail, type EventStatus } from '@/features/events/types';
-import { ChevronRightIcon } from '@heroicons/react/20/solid';
-import { CalendarIcon } from '@heroicons/react/20/solid';
+import { EVENT_STATUS_COLORS, EVENT_STATUS_LABELS } from '@/features/events/status';
+import type { EventDraftDetail } from '@/features/events/types';
+import { Calendar, ChevronRight } from 'lucide-react';
 
 interface EventCardProps {
     event: EventDraftDetail;
-    onClick: () => void;
 }
 
-const statusLabel = (status: EventStatus) => {
-    switch (status) {
-        case 'draft':
-            return '下書き';
-        case 'active':
-            return '調整中';
-        case 'confirmed':
-            return '確定';
-        case 'cancelled':
-            return 'キャンセル';
-        default:
-            return '';
-    }
-}
-
-const statusColor = (status: EventStatus) => {
-    switch (status) {
-        case 'draft':
-            return 'blue';
-        case 'active':
-            return 'yellow';
-        case 'confirmed':
-            return 'green';
-        case 'cancelled':
-            return 'red';
-        default:
-            return 'gray';
-    }
-}
-
-const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
-    const confirmedDate= event.proposed_dates?.find((date) => date.id === event.confirmed_date_id);
-    const isConfirmed = event.status === 'confirmed' && !!event.confirmed_date_id && !!confirmedDate;
+const EventCard: React.FC<EventCardProps> = ({ event }) => {
+    const confirmedDate = event.proposed_dates?.find((date) => date.id === event.confirmed_date_id);
+    const isConfirmed = event.status === 'confirmed' && !!confirmedDate;
+    const proposedDates = event.proposed_dates ?? [];
 
     return (
-        <Card variant="outlined" background="inherit" isButton={true} onClick={onClick}>
-            <div>
-                <div className="flex justify-between items-center mb-2">
-                    <h2 className="text-lg font-bold">{event?.title}</h2>
-                    <StatusBadge 
-                        label={statusLabel(event.status)}
-                        circleColor={statusColor(event.status)}
-                        textSize="sm"
-                     />
-                </div>
-      
-                {isConfirmed ? (
-                    <div className="flex items-center text-sm text-gray-500 mb-1">
-                        <CalendarIcon className="w-4 h-4 text-gray-500 mr-1" />
-                        {formatJaDateSpan(confirmedDate?.start, confirmedDate?.end)}
+        <Link
+            href={`/events/${event.id}`}
+            className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+            <Card className="h-full transition-shadow hover:shadow-md">
+                <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
+                    <CardTitle className="truncate">{event.title}</CardTitle>
+                    <div className="shrink-0">
+                        <StatusBadge
+                            label={EVENT_STATUS_LABELS[event.status]}
+                            circleColor={EVENT_STATUS_COLORS[event.status]}
+                            textColor={EVENT_STATUS_COLORS[event.status]}
+                            textSize="sm"
+                        />
                     </div>
-                ) : (
-                    <div className="space-y-1">
-                        {event.proposed_dates?.slice(0, 2).map((date) => (
-                            <div key={date.id} className="flex items-center text-sm text-gray-500">
-                                <ChevronRightIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                                {formatJaDateSpan(date.start, date.end)}
-                            </div>
-                        ))}
-                        {event.proposed_dates && event.proposed_dates.length > 2 && (
-                            <p className="text-sm text-gray-400">... 他 {event.proposed_dates.length - 2} 件</p>
-                        )}
-                    </div>
-                )}
-
-            </div>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                    {isConfirmed ? (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                            <Calendar className="mr-1 size-4 shrink-0" />
+                            {formatJaDateSpan(confirmedDate?.start, confirmedDate?.end)}
+                        </div>
+                    ) : proposedDates.length > 0 ? (
+                        <div className="space-y-1">
+                            {proposedDates.slice(0, 2).map((date) => (
+                                <div key={date.id} className="flex items-center text-sm text-muted-foreground">
+                                    <ChevronRight className="mr-1 size-4 shrink-0 text-yellow-500" />
+                                    {formatJaDateSpan(date.start, date.end)}
+                                </div>
+                            ))}
+                            {proposedDates.length > 2 && (
+                                <p className="text-sm text-gray-400">... 他 {proposedDates.length - 2} 件</p>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-400">候補日程はありません</p>
+                    )}
+                </CardContent>
+            </Card>
+        </Link>
     );
 };
 

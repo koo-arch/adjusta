@@ -6,7 +6,7 @@ import type { ConfirmFormErrors } from '@/features/events/detail/schema';
 import { emptyFormErrors, type FormErrors } from '@/lib/form/errors';
 import { confirmEvent, type ConfirmEventInput } from '@/features/events/detail/api/confirmEvent';
 import {
-    buildDraftEventListQueryKey,
+    buildDraftEventSearchQueryKey,
     buildEventDetailQueryKey,
     buildNeedsActionDraftsQueryKey,
     buildUpcomingEventsQueryKey,
@@ -42,7 +42,7 @@ export const useConfirmEventMutation = (eventID: string) => {
 
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: buildEventDetailQueryKey(eventID) }),
-                queryClient.invalidateQueries({ queryKey: buildDraftEventListQueryKey() }),
+                queryClient.invalidateQueries({ queryKey: buildDraftEventSearchQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildNeedsActionDraftsQueryKey() }),
                 queryClient.invalidateQueries({ queryKey: buildUpcomingEventsQueryKey() }),
             ]);

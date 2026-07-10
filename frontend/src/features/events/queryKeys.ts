@@ -1,7 +1,4 @@
-import type { EventListParams, SearchParams } from './types';
-
-export const buildDraftEventListQueryKey = (params: EventListParams = {}) =>
-    ['draftEventList', params] as const;
+import type { SearchParams } from './types';
 
 export const buildEventDetailQueryKey = (eventID?: string) =>
     ['eventDetail', eventID] as const;
@@ -10,5 +7,6 @@ export const buildNeedsActionDraftsQueryKey = () => ['needsActionDrafts'] as con
 
 export const buildUpcomingEventsQueryKey = () => ['upcomingEvents'] as const;
 
-export const buildDraftEventSearchQueryKey = (params: SearchParams) =>
-    ['draftEventSearch', params] as const;
+// params 省略時は prefix キーを返す(mutation 後の一括 invalidate 用)
+export const buildDraftEventSearchQueryKey = (params?: SearchParams) =>
+    params === undefined ? (['draftEventSearch'] as const) : (['draftEventSearch', params] as const);

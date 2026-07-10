@@ -38,20 +38,16 @@ export interface EventDraftDetail {
 export interface SearchParams {
     title?: string;
     location?: string;
-    startTime?: string;
-    endTime?: string;
+    description?: string;
     status?: EventStatus;
+    start_time_gte?: string;
+    start_time_lte?: string;
+    end_time_gte?: string;
+    end_time_lte?: string;
     sort_by?: EventSortBy;
     sort_order?: SortOrder;
     page?: number;
     per_page?: number;
-}
-
-export interface EventListParams {
-    page?: number;
-    per_page?: number;
-    sort_by?: EventSortBy;
-    sort_order?: SortOrder;
 }
 
 export interface Pagination {
