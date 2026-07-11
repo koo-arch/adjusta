@@ -159,7 +159,7 @@
 - 編集の保存成功時は詳細へ遷移(作成と統一)し、文言を「保存する」に変更。フォーム上部にパンくず or「詳細へ戻る」を設置
 - 確定トグルには説明文(「ONにすると先頭の候補が確定日時になります」等)を付けるか、確定操作は詳細画面に一本化してフォームから外す(操作の置き場を「編集=内容変更、詳細=確定」に分離する構成変更案)
 
-**対応済み(2026-07-10)**: 課題 1〜5・7 を解消。「日時を追加」ダイアログの併設+週/月ビュー切替(課題1)、保存→詳細遷移+「保存する」+「詳細へ戻る」リンク(課題2・3)、確定トグルはフォームから撤去し詳細画面に一本化(課題4。confirmed→active の再調整導線は未実装、screen-design 5.6 参照)、`useMediaQuery` を廃止し CSS Grid に一本化(課題5)、DnD は PointerSensor+ハンドル+上下ボタン代替(課題7)。基本情報は shadcn input/textarea + label(htmlFor/id・aria-invalid)。確定モーダルも shadcn Dialog/Tabs/Select 化(DateTimePicker は react-datepicker のまま=P2 #11 でテーマ統一)。残: 課題6(未保存変更の離脱警告)。
+**対応済み(2026-07-10)**: 課題 1〜5・7 を解消。「日時を追加」ダイアログの併設+週/月ビュー切替(課題1)、保存→詳細遷移+「保存する」+「詳細へ戻る」リンク(課題2・3)、確定トグルはフォームから撤去し詳細画面に一本化(課題4。confirmed→active の再調整導線は未実装、screen-design 5.6 参照)、`useMediaQuery` を廃止し CSS Grid に一本化(課題5)、DnD は PointerSensor+ハンドル+上下ボタン代替(課題7)。基本情報は shadcn input/textarea + label(htmlFor/id・aria-invalid)。確定モーダルも shadcn Dialog/Tabs/Select 化(DateTimePicker は react-datepicker のまま=P2 #11 でテーマ統一)。残: 課題6(未保存変更の離脱警告)。**追記(2026-07-11)**: フォームをステップ型(カレンダー常設+パネルが基本情報⇄候補日程、候補側に基本情報サマリー、sticky 送信バー)に再構成。FullCalendar は DESIGN.md トークンを適用。
 
 ### 3.5 ログイン(`features/auth/`)
 
