@@ -47,6 +47,27 @@
 
 /* --- サードパーティ UI の上書き(DESIGN.md 4. Third-Party Components) --- */
 
+/* FullCalendar: 本書トークンへの接続(色・radius・フォント継承) */
+.fc {
+    font-family: inherit;
+    --fc-border-color: #e5e7eb;
+    --fc-today-bg-color: #eef2ff;
+    --fc-button-bg-color: #6366f1;
+    --fc-button-border-color: #6366f1;
+    --fc-button-hover-bg-color: #4f46e5;
+    --fc-button-hover-border-color: #4f46e5;
+    --fc-button-active-bg-color: #4338ca;
+    --fc-button-active-border-color: #4338ca;
+    --fc-highlight-color: rgba(99, 102, 241, 0.15);
+    --fc-event-bg-color: #6366f1;
+    --fc-event-border-color: #6366f1;
+    --fc-page-bg-color: #ffffff;
+}
+
+.fc .fc-button {
+    border-radius: 6px;
+}
+
 /* Splideボタンの非表示ロジックを追加 */
 
 /* 左矢印（Prev）が無効なとき非表示 */

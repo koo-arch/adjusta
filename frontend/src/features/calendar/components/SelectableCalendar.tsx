@@ -29,6 +29,13 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
     selectedEvents,
     editingEvent,
 }:SelectableCalendarProps<TDate>) => {
+    // モバイルは週ビュー(7列)が窮屈なため日ビューで開始する。マウント時に一度だけ判定
+    // (FullCalendar は SSR ではほぼ描画されないため、サーバーとの差異は実害なし)
+    const [initialView] = useState<'timeGridWeek' | 'timeGridDay'>(() =>
+        typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+            ? 'timeGridDay'
+            : 'timeGridWeek',
+    );
     const [clickedEvent, setClickedEvent] = useState<EventImpl>();
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -107,7 +114,7 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
     return (
         <div>
             <Calendar
-                initialView="timeGridWeek"
+                initialView={initialView}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',

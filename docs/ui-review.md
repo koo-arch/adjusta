@@ -247,7 +247,7 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 8 | ~~モバイル DnD(PointerSensor+上下ボタン代替)~~ **対応済み(2026-07-10)**: ハンドル限定ドラッグ+上下ボタン | DraggableList | 2.6 |
 | 9 | ログインのエラー表示+押下フィードバック | login | 3.5 |
 | 10 | ~~一覧のステータス絞り込みタブ~~ **対応済み(2026-07-10)**: shadcn Tabs(すべて/調整中/確定/下書き/キャンセル)、URL クエリ `?status=` に保持 | list | 3.3 |
-| 11 | サードパーティ UI のテーマ統一(FullCalendar / react-datepicker / Splide / トースト) | calendar・form・dashboard | DESIGN.md「Third-Party Components」 |
+| 11 | サードパーティ UI のテーマ統一(FullCalendar / react-datepicker / Splide / トースト) | calendar・form・dashboard | DESIGN.md「Third-Party Components」。**FullCalendar 分は適用済み(2026-07-11)**: `--fc-*` トークン接続+StyleWrapper のパレット外色をトークン化。react-datepicker / Splide / トーストは残 |
 | 12 | ~~一覧のページネーション UI~~ **対応済み(2026-07-10)**: `PaginationControls`(`src/components/common/pagination/`)+ URL クエリ `?page=`。#10 と同時対応 | list | 3.3、要件 9.3 |
 
 ### P3 — 磨き込み

@@ -55,6 +55,7 @@ const EventBasicForm: React.FC<EventBasicFormProps> = ({
                 <Input
                     id={titleId}
                     value={title}
+                    placeholder="例: チーム定例MTG"
                     aria-invalid={!!errors.title}
                     aria-describedby={errors.title ? `${titleId}-error` : undefined}
                     className={cn(errors.title && 'border-destructive focus-visible:ring-destructive')}
@@ -70,6 +71,7 @@ const EventBasicForm: React.FC<EventBasicFormProps> = ({
                 <Input
                     id={locationId}
                     value={location}
+                    placeholder="例: 会議室A / オンライン"
                     aria-invalid={!!errors.location}
                     aria-describedby={errors.location ? `${locationId}-error` : undefined}
                     className={cn(errors.location && 'border-destructive focus-visible:ring-destructive')}
@@ -86,6 +88,7 @@ const EventBasicForm: React.FC<EventBasicFormProps> = ({
                     id={descriptionId}
                     value={description}
                     rows={4}
+                    placeholder="イベントの目的や補足があれば入力"
                     aria-invalid={!!errors.description}
                     aria-describedby={errors.description ? `${descriptionId}-error` : undefined}
                     className={cn(errors.description && 'border-destructive focus-visible:ring-destructive')}
