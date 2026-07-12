@@ -1,35 +1,40 @@
 import React from 'react';
-import Card from '@/components/Card';
+import Link from 'next/link';
+import { Card } from '@/components/ui/card';
+import StatusBadge from '@/components/StatusBadge';
 import { formatJaDateSpan } from '@/lib/date/format';
-import { CalendarIcon, ExclamationCircleIcon } from '@heroicons/react/20/solid';
+import { Calendar } from 'lucide-react';
 
 interface MiniEventCardProps {
-    title : string;
+    title: string;
     start: Date;
     end: Date;
     needs_attention?: boolean;
-    onClick: () => void;
+    href: string;
 }
 
-const MiniEventCard: React.FC<MiniEventCardProps> = ({ title, start, end, needs_attention, onClick }) => {
+// ダッシュボードの右パネル用のコンパクトな行カード
+const MiniEventCard: React.FC<MiniEventCardProps> = ({ title, start, end, needs_attention, href }) => {
     return (
-        <Card
-            isButton
-            variant="outlined"
-            background="white"
-            onClick={onClick}
+        <Link
+            href={href}
+            className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-            <div className="flex justify-between items-center">
-                <h3 className="text-indigo-600 font-semibold truncate">{title}</h3>
-               {needs_attention && 
-                   <ExclamationCircleIcon className="w-5 h-5 text-red-500" title="要調整" />
-                }
-            </div>
-            <div className="flex items-center mt-2">
-                <CalendarIcon className="w-4 h-4 text-gray-500 mr-2" />
-                <p className="text-xs text-gray-700">{formatJaDateSpan(start, end)}</p>
-            </div>
-        </Card>
+            <Card className="px-3 py-2 transition-shadow hover:shadow-md">
+                <div className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-sm font-medium text-foreground">{title}</p>
+                    {needs_attention && (
+                        <div className="shrink-0">
+                            <StatusBadge label="要対応" circleColor="red" textColor="red" textSize="sm" circleSize="sm" />
+                        </div>
+                    )}
+                </div>
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="size-3.5 shrink-0" />
+                    {formatJaDateSpan(start, end)}
+                </div>
+            </Card>
+        </Link>
     )
 }
 

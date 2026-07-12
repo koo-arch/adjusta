@@ -4,14 +4,15 @@ import { fetchNeedsActionDrafts } from '@/features/events/api/fetchNeedsActionDr
 import { buildNeedsActionDraftsQueryKey } from '@/features/events/queryKeys';
 
 export const useFetchNeedsActionDrafts = () => {
-    const { data, isLoading, error } = useQuery({
+    const { data, isPending, error, refetch } = useQuery({
         queryKey: buildNeedsActionDraftsQueryKey(),
         queryFn: fetchNeedsActionDrafts,
     });
 
     return {
         needsActionDrafts: data,
-        isLoading,
-        error
+        isPending,
+        error,
+        refetch,
     };
 }

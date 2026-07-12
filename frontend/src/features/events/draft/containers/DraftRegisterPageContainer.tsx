@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 
 const DraftRegisterPageContainer = () => {
     return (
-        <main className="mx-auto max-w-screen-lg space-y-4 px-4 py-8">
+        <main className="mx-auto max-w-screen-2xl space-y-4 px-4 py-8 md:px-8">
             <Link
                 href="/events"
                 className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"

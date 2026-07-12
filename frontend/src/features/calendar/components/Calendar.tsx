@@ -33,6 +33,9 @@ interface CalendarProps<T extends CalendarEvent> {
     // 'auto' は全展開(内部スクロールなし)。固定値を渡すと timeGrid が内部スクロールになり scrollTime が効く
     height?: number | string;
     scrollTime?: string;
+    // 閲覧専用のカレンダー(ダッシュボード等)では false にする
+    selectable?: boolean;
+    editable?: boolean;
 }
 
 const Calendar = <T extends CalendarEvent>({
@@ -48,6 +51,8 @@ const Calendar = <T extends CalendarEvent>({
     editEvent,
     height = 'auto',
     scrollTime,
+    selectable = true,
+    editable = true,
 }: CalendarProps<T>) => {
     const { events, isLoading: isGoogleEventLoading } = useFetchGoogleCalendarEvents();
     const { searchEvents, isPending: isSearchLoading } = useSearchEvents({ status: "active" });
@@ -130,11 +135,11 @@ const Calendar = <T extends CalendarEvent>({
                     nowIndicator={true}
                     scrollTime={scrollTime}
                     scrollTimeReset={false}
-                    selectable={true}
-                    selectMirror={true}
-                    editable={true} // イベントのドラッグ＆ドロップを可能に
+                    selectable={selectable}
+                    selectMirror={selectable}
+                    editable={editable} // イベントのドラッグ＆ドロップを可能に
                     eventDrop={eventDrop || (() => {})}
-                    eventResizableFromStart={true} // イベントの開始時間もリサイズ可能にする
+                    eventResizableFromStart={editable} // イベントの開始時間もリサイズ可能にする
                     eventResize={eventResize || (() => {})}
                     select={select || (() => {})}
                     visibleRange={visibleRange}
