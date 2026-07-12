@@ -51,6 +51,7 @@
 
 ## Component Rules
 - 1コンポーネント1責務を基本にする。
+- 1ファイル1コンポーネントを基本にする（ディスパッチャと variant の同居を避け、必要ならファイルを分ける）。
 - データ取得や状態接続を含むロジックは `hooks` または `containers` に置く。
 - 表示中心の UI は `components` に置く。
 - feature 内再利用は feature 配下の `components` に留める。
