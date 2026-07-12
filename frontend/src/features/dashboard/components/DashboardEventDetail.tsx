@@ -10,7 +10,7 @@ interface DashboardEventDetailProps {
     event: CalendarEvent;
 }
 
-// カレンダーでクリックしたイベントの詳細を詳細タブ内に表示する(モーダルは使わない)
+// カレンダーでクリックしたイベントの詳細(PC は popover、モバイルは dialog の中身)
 const DashboardEventDetail: React.FC<DashboardEventDetailProps> = ({ event }) => {
     return (
         <div className="space-y-3">

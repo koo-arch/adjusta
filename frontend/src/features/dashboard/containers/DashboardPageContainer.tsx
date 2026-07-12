@@ -9,7 +9,7 @@ const DashboardPageContainer = () => {
             {/* カレンダーを主役に、右にコンテキストパネル(作成フォームと同じ構図)。
                 768〜1024px はパネルを引くとカレンダーが潰れるため lg から 2 カラム化する */}
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-6">
-                <section id="dashboard-side-panel" className="lg:order-2">
+                <section className="lg:order-2">
                     <DashboardSidePanel />
                 </section>
                 <section className="lg:order-1">
