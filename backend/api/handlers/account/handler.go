@@ -9,7 +9,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/api/requestctx"
 	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
-	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
+	"github.com/koo-arch/adjusta-backend/internal/usecase/account/calendarsetting"
 )
 
 type Handler struct {
@@ -103,7 +103,53 @@ func (ah *Handler) UpdateCalendarSettingHandler() gin.HandlerFunc {
 	}
 }
 
-func toCalendarSettingResponses(settings []usecaseAccount.CalendarSettingOutput) []dto.CalendarSetting {
+func (ah *Handler) GetCandidateSyncSettingHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, _, err := requestctx.UserIDAndEmail(c)
+		if err != nil {
+			respond.Error(c, err, "候補日程同期設定の取得に失敗しました")
+			return
+		}
+		setting, err := ah.calendarSettingsUsecase.GetCandidateSyncSetting(c.Request.Context(), userID)
+		if err != nil {
+			respond.Error(c, err, "候補日程同期設定の取得に失敗しました")
+			return
+		}
+		respond.OK(c, toCandidateSyncSettingResponse(setting))
+	}
+}
+
+func (ah *Handler) SetCandidateSyncSettingHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, email, err := requestctx.UserIDAndEmail(c)
+		if err != nil {
+			respond.Error(c, err, "候補日程同期設定の更新に失敗しました")
+			return
+		}
+		var req dto.CandidateSyncSettingUpdate
+		if err := c.ShouldBindJSON(&req); err != nil || req.Enabled == nil {
+			respond.BadRequest(c, "enabled を指定してください")
+			return
+		}
+		setting, err := ah.calendarSettingsUsecase.SetCandidateSyncSetting(c.Request.Context(), userID, email, *req.Enabled)
+		if err != nil {
+			respond.Error(c, err, "候補日程同期設定の更新に失敗しました")
+			return
+		}
+		respond.OK(c, toCandidateSyncSettingResponse(setting))
+	}
+}
+
+func toCandidateSyncSettingResponse(setting *calendarsetting.CandidateSyncSettingOutput) dto.CandidateSyncSetting {
+	response := dto.CandidateSyncSetting{Enabled: setting.Enabled}
+	if setting.Calendar != nil {
+		calendar := toCalendarSettingResponse(*setting.Calendar)
+		response.Calendar = &calendar
+	}
+	return response
+}
+
+func toCalendarSettingResponses(settings []calendarsetting.CalendarSettingOutput) []dto.CalendarSetting {
 	responses := make([]dto.CalendarSetting, 0, len(settings))
 	for _, setting := range settings {
 		responses = append(responses, toCalendarSettingResponse(setting))
@@ -111,7 +157,7 @@ func toCalendarSettingResponses(settings []usecaseAccount.CalendarSettingOutput)
 	return responses
 }
 
-func toCalendarSettingResponse(setting usecaseAccount.CalendarSettingOutput) dto.CalendarSetting {
+func toCalendarSettingResponse(setting calendarsetting.CalendarSettingOutput) dto.CalendarSetting {
 	return dto.CalendarSetting{
 		ID:                setting.ID,
 		CalendarID:        setting.CalendarID,

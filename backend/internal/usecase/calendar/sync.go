@@ -20,6 +20,10 @@ type CalendarRelation struct {
 }
 
 func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService CalendarService, calendars []*ExternalCalendar, entUser *repoUser.User) ([]*ExternalCalendar, error) {
+	return uc.syncCalendarWithCandidateOption(ctx, calendarService, calendars, entUser, false)
+}
+
+func (uc *SyncUsecase) syncCalendarWithCandidateOption(ctx context.Context, calendarService CalendarService, calendars []*ExternalCalendar, entUser *repoUser.User, enableCandidateSync bool) ([]*ExternalCalendar, error) {
 	syncedCalendars := calendars
 
 	err := uc.tx.Do(ctx, func(repos SyncTxRepositories) error {
@@ -28,7 +32,7 @@ func (uc *SyncUsecase) syncCalendar(ctx context.Context, calendarService Calenda
 			return fmt.Errorf("failed to list user calendar relations: %w", err)
 		}
 
-		adjustaCandidate, err := uc.ensureAdjustaCandidateCalendar(ctx, calendarService, repos, entUser.ID, calendars, relations)
+		adjustaCandidate, err := uc.ensureAdjustaCandidateCalendar(ctx, calendarService, repos, entUser.ID, calendars, relations, enableCandidateSync)
 		if err != nil {
 			return err
 		}
@@ -93,9 +97,14 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 	userID uuid.UUID,
 	calendars []*ExternalCalendar,
 	relations []*CalendarRelation,
+	enableCandidateSync bool,
 ) (*ExternalCalendar, error) {
 	existingRelation := findRelationByRole(relations, value.UserCalendarRoleAdjustaCandidate)
 	syncProposedDates := resolveAdjustaCandidateSyncProposedDates(existingRelation)
+	if enableCandidateSync {
+		enabled := true
+		syncProposedDates = &enabled
+	}
 
 	if existingRelation != nil {
 		current := findIncomingCalendarByID(calendars, existingRelation.GoogleCalendarID)
@@ -112,7 +121,7 @@ func (uc *SyncUsecase) ensureAdjustaCandidateCalendar(
 
 	desired := findAdjustaCandidateCalendar(calendars)
 	if desired == nil {
-		if !shouldCreateAdjustaCandidateCalendar(existingRelation) {
+		if !enableCandidateSync && !shouldCreateAdjustaCandidateCalendar(existingRelation) {
 			return nil, nil
 		}
 

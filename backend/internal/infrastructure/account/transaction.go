@@ -4,7 +4,7 @@ import (
 	"context"
 
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
-	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
+	"github.com/koo-arch/adjusta-backend/internal/usecase/account/calendarsetting"
 )
 
 type CalendarSettingsTransaction struct {
@@ -15,9 +15,9 @@ func NewCalendarSettingsTransaction(uow infraRepository.UnitOfWork) *CalendarSet
 	return &CalendarSettingsTransaction{uow: uow}
 }
 
-func (t *CalendarSettingsTransaction) DoCalendarSettings(ctx context.Context, fn func(repos usecaseAccount.CalendarSettingsRepositories) error) error {
+func (t *CalendarSettingsTransaction) DoCalendarSettings(ctx context.Context, fn func(repos calendarsetting.CalendarSettingsRepositories) error) error {
 	return t.uow.Do(ctx, func(repos infraRepository.Repositories) error {
-		return fn(usecaseAccount.CalendarSettingsRepositories{
+		return fn(calendarsetting.CalendarSettingsRepositories{
 			Calendar:     repos.Calendar,
 			UserCalendar: repos.UserCalendar,
 		})

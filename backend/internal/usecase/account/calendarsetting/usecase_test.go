@@ -1,4 +1,4 @@
-package account
+package calendarsetting
 
 import (
 	"context"
@@ -197,11 +197,11 @@ func newSettingsStore(userID uuid.UUID) (*fakeSettingsStore, *repoUserCalendar.U
 	return store, primary, candidate, reference
 }
 
-func newSettingsUsecase(store *fakeSettingsStore, resyncer CalendarResyncer) *CalendarSettingsUsecase {
-	return NewCalendarSettingsUsecase(
+func newSettingsUsecase(store *fakeSettingsStore, enabler CandidateCalendarEnabler) *Usecase {
+	return NewUsecase(
 		newFakeSettingsRepositories(store),
 		&fakeSettingsTransaction{store: store},
-		resyncer,
+		enabler,
 	)
 }
 
@@ -230,6 +230,47 @@ func TestListCalendarSettingsReturnsJoinedSettings(t *testing.T) {
 	}
 	if store.readCalendarCount != 0 {
 		t.Fatalf("expected list to avoid per-calendar reads, got %d reads", store.readCalendarCount)
+	}
+}
+
+func TestGetCandidateSyncSettingReturnsDisabledBeforeCalendarCreation(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	store := &fakeSettingsStore{calendars: map[uuid.UUID]*repoCalendar.Calendar{}}
+	setting, err := newSettingsUsecase(store, nil).GetCandidateSyncSetting(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if setting.Enabled || setting.Calendar != nil {
+		t.Fatalf("expected disabled setting without calendar, got %+v", setting)
+	}
+}
+
+func TestSetCandidateSyncSettingCreatesCalendarBeforeEnabling(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	store := &fakeSettingsStore{calendars: map[uuid.UUID]*repoCalendar.Calendar{}}
+	calendarID := uuid.New()
+	uc := newSettingsUsecase(store, CandidateCalendarEnablerFunc(func(ctx context.Context, gotUserID uuid.UUID, email string) error {
+		if gotUserID != userID {
+			t.Fatalf("expected user %s, got %s", userID, gotUserID)
+		}
+		store.calendars[calendarID] = &repoCalendar.Calendar{ID: calendarID, GoogleCalendarID: "candidate@example.com", Summary: "Adjusta 候補日程"}
+		store.userCalendars = append(store.userCalendars, &repoUserCalendar.UserCalendar{
+			ID: uuid.New(), UserID: userID, CalendarID: calendarID,
+			Role: value.UserCalendarRoleAdjustaCandidate, IsVisible: true, SyncProposedDates: true,
+		})
+		return nil
+	}))
+
+	setting, err := uc.SetCandidateSyncSetting(context.Background(), userID, "user@example.com", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !setting.Enabled || setting.Calendar == nil {
+		t.Fatalf("expected enabled setting with calendar, got %+v", setting)
 	}
 }
 
@@ -284,7 +325,7 @@ func TestUpdateCalendarSettingResyncsWhenSyncEnabled(t *testing.T) {
 	store, _, candidate, _ := newSettingsStore(userID)
 
 	resyncCalls := 0
-	uc := newSettingsUsecase(store, CalendarResyncerFunc(func(ctx context.Context, resyncUserID uuid.UUID, email string) error {
+	uc := newSettingsUsecase(store, CandidateCalendarEnablerFunc(func(ctx context.Context, resyncUserID uuid.UUID, email string) error {
 		resyncCalls++
 		if resyncUserID != userID {
 			t.Fatalf("expected resync for user %s, got %s", userID, resyncUserID)
@@ -315,7 +356,7 @@ func TestUpdateCalendarSettingSkipsResyncWithoutTransition(t *testing.T) {
 	candidate.SyncProposedDates = true
 
 	resyncCalls := 0
-	uc := newSettingsUsecase(store, CalendarResyncerFunc(func(ctx context.Context, resyncUserID uuid.UUID, email string) error {
+	uc := newSettingsUsecase(store, CandidateCalendarEnablerFunc(func(ctx context.Context, resyncUserID uuid.UUID, email string) error {
 		resyncCalls++
 		return nil
 	}))
@@ -341,25 +382,25 @@ func TestUpdateCalendarSettingSkipsResyncWithoutTransition(t *testing.T) {
 	}
 }
 
-func TestUpdateCalendarSettingSucceedsWhenResyncFails(t *testing.T) {
+func TestUpdateCalendarSettingKeepsDisabledWhenCandidateEnableFails(t *testing.T) {
 	t.Parallel()
 
 	userID := uuid.New()
 	store, _, candidate, _ := newSettingsStore(userID)
 
-	uc := newSettingsUsecase(store, CalendarResyncerFunc(func(ctx context.Context, resyncUserID uuid.UUID, email string) error {
+	uc := newSettingsUsecase(store, CandidateCalendarEnablerFunc(func(ctx context.Context, resyncUserID uuid.UUID, email string) error {
 		return errors.New("google api unavailable")
 	}))
 
 	enabled := true
-	updated, err := uc.UpdateCalendarSetting(context.Background(), userID, candidate.ID, "user@example.com", CalendarSettingUpdateRequest{
+	_, err := uc.UpdateCalendarSetting(context.Background(), userID, candidate.ID, "user@example.com", CalendarSettingUpdateRequest{
 		SyncProposedDates: &enabled,
 	})
-	if err != nil {
-		t.Fatalf("expected update to succeed despite resync failure, got %v", err)
+	if err == nil {
+		t.Fatal("expected candidate enable failure")
 	}
-	if !updated.SyncProposedDates {
-		t.Fatal("expected sync_proposed_dates to be enabled")
+	if candidate.SyncProposedDates {
+		t.Fatal("expected sync_proposed_dates to remain disabled")
 	}
 }
 

@@ -24,3 +24,8 @@ export interface CalendarSettingUpdate {
     is_visible?: boolean;
     sync_proposed_dates?: boolean;
 }
+
+export interface CandidateSyncSetting {
+    enabled: boolean;
+    calendar: CalendarSetting | null;
+}

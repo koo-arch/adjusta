@@ -49,13 +49,26 @@ func (uc *SyncUsecase) ResyncGoogleCalendars(ctx context.Context, userID uuid.UU
 	return uc.SyncGoogleCalendars(ctx, userID, email)
 }
 
+// EnableAdjustaCandidateCalendar は候補日程用カレンダーを作成または復元し、
+// Google 側の操作が成功した後に候補日程同期を有効化する。
+func (uc *SyncUsecase) EnableAdjustaCandidateCalendar(ctx context.Context, userID uuid.UUID, email string) error {
+	if uc.calendarCache != nil {
+		uc.calendarCache.Invalidate(userID)
+	}
+	_, err := uc.syncGoogleCalendars(ctx, userID, email, true)
+	return err
+}
+
 func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) ([]*ExternalCalendar, error) {
 	if uc.calendarCache != nil {
 		if calendars, ok := uc.calendarCache.Get(userID); ok {
 			return calendars, nil
 		}
 	}
+	return uc.syncGoogleCalendars(ctx, userID, email, false)
+}
 
+func (uc *SyncUsecase) syncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string, enableCandidateSync bool) ([]*ExternalCalendar, error) {
 	entUser, err := uc.userRepo.Read(ctx, userID)
 	if err != nil {
 		log.Printf("failed to get user info for account: %s, %v", email, err)
@@ -83,7 +96,7 @@ func (uc *SyncUsecase) SyncGoogleCalendars(ctx context.Context, userID uuid.UUID
 		return nil, internalErrors.NormalizeAPIError(err, "Googleカレンダー情報の取得に失敗しました")
 	}
 
-	calendars, err = uc.syncCalendar(ctx, calendarService, calendars, entUser)
+	calendars, err = uc.syncCalendarWithCandidateOption(ctx, calendarService, calendars, entUser, enableCandidateSync)
 	if err != nil {
 		log.Printf("failed to sync calendars for account: %s, error: %v", entUser.Email, err)
 		return nil, internalErrors.NewInternalError(internalErrors.InternalErrorMessage)

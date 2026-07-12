@@ -391,12 +391,19 @@ Google Calendar との同期は本画面アクセス時に行う(要件 12.3)。
 
 **3. カレンダー設定**(この画面のコア)
 
-calendars × user_calendars の一覧。各行に以下を表示する:
+設定を次の3項目に分けて表示する:
+
+1. **候補日程の同期**: 専用カレンダーへの仮予定同期を切り替える
+2. **確定予定の登録先**: 今後確定する予定の登録先を選ぶ。Adjusta 候補用カレンダーと祝日カレンダーは候補に含めない
+3. **表示するカレンダー**: calendars × user_calendars の一覧から予定確認への表示有無を切り替える
+
+カレンダー一覧の各行に以下を表示する:
 
 - カレンダー名(summary)/ タイムゾーン
 - **role バッジ**: メイン(確定予定の登録先)/ Adjusta 候補用 / 参照
 - **is_visible トグル**: アプリの予定確認(ダッシュボード・作成画面のカレンダー)に表示するか
-- **候補同期トグル**(sync_proposed_dates): **role = adjusta_candidate の行にのみ表示**(db-design 5.5 のとおり他の行では意味を持たない)
+- **候補同期トグル**(sync_proposed_dates): 独立した「候補日程の同期」項目に表示する。他のカレンダー行には表示しない
+- 専用カレンダー未作成時も候補同期設定を表示し、初期値は OFF とする。ON にした時点で専用カレンダーを作成する
 
 操作仕様:
 
@@ -404,6 +411,7 @@ calendars × user_calendars の一覧。各行に以下を表示する:
 - **Adjusta 候補用カレンダーは自動管理**: Adjusta が自動作成するもので、名称変更・削除・付け替えはできない旨を説明表示する
 - **候補同期トグルの挙動説明を UI に明記**(db-design 5.5 補足準拠): ON→OFF「専用カレンダーは削除されません(同期を停止します)」/ OFF→ON「専用カレンダーが存在しない場合は再作成されます」
 - トグル・付け替えの変更は楽観更新とし、失敗時はロールバック + エラートースト
+- イベント作成中に候補同期を案内する場合は、入力内容を失わないよう画面遷移せずその場で有効化できるようにする
 
 **4. 将来拡張(UI は置かない)**
 
@@ -426,6 +434,8 @@ calendars × user_calendars の一覧。各行に以下を表示する:
 | --- | --- |
 | `GET /api/user-calendars` | ユーザーのカレンダー一覧(calendar 情報 + role + is_visible + sync_proposed_dates) |
 | `PATCH /api/user-calendars/:id` | is_visible / sync_proposed_dates の変更、primary の付け替え(旧 primary の降格を含む)。sync_proposed_dates OFF→ON 時は Adjusta 専用カレンダーの存在確認・再作成を行う |
+| `GET /api/calendar-settings/candidate-sync` | 専用カレンダー未作成を含む候補予定同期設定の取得 |
+| `PUT /api/calendar-settings/candidate-sync` | 候補予定同期の有効化・無効化。有効化時に専用カレンダーを作成または再作成する |
 
 ---
 
@@ -458,6 +468,7 @@ calendars × user_calendars の一覧。各行に以下を表示する:
 | 検索・絞り込み(要件 8.4 の一部、要件 9.3) | `/events` 内 | ステータス・キーワードによる絞り込み。バックエンドには `GET /api/event/draft/search` が既に存在する。**ステータス絞り込みタブとタイトル検索は実装済み(2026-07-10)**。場所・説明・期間の絞り込みは未対応のまま |
 | ~~一覧のページネーション(要件 9.3)~~ | `/events` 内 | **解消済み(2026-07-10)**: バックエンド実装(2026-07-09。page/per_page 方式、既定 per_page=20)に UI が追随。`PaginationControls`(`src/components/common/pagination/`)+ URL クエリ `?page=` |
 | テンプレート保存 | メール文面作成画面内 | EmailTemplate エンティティ(DB 初期スコープ外) |
+| カレンダー権限による登録先制御 | `/account` | Google Calendar API の `accessRole` を保持し、確定予定の登録先には `writer` 以上だけを表示する。現状は Adjusta 専用カレンダーと Google 公式祝日カレンダーを除外 |
 
 ---
 

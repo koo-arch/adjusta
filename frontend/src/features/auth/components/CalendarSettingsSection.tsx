@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useAccounts } from '@/features/auth/hooks/useAccounts';
 import { useCalendarSettings } from '@/features/auth/hooks/useCalendarSettings';
+import { useCandidateSyncSetting } from '@/features/auth/hooks/useCandidateSyncSetting';
 import { useUpdateCalendarSetting } from '@/features/auth/hooks/useUpdateCalendarSetting';
 import { isGoogleReauthorizationRequiredError } from '@/lib/api/errors';
 import type { CalendarSetting, UserCalendarRole } from '@/features/auth/types';
@@ -39,18 +40,23 @@ const sortSettings = (settings: CalendarSetting[]): CalendarSetting[] =>
         return a.summary.localeCompare(b.summary, 'ja');
     });
 
+// 現在の API は accessRole を返さないため、Google 公式の祝日カレンダー ID を判定する。
+const isGoogleHolidayCalendar = (setting: CalendarSetting) =>
+    setting.google_calendar_id.includes('#holiday@group.v.calendar.google.com');
+
+const canBePrimary = (setting: CalendarSetting) =>
+    setting.role !== 'adjusta_candidate' && !isGoogleHolidayCalendar(setting);
+
 interface CalendarSettingRowProps {
     setting: CalendarSetting;
     disabled: boolean;
     onToggleVisible: (checked: boolean) => void;
-    onToggleSync: (checked: boolean) => void;
 }
 
 const CalendarSettingRow: React.FC<CalendarSettingRowProps> = ({
     setting,
     disabled,
     onToggleVisible,
-    onToggleSync,
 }) => {
     const isCandidate = setting.role === 'adjusta_candidate';
     const badge = roleBadges[setting.role];
@@ -58,21 +64,9 @@ const CalendarSettingRow: React.FC<CalendarSettingRowProps> = ({
     return (
         <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
-                <RadioGroupItem
-                    value={setting.id}
-                    id={`primary-${setting.id}`}
-                    disabled={disabled || isCandidate}
-                    aria-label={`「${setting.summary}」を確定予定の登録先にする`}
-                    className="mt-1 shrink-0"
-                />
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <label
-                            htmlFor={`primary-${setting.id}`}
-                            className="break-words font-medium"
-                        >
-                            {setting.summary}
-                        </label>
+                        <p className="break-words font-medium">{setting.summary}</p>
                         <Badge className={badge.className}>{badge.label}</Badge>
                     </div>
                     {setting.timezone && (
@@ -80,7 +74,7 @@ const CalendarSettingRow: React.FC<CalendarSettingRowProps> = ({
                     )}
                     {isCandidate && (
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Adjusta が候補日程の仮予定用に自動作成・管理するカレンダーです。名称の変更・削除や、確定予定の登録先への指定はできません。
+                            候補日程の仮予定用に自動管理します。
                         </p>
                     )}
                 </div>
@@ -97,26 +91,6 @@ const CalendarSettingRow: React.FC<CalendarSettingRowProps> = ({
                         onCheckedChange={onToggleVisible}
                     />
                 </div>
-                {isCandidate && (
-                    <div className="sm:max-w-64">
-                        <div className="flex items-center justify-between gap-3 sm:justify-end">
-                            <label htmlFor={`sync-${setting.id}`} className="text-sm">
-                                候補日程を同期
-                            </label>
-                            <Switch
-                                id={`sync-${setting.id}`}
-                                checked={setting.sync_proposed_dates}
-                                disabled={disabled}
-                                onCheckedChange={onToggleSync}
-                            />
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            {setting.sync_proposed_dates
-                                ? 'オフにすると候補日程の同期を停止します(専用カレンダーは削除されません)。'
-                                : 'オンにすると候補日程の同期を再開します(専用カレンダーがない場合は再作成されます)。'}
-                        </p>
-                    </div>
-                )}
             </div>
         </li>
     );
@@ -126,19 +100,21 @@ const CalendarSettingsSection = () => {
     const { calendarSettings, isLoading, error, refetch } = useCalendarSettings();
     const { error: accountError } = useAccounts();
     const { update } = useUpdateCalendarSetting();
+    const candidateSync = useCandidateSyncSetting();
 
     // 再認可が必要な間は設定変更を無効化し、Google 連携セクションの再認可導線を優先する(screen-design 5.8)
     const reauthRequired = isGoogleReauthorizationRequiredError(accountError);
 
     const settings = calendarSettings ? sortSettings(calendarSettings) : [];
     const primaryId = settings.find((setting) => setting.role === 'primary')?.id ?? '';
+    const primaryChoices = settings.filter(canBePrimary);
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>カレンダー設定</CardTitle>
                 <CardDescription>
-                    アプリに表示するカレンダーと、確定した予定の登録先(メイン)を設定します。登録先の変更は今後作成するイベントに適用されます(既存イベントの登録先は変わりません)。
+                    候補日程の同期、確定予定の登録先、表示するカレンダーを設定します。
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -148,6 +124,29 @@ const CalendarSettingsSection = () => {
                         連携」から再認可してください。
                     </p>
                 )}
+                <section className="border-b border-border py-4 first:pt-0">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h3 className="font-medium">候補日程の同期</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            専用カレンダーに仮予定を表示します。
+                        </p>
+                    </div>
+                    {candidateSync.isLoading ? (
+                        <Skeleton className="h-6 w-11 shrink-0" />
+                    ) : (
+                        <Switch
+                            aria-label="候補日程の Google Calendar 同期"
+                            checked={candidateSync.setting?.enabled ?? false}
+                            disabled={reauthRequired || candidateSync.isUpdating}
+                            onCheckedChange={candidateSync.setEnabled}
+                        />
+                    )}
+                    {candidateSync.error && (
+                        <p className="text-sm text-destructive">同期設定を取得できませんでした。</p>
+                    )}
+                    </div>
+                </section>
                 {isLoading ? (
                     <div className="space-y-4">
                         <Skeleton className="h-14 w-full" />
@@ -174,13 +173,28 @@ const CalendarSettingsSection = () => {
                         </Button>
                     </div>
                 ) : (
+                    <>
+                    <section className="border-b border-border py-4">
+                        <h3 className="font-medium">確定予定の登録先</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">今後確定する予定を追加するカレンダーです。</p>
                     <RadioGroup
                         value={primaryId}
                         disabled={reauthRequired}
                         onValueChange={(id) => update({ id, payload: { role: 'primary' } })}
-                        className="block"
+                        className="mt-3 space-y-2"
                     >
-                        <ul className="divide-y divide-border">
+                        {primaryChoices.map((setting) => (
+                            <label key={setting.id} htmlFor={`primary-${setting.id}`} className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 text-sm">
+                                <RadioGroupItem value={setting.id} id={`primary-${setting.id}`} />
+                                <span>{setting.summary}</span>
+                            </label>
+                        ))}
+                    </RadioGroup>
+                    </section>
+                    <section className="pt-4">
+                        <h3 className="font-medium">表示するカレンダー</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">予定確認に表示するカレンダーを選びます。</p>
+                        <ul className="mt-2 divide-y divide-border">
                             {settings.map((setting) => (
                                 <CalendarSettingRow
                                     key={setting.id}
@@ -189,16 +203,11 @@ const CalendarSettingsSection = () => {
                                     onToggleVisible={(checked) =>
                                         update({ id: setting.id, payload: { is_visible: checked } })
                                     }
-                                    onToggleSync={(checked) =>
-                                        update({
-                                            id: setting.id,
-                                            payload: { sync_proposed_dates: checked },
-                                        })
-                                    }
                                 />
                             ))}
                         </ul>
-                    </RadioGroup>
+                    </section>
+                    </>
                 )}
             </CardContent>
         </Card>

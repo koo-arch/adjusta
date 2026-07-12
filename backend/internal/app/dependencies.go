@@ -1,11 +1,9 @@
 package app
 
 import (
-	"context"
 	"time"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/google/uuid"
 	apiCookie "github.com/koo-arch/adjusta-backend/api/cookie"
 	accountHandlers "github.com/koo-arch/adjusta-backend/api/handlers/account"
 	eventHandlers "github.com/koo-arch/adjusta-backend/api/handlers/events"
@@ -24,6 +22,7 @@ import (
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	infraRepository "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository"
 	usecaseAccount "github.com/koo-arch/adjusta-backend/internal/usecase/account"
+	"github.com/koo-arch/adjusta-backend/internal/usecase/account/calendarsetting"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
 	usecaseCalendar "github.com/koo-arch/adjusta-backend/internal/usecase/calendar"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
@@ -77,16 +76,13 @@ func buildDependencies(client *ent.Client, cfg config.Config) *dependencies {
 		infraCalendar.NewCalendarSyncTransaction(uow),
 		calendarCache,
 	)
-	calendarSettingsUsecase := usecaseAccount.NewCalendarSettingsUsecase(
-		usecaseAccount.CalendarSettingsRepositories{
+	calendarSettingsUsecase := calendarsetting.NewUsecase(
+		calendarsetting.CalendarSettingsRepositories{
 			Calendar:     repos.Calendar,
 			UserCalendar: repos.UserCalendar,
 		},
 		infraAccount.NewCalendarSettingsTransaction(uow),
-		usecaseAccount.CalendarResyncerFunc(func(ctx context.Context, userID uuid.UUID, email string) error {
-			_, err := calendarSyncUsecase.ResyncGoogleCalendars(ctx, userID, email)
-			return err
-		}),
+		calendarSyncUsecase,
 	)
 	eventUsecase := usecaseEvents.NewUsecase(
 		usecaseEvents.EventTxRepositories{

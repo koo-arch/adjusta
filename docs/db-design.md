@@ -285,8 +285,10 @@ google_calendar_id は単独 UNIQUE とする。
 * role = adjusta_candidate は、Adjusta が自動作成する候補予定用カレンダーを表す。
 * role = reference は、空き時間確認・予定確認に利用する参照用カレンダーを表す。
 * sync_proposed_dates は、role = adjusta_candidate の行でのみ意味を持つ。
+* 新規ユーザーの初期状態は同期無効とし、有効化するまで Google Calendar 側に Adjusta 専用カレンダーを作成しない。
+* 専用カレンダー未作成時は adjusta_candidate の user_calendars 行自体が存在せず、この状態も同期無効として扱う。
 * sync_proposed_dates を true から false に変更しても、Adjusta 専用カレンダー自体は即時削除しない。
-* sync_proposed_dates を false から true に変更した時点で、Adjusta 専用カレンダーが存在しなければ作成または再作成する。
+* 候補予定同期を有効にした時点で、Adjusta 専用カレンダーが存在しなければ作成または再作成し、Google 側の作成に失敗した場合は有効状態を保存しない。
 * user_calendars は FK 以外に業務属性を持つため、明示的なテーブルとして定義する。
 
 ---
@@ -553,7 +555,7 @@ user_calendars.sync_proposed_dates = false の場合、以後は Google Calendar
 
 user_calendars.sync_proposed_dates の ON/OFF 切り替えだけを理由に、既存の候補予定を Google Calendar から即時削除しない。
 
-user_calendars.sync_proposed_dates を false から true に変更したとき、Adjusta 専用カレンダーが存在しなければその時点で作成または再作成する。
+候補予定同期を有効にしたとき、Adjusta 専用カレンダーが存在しなければその時点で作成または再作成する。Google 側の作成に失敗した場合は同期無効のままとする。
 
 既存の候補予定を Google Calendar から削除する場合は、設定変更ではなく明示的なユーザー操作で行う。
 
@@ -669,6 +671,7 @@ events.confirmed_date_id は proposed_dates.id を参照する。
 * 複数ユーザー共同編集
 * 組織・チーム利用
 * 外部カレンダー連携
+* Google Calendar API の `accessRole` を calendars または user_calendars に保持し、確定予定の登録先を `writer` 以上のカレンダーに限定する
 
 ---
 
