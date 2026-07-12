@@ -1,19 +1,31 @@
 'use client'
-import React from 'react';
+import React, { useId } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
     descriptionAtomFamily,
     locationAtomFamily,
     titleAtomFamily,
 } from '@/features/events/store/calendar';
-import Card from '@/components/Card';
-import TextField from '@/components/TextField';
-import TextArea from '@/components/TextArea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { clearEditedEventFieldStateAtomFamily, mergedEventFormErrorsAtomFamily } from '@/features/events/store/errors';
 
 interface EventBasicFormProps {
     formScope: string;
 }
+
+const FieldError: React.FC<{ id: string; message?: string }> = ({ id, message }) => {
+    if (!message) {
+        return null;
+    }
+    return (
+        <p id={id} className="text-sm text-destructive">
+            {message}
+        </p>
+    );
+};
 
 const EventBasicForm: React.FC<EventBasicFormProps> = ({
     formScope,
@@ -23,44 +35,71 @@ const EventBasicForm: React.FC<EventBasicFormProps> = ({
     const [location, setLocation] = useAtom(locationAtomFamily(formScope));
     const errors = useAtomValue(mergedEventFormErrorsAtomFamily(formScope));
     const clearEditedFieldState = useSetAtom(clearEditedEventFieldStateAtomFamily(formScope));
+    const titleId = useId();
+    const locationId = useId();
+    const descriptionId = useId();
 
     return (
-        <Card variant="outlined" background="inherit" className="w-full">
-            <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300">基本情報</h2>
-            <p className="text-sm text-gray-500 mb-4">日程調整するイベントのタイトルや詳細を入力してください</p>
-            <div className="space-y-6">
-                <TextField
-                    label="タイトル"
+        <section className="space-y-4">
+            <div>
+                <h2 className="text-lg font-bold leading-snug tracking-normal text-gray-900">基本情報</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    日程調整するイベントのタイトルや詳細を入力してください
+                </p>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor={titleId}>
+                    タイトル
+                    <span className="ml-1 text-xs font-normal text-destructive">必須</span>
+                </Label>
+                <Input
+                    id={titleId}
                     value={title}
-                    error={!!errors.title}
-                    helperText={errors.title}
+                    placeholder="例: チーム定例MTG"
+                    aria-invalid={!!errors.title}
+                    aria-describedby={errors.title ? `${titleId}-error` : undefined}
+                    className={cn(errors.title && 'border-destructive focus-visible:ring-destructive')}
                     onChange={(e) => {
                         setTitle(e.target.value);
                         clearEditedFieldState('title');
                     }}
                 />
-                <TextField
-                    label="場所"
+                <FieldError id={`${titleId}-error`} message={errors.title} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor={locationId}>場所</Label>
+                <Input
+                    id={locationId}
                     value={location}
-                    error={!!errors.location}
-                    helperText={errors.location}
+                    placeholder="例: 会議室A / オンライン"
+                    aria-invalid={!!errors.location}
+                    aria-describedby={errors.location ? `${locationId}-error` : undefined}
+                    className={cn(errors.location && 'border-destructive focus-visible:ring-destructive')}
                     onChange={(e) => {
                         setLocation(e.target.value);
                         clearEditedFieldState('location');
                     }}
                 />
-                <TextArea
-                    label="説明"
+                <FieldError id={`${locationId}-error`} message={errors.location} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor={descriptionId}>説明</Label>
+                <Textarea
+                    id={descriptionId}
                     value={description}
-                    error={!!errors.description}
-                    helperText={errors.description}
+                    rows={4}
+                    placeholder="イベントの目的や補足があれば入力"
+                    aria-invalid={!!errors.description}
+                    aria-describedby={errors.description ? `${descriptionId}-error` : undefined}
+                    className={cn(errors.description && 'border-destructive focus-visible:ring-destructive')}
                     onChange={(e) => {
                         setDescription(e.target.value);
                         clearEditedFieldState('description');
                     }}
                 />
+                <FieldError id={`${descriptionId}-error`} message={errors.description} />
             </div>
-        </Card>
+        </section>
     );
 }
 

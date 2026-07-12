@@ -47,3 +47,12 @@ export const buildSendProposedDates = (proposedDates: ProposedDate[]): SendPropo
         end: date.end,
         priority: index + 1,
     }));
+
+// 「日時を追加」の既定値: 次の正時から 1 時間
+export const buildDefaultCandidateSpan = (): { start: Date; end: Date } => {
+    const start = new Date();
+    start.setMinutes(0, 0, 0);
+    start.setHours(start.getHours() + 1);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    return { start, end };
+};

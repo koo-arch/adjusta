@@ -1,36 +1,41 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
+import { GripVertical } from 'lucide-react';
 
 interface SortableItemProps {
     id: string;
     children: React.ReactNode;
-    index?: number;
-    enableTopHighlight?: boolean;
+    disabled?: boolean;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, children, index, enableTopHighlight }) => {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+// 行全体がドラッグ対象(マウスは即、タッチは長押しで発動)。
+// グリップアイコンは「掴める」ことを示す目印として置く
+const SortableItem: React.FC<SortableItemProps> = ({ id, children, disabled }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: isDragging ? 'none' : transition,
     };
 
-    const baseStyle = `px-4 py-2 mb-3 text-white rounded-md shadow-md transition duration-300 ease-in-out cursor-grab`
-    const highlightStyle = enableTopHighlight && index === 0 
-        ? 'bg-orange-400 border-orange-300 hover:bg-orange-700' 
-        : 'bg-indigo-400 border-indigo-300 hover:bg-indigo-700';
-    
-
     return (
-        <div ref={setNodeRef}
+        <div
+            ref={setNodeRef}
             style={style}
-            className={`${baseStyle} ${highlightStyle}`}
+            className={cn(
+                'mb-2 flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 shadow-sm',
+                !disabled && 'cursor-grab',
+                isDragging && 'z-10 cursor-grabbing opacity-80 shadow-md',
+            )}
             {...attributes}
-            {...listeners}
+            {...(disabled ? {} : listeners)}
         >
-            {children}
+            {!disabled && (
+                <GripVertical aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            )}
+            <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
 };

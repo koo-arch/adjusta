@@ -8,13 +8,13 @@ export const StyleWrapper = styled.div`
     .fc .fc-col-header-cell {
         font-size: 0.75rem;
         font-weight: normal;
-        color: #b6b5b3;
+        color: #9ca3af;
         border: none;
     }
 
     .fc .fc-toolbar-title {
         font-size: 1rem;
-        color: #37362f;
+        color: #374151;
     }
 
     .fc .fc-button-primary {
@@ -35,24 +35,24 @@ export const StyleWrapper = styled.div`
 
     .fc .fc-prev-button {
         background-color: #ffffff00;
-        color: #acaba9;
+        color: #9ca3af;
     }
 
     .fc .fc-next-button {
         background-color: #ffffff00;
-        color: #acaba9;
+        color: #9ca3af;
     }
 
     .fc .fc-prev-button:hover,
     .fc .fc-next-button:hover {
-        background-color: #f0f0f0;
-        color: #acaba9;
+        background-color: #f3f4f6;
+        color: #9ca3af;
     }
 
     .fc .fc-prev-button:active,
     .fc .fc-next-button:active {
-        background-color: #f0f0f0;
-        color: #acaba9;
+        background-color: #f3f4f6;
+        color: #9ca3af;
     }
 
     .fc .fc-scrollgrid {
@@ -71,17 +71,13 @@ export const StyleWrapper = styled.div`
         font-size: 0.75rem;
     }
 
-    .fc .fc-day-today {
-        background-color: #ffffff00;
-    }
-
     .fc .fc-timegrid-axis-cushion {
-        color: #acaba9;
+        color: #9ca3af;
     }
     
     .fc .fc-timegrid-slot-label {
         font-size: 0.75rem;
-        color: #acaba9;
+        color: #9ca3af;
     }
 `;
 
@@ -92,7 +88,7 @@ export const CircleNumber = styled.div`
   border-radius: 50%;
   flex-flow: column;
   vertical-align: top;
-  background: #eb5757;
+  background: #6366f1;
   color: white;
   width: 1rem; /* 16px */
   height: 1rem; /* 16px */
@@ -114,7 +110,7 @@ export const CircleToday = styled.div`
   border-radius: 10%;
   flex-flow: column;
   vertical-align: top;
-  background: #eb5757;
+  background: #6366f1;
   color: white;
   width: 2.5rem; /* 60px */
   height: 0.75rem; /* 20px */

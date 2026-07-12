@@ -4,7 +4,6 @@ import Providers from "./providers";
 import AuthErrorModal from "@/features/auth/components/AuthErrorModal";
 import UserMenu from "@/features/auth/components/UserMenu";
 import UserMenuSkeleton from "@/features/auth/components/UserMenuSkeleton";
-import "react-datepicker/dist/react-datepicker.css";
 
 export default function AppLayout({
   children,

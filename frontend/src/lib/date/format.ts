@@ -17,3 +17,15 @@ export const formatJaDateSpan = (start: Date, end: Date) => {
     }
     return `${formatJaDate(start)} - ${formatJaDate(end)}`;
 }
+
+export const formatJaDateOnly = (date: Date) => {
+    return format(date, 'M月d日(E)', { locale: ja });
+}
+
+// 時刻のみの範囲表示。日跨ぎは終了側に日付を含める
+export const formatJaTimeSpan = (start: Date, end: Date) => {
+    if (isSameDay(start, end)) {
+        return `${format(start, 'H:mm')} - ${format(end, 'H:mm')}`;
+    }
+    return `${format(start, 'H:mm')} - ${formatJaDate(end)}`;
+}

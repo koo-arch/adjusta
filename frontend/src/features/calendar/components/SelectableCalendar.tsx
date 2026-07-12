@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useRef } from 'react';
+import { toast } from 'react-toastify';
 import type { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import Calendar from '@/features/calendar/components/Calendar';
@@ -28,11 +29,31 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
     selectedEvents,
     editingEvent,
 }:SelectableCalendarProps<TDate>) => {
+    // モバイルは週ビュー(7列)が窮屈なため日ビューで開始する。マウント時に一度だけ判定
+    // (FullCalendar は SSR ではほぼ描画されないため、サーバーとの差異は実害なし)
+    const [initialView] = useState<'timeGridWeek' | 'timeGridDay'>(() =>
+        typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+            ? 'timeGridDay'
+            : 'timeGridWeek',
+    );
+    // 現在時刻(赤線)が見える位置から開始する。少し手前から表示するため 2 時間戻す
+    const [scrollTime] = useState(() => {
+        const hour = Math.max(new Date().getHours() - 2, 0);
+        return `${String(hour).padStart(2, '0')}:00`;
+    });
     const [clickedEvent, setClickedEvent] = useState<EventImpl>();
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
 
     const handleDateSelect = (e: DateSelectArg) => {
+        // 月ビューの選択は全日(時刻なし)になるため候補にしない
+        if (e.allDay) {
+            toast.info('月ビューでは時刻を選択できません。週ビューに切り替えるか「日時を追加」を使ってください', {
+                toastId: 'all-day-select-info',
+            });
+            return;
+        }
+
         const newDate = {
             id : new Date().getTime().toString(),
             start: e.start,
@@ -97,12 +118,16 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
 
     return (
         <div>
-            <Calendar 
-                initialView="timeGridWeek"
+            <Calendar
+                initialView={initialView}
+                // 固定高さで内部スクロールにし、現在時刻基準で開始する
+                height="70vh"
+                scrollTime={scrollTime}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
-                    right: '',
+                    // 離れた日付の候補選択のために週/月ビューを切替可能にする(ui-review P2 #7)
+                    right: 'timeGridWeek,dayGridMonth',
                 }}
                 select={handleDateSelect}
                 selectedEvents={selectedEvents}

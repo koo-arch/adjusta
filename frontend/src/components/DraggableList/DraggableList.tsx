@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { DndContext, closestCenter, MouseSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from './SortableItem';
 
@@ -9,7 +9,8 @@ interface DraggableListProps<T> {
     onReorder: (newItems: T[]) => void;
     renderItem: (item: T, index: number) => React.ReactNode;
     getKey: (item: T) => string;
-    enableTopHighlight?: boolean;
+    // ドラッグを無効にする行(例: インライン編集中の行)
+    disabledIds?: string[];
 }
 
 const DraggableList = <T extends unknown>({
@@ -17,7 +18,7 @@ const DraggableList = <T extends unknown>({
     onReorder,
     renderItem,
     getKey,
-    enableTopHighlight,
+    disabledIds,
 }: DraggableListProps<T>) => {
 
     // どの要素がドラッグされているかを管理するための変数
@@ -37,24 +38,30 @@ const DraggableList = <T extends unknown>({
         }
     }
 
+    // マウスは 5px 移動で即ドラッグ、タッチは長押し(250ms)で発動しスクロールと衝突させない
     const mouseSensor = useSensor(MouseSensor, {
         activationConstraint: {
             distance: 5,
         },
     });
+    const touchSensor = useSensor(TouchSensor, {
+        activationConstraint: {
+            delay: 250,
+            tolerance: 8,
+        },
+    });
     const keyboardSensor = useSensor(KeyboardSensor);
-    const sensors = useSensors(mouseSensor, keyboardSensor);
+    const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
 
     return (
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
             <SortableContext items={items.map(getKey)} strategy={verticalListSortingStrategy}>
                 {items.map((item, index) => (
-                    <SortableItem 
+                    <SortableItem
                         key={getKey(item)}
                         id={getKey(item)}
-                        index={index}
-                        enableTopHighlight={enableTopHighlight}
+                        disabled={disabledIds?.includes(getKey(item))}
                     >
                         {renderItem(item, index)}
                     </SortableItem>
