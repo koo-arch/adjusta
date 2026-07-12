@@ -190,9 +190,9 @@
 
 ### 3.7 アカウント(`features/auth/`)
 
-#### 課題
+#### 課題【解消済み】
 
-- アバター・名前・メールの表示のみで操作が何もない。screen-design 5.8 が定義するカレンダー設定(role / is_visible / sync_proposed_dates)は未実装(既知の移行課題 9.5、バックエンド API も未整備)
+- **対応済み(2026-07-12)**: プロフィール、Google 連携状態、ログアウト、カレンダー表示設定、確定予定の登録先、候補日程同期を実装。候補日程同期は専用 API から未作成状態でも有効化できる
 
 #### 改善案
 
@@ -213,8 +213,8 @@
 
 | 優先 | 項目 | 目的 | 関連ドキュメント |
 | --- | --- | --- | --- |
-| 1 | カレンダー設定一覧取得 API | `/account` で role / is_visible / sync_proposed_dates を表示する | requirements 5.7 / screen-design 5.8 |
-| 2 | カレンダー設定更新 API | 候補日程を Google Calendar に表示するか、確定予定の登録先を変更できるようにする | requirements 5.7 / screen-design 9.5 |
+| 1 | ~~カレンダー設定一覧取得 API~~ **対応済み** | `/account` で role / is_visible / sync_proposed_dates を表示する | requirements 5.7 / screen-design 5.8 |
+| 2 | ~~カレンダー設定更新 API~~ **対応済み** | 候補日程を Google Calendar に表示するか、確定予定の登録先を変更できるようにする | requirements 5.7 / screen-design 9.5 |
 | 3 | イベント一覧 pagination | 件数増加に備え、一覧画面のデータ取得契約を固定する | requirements 9.3 / ui-review 3.3 |
 | 4 | イベント検索・ステータス絞り込み API | 一覧 UI の検索・絞り込み導線の前提を作る | requirements 9.3 / ui-review 3.3 |
 

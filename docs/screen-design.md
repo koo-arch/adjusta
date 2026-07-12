@@ -433,7 +433,7 @@ Google Calendar との同期は本画面アクセス時に行う(要件 12.3)。
 | API | 内容 |
 | --- | --- |
 | `GET /api/user-calendars` | ユーザーのカレンダー一覧(calendar 情報 + role + is_visible + sync_proposed_dates) |
-| `PATCH /api/user-calendars/:id` | is_visible / sync_proposed_dates の変更、primary の付け替え(旧 primary の降格を含む)。sync_proposed_dates OFF→ON 時は Adjusta 専用カレンダーの存在確認・再作成を行う |
+| `PATCH /api/user-calendars/:id` | is_visible の変更、primary の付け替え(旧 primary の降格を含む) |
 | `GET /api/calendar-settings/candidate-sync` | 専用カレンダー未作成を含む候補予定同期設定の取得 |
 | `PUT /api/calendar-settings/candidate-sync` | 候補予定同期の有効化・無効化。有効化時に専用カレンダーを作成または再作成する |
 
@@ -498,7 +498,7 @@ Google Calendar との同期は本画面アクセス時に行う(要件 12.3)。
 
 **2026-07-10 更新**: ステータス絞り込みタブとタイトル検索窓を `/events` に先行実装した(`ui-review.md` P2 #10。search API の `status` / `title` パラメータを利用)。場所・説明・期間の絞り込みは引き続き 8章の将来拡張のまま。なお `title` はバックエンドで `Contains`(英字の大文字小文字を区別)のため、必要になれば ContainsFold 化を検討する。
 
-### 9.5 カレンダー設定 UI・API の未整備
+### 9.5 カレンダー設定 UI・API の未整備【解消済み】
 
 user_calendars の role / is_visible / sync_proposed_dates は DB 設計(`db-design.md` 5.5)に存在するが、これらを変更する画面・API は未整備。
 
