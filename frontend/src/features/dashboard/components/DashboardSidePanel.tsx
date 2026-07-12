@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useFetchNeedsActionDrafts } from '@/features/events/hooks/useFetchNeedsActionDrafts';
 import { useFetchUpcomingEvents } from '@/features/events/hooks/useFetchUpcomingEvents';
 import { selectedDashboardEventAtom } from '@/features/dashboard/store/selectedEvent';
 import NeedsActionDrafts from './NeedsActionDrafts';
@@ -13,7 +14,9 @@ import DashboardEventDetail from './DashboardEventDetail';
 const DashboardSidePanel: React.FC = () => {
     const [selectedEvent, setSelectedEvent] = useAtom(selectedDashboardEventAtom);
     // タブの目印用(セクション側と同じクエリなので追加リクエストは発生しない)
+    const { needsActionDrafts } = useFetchNeedsActionDrafts();
     const { upcomingEvents } = useFetchUpcomingEvents();
+    const hasNeedsAction = (needsActionDrafts?.length ?? 0) > 0;
     const hasUpcoming = (upcomingEvents?.length ?? 0) > 0;
 
     // 選択状態はグローバル atom のためページ離脱では消えない。
@@ -29,7 +32,16 @@ const DashboardSidePanel: React.FC = () => {
     return (
         <Tabs defaultValue="needs-action">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="needs-action">対応が必要</TabsTrigger>
+                <TabsTrigger value="needs-action" className="relative">
+                    対応が必要
+                    {hasNeedsAction && (
+                        <span
+                            aria-hidden
+                            title="対応が必要なイベントがあります"
+                            className="absolute right-2 top-1.5 size-2 rounded-full bg-destructive"
+                        />
+                    )}
+                </TabsTrigger>
                 <TabsTrigger value="upcoming" className="relative">
                     直近の予定
                     {hasUpcoming && (
