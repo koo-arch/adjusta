@@ -1,4 +1,4 @@
-package account
+package calendarsetting
 
 import (
 	"context"
@@ -12,58 +12,21 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
 
-type CalendarSettingsRepositories struct {
-	Calendar     repoCalendar.CalendarRepository
-	UserCalendar repoUserCalendar.UserCalendarRepository
+type Usecase struct {
+	repos            CalendarSettingsRepositories
+	tx               CalendarSettingsTransaction
+	candidateEnabler CandidateCalendarEnabler
 }
 
-type CalendarSettingsTransaction interface {
-	DoCalendarSettings(ctx context.Context, fn func(repos CalendarSettingsRepositories) error) error
-}
-
-type CalendarResyncer interface {
-	ResyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) error
-}
-
-type CalendarResyncerFunc func(ctx context.Context, userID uuid.UUID, email string) error
-
-func (f CalendarResyncerFunc) ResyncGoogleCalendars(ctx context.Context, userID uuid.UUID, email string) error {
-	return f(ctx, userID, email)
-}
-
-type CalendarSettingsUsecase struct {
-	repos    CalendarSettingsRepositories
-	tx       CalendarSettingsTransaction
-	resyncer CalendarResyncer
-}
-
-type CalendarSettingOutput struct {
-	ID                uuid.UUID
-	CalendarID        uuid.UUID
-	GoogleCalendarID  string
-	Summary           string
-	Description       *string
-	Timezone          *string
-	Role              value.UserCalendarRole
-	IsVisible         bool
-	SyncProposedDates bool
-}
-
-type CalendarSettingUpdateRequest struct {
-	Role              *value.UserCalendarRole
-	IsVisible         *bool
-	SyncProposedDates *bool
-}
-
-func NewCalendarSettingsUsecase(repos CalendarSettingsRepositories, tx CalendarSettingsTransaction, resyncer CalendarResyncer) *CalendarSettingsUsecase {
-	return &CalendarSettingsUsecase{
-		repos:    repos,
-		tx:       tx,
-		resyncer: resyncer,
+func NewUsecase(repos CalendarSettingsRepositories, tx CalendarSettingsTransaction, candidateEnabler CandidateCalendarEnabler) *Usecase {
+	return &Usecase{
+		repos:            repos,
+		tx:               tx,
+		candidateEnabler: candidateEnabler,
 	}
 }
 
-func (uc *CalendarSettingsUsecase) ListCalendarSettings(ctx context.Context, userID uuid.UUID, email string) ([]CalendarSettingOutput, error) {
+func (uc *Usecase) ListCalendarSettings(ctx context.Context, userID uuid.UUID, email string) ([]CalendarSettingOutput, error) {
 	settings, err := listCalendarSettings(ctx, uc.repos, userID)
 	if err != nil {
 		log.Printf("failed to list calendar settings for account: %s, error: %v", email, err)
@@ -72,9 +35,19 @@ func (uc *CalendarSettingsUsecase) ListCalendarSettings(ctx context.Context, use
 	return settings, nil
 }
 
-func (uc *CalendarSettingsUsecase) UpdateCalendarSetting(ctx context.Context, userID, userCalendarID uuid.UUID, email string, req CalendarSettingUpdateRequest) (*CalendarSettingOutput, error) {
+func (uc *Usecase) UpdateCalendarSetting(ctx context.Context, userID, userCalendarID uuid.UUID, email string, req CalendarSettingUpdateRequest) (*CalendarSettingOutput, error) {
 	var updated *CalendarSettingOutput
-	var needsResync bool
+	if req.SyncProposedDates != nil && *req.SyncProposedDates {
+		current, err := findUserCalendarByID(ctx, uc.repos, userID, userCalendarID)
+		if err != nil {
+			return nil, err
+		}
+		if !current.SyncProposedDates && uc.candidateEnabler != nil {
+			if err := uc.candidateEnabler.EnableAdjustaCandidateCalendar(ctx, userID, email); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	err := uc.tx.DoCalendarSettings(ctx, func(repos CalendarSettingsRepositories) error {
 		current, err := findUserCalendarByID(ctx, repos, userID, userCalendarID)
@@ -96,7 +69,6 @@ func (uc *CalendarSettingsUsecase) UpdateCalendarSetting(ctx context.Context, us
 				"sync_proposed_dates": "候補予定同期は Adjusta 専用カレンダーでのみ有効にできます",
 			})
 		}
-		needsResync = !current.SyncProposedDates && syncProposedDates
 
 		if req.Role != nil && *req.Role == value.UserCalendarRolePrimary {
 			if err := demoteExistingPrimary(ctx, repos, userID, current.ID); err != nil {
@@ -129,15 +101,6 @@ func (uc *CalendarSettingsUsecase) UpdateCalendarSetting(ctx context.Context, us
 	if err != nil {
 		log.Printf("failed to update calendar setting for account: %s, error: %v", email, err)
 		return nil, err
-	}
-
-	// 候補予定同期を OFF→ON にした時点で Adjusta 専用カレンダーを作成/再作成する(requirements 5.7.2)。
-	// 同期は更新後の設定値を読むため、トランザクション確定後に実行する。
-	// 失敗しても次回 /api/calendar アクセス時の同期ミドルウェアで再作成されるため、設定更新自体は成功として返す。
-	if needsResync && uc.resyncer != nil {
-		if err := uc.resyncer.ResyncGoogleCalendars(ctx, userID, email); err != nil {
-			log.Printf("failed to resync google calendars for account: %s, error: %v", email, err)
-		}
 	}
 
 	return updated, nil

@@ -22,3 +22,12 @@ type CalendarSettingUpdate struct {
 	IsVisible         *bool                   `json:"is_visible"`
 	SyncProposedDates *bool                   `json:"sync_proposed_dates"`
 }
+
+type CandidateSyncSetting struct {
+	Enabled  bool             `json:"enabled"`
+	Calendar *CalendarSetting `json:"calendar"`
+}
+
+type CandidateSyncSettingUpdate struct {
+	Enabled *bool `json:"enabled"`
+}
