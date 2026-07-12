@@ -263,6 +263,8 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 17 | タイポ・ハードコード類の一掃 | 各所 | 2.7 |
 | 18 | モバイルのカレンダー表示改善(日ビュー以上の最適化) | calendar | 2026-07-12 ユーザー起票 |
 | 19 | カレンダーの時間タッチ/タップでの候補追加(モバイル) | form・calendar | 2026-07-12 ユーザー起票。現状モバイルの候補追加は「日時を追加」が主導線 |
+| 20 | アカウント画面の UI 再調整 | account | 2026-07-12 ユーザー起票。UI 方針(サーフェス戦略・ghost アイコン・lucide・テキスト CTA)確定前の実装のため見直す — カード3枚構成の要否(設定画面は「セクション複数なら区切り線、囲いなし」の中間ケースとして判定)、ラベル付き outline ボタン→ghost アイコン化、heroicons→lucide |
+| 21 | レガシーコンポーネント一掃(shadcn 完全移行スイープ) | 全体 | 3.5 の規定 4 の実行。残存する自作プリミティブ(Card / Button / IconButton / BaseButton / TextField / TextArea / Modal / PopupMenu / DropdownSelect / ToggleButton / ToggleSwitch / WrapText / ThemeButton / ThemeProvider)の置換・削除、Header(headlessui Disclosure)の shadcn 化と @headlessui/react 依存の削除、heroicons→lucide の残り、`dark:` 残骸の整理(2.3)、#17 のタイポ類もここで回収 |
 
 ### ユーザー判断が必要な項目(バックログ着手前に決める)
 
@@ -271,6 +273,16 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | ~~ダークモード方針~~ | **決定済み(2026-07-09): light 固定、ダークは将来拡張**(`frontend/DESIGN.md` 参照)。既存 `dark:` 残骸の整理は P3 相当 |
 | ~~UI 基盤~~ | **決定済み(2026-07-09): shadcn/ui へ段階的移行**(`ui-guidelines.md` 3.5 の移行規定参照。AGENTS.md の `src/components/ui/*` 記述は目指す方向として確定)。a11y 課題(2.6)の多くは Radix ベースへの置換で解消見込み。**セットアップ済み(2026-07-09)**: components.json + `src/components/ui/`(button / card / badge / switch / skeleton / alert-dialog / radio-group)+ DESIGN.md トークンの CSS 変数化(globals.css)・Noto Sans JP + Inter 導入。アカウント画面から利用開始 |
 | LP 拡充のスコープ | P3 の最小追加のみ / 本格的な LP 制作として別プロジェクト化 |
+
+### 推奨する着手順(2026-07-12 時点の残タスク)
+
+1. **ログイン(P2 #9)**: エラー表示+押下フィードバック。小さく独立
+2. **トーストの sonner 一括置換(P2 #11 の残り)**: 3.5 規定 2 の横断置換。react-toastify 依存の削除まで
+3. **#20 アカウント画面の UI 再調整**: 確定済みの方針への追随
+4. **#21 レガシーコンポーネント一掃**: 参照ゼロの自作プリミティブ削除と依存整理(ここで shadcn 移行完了)
+5. **LP(P3 #15)**: スコープ(最小追加 or 本格制作)のユーザー判断待ち
+
+デプロイについては `docs/deployment.md` を参照。
 
 ---
 
