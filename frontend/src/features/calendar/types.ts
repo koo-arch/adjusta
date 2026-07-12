@@ -5,6 +5,10 @@ export interface CalendarEventBase {
     end: Date;
     location?: string;
     description?: string;
+    // FullCalendar が解釈するイベント個別の色。未指定は --fc-event-* の既定(Primary)
+    backgroundColor?: string;
+    borderColor?: string;
+    textColor?: string;
 }
 
 export interface GoogleCalendarEvent extends CalendarEventBase {

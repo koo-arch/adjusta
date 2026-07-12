@@ -207,10 +207,9 @@ shadcn/ui の置換対象外として存置するサードパーティ UI も、
 - ツールバーボタンは radius 6px・階調規則(500→600→700)をアプリの Button 仕様に揃える
 - イベントの色: Adjusta 管理の候補・確定予定は Status 表に従う。Google カレンダー由来の予定は Neutral 系で区別する
 
-**react-datepicker**
+**react-datepicker** — **置換済み(2026-07-12)**
 
-- 選択日・キーボードフォーカスの背景を Primary `#6366f1`、radius 6px、フォント継承をデフォルト CSS の上から上書きする
-- 将来的に shadcn `calendar`(react-day-picker)+ 時刻入力への置換を検討(検討時は ui-guidelines 3.1 を更新)
+- shadcn `calendar`(react-day-picker)+ `popover` + time 入力を組んだ共通 `DateTimePicker`(`src/components/common/DateTimePicker/`)に統一し、react-datepicker は依存ごと削除した(ui-guidelines 3.1 更新済み)
 
 **Splide(スライダー)**
 

@@ -36,6 +36,11 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
             ? 'timeGridDay'
             : 'timeGridWeek',
     );
+    // 現在時刻(赤線)が見える位置から開始する。少し手前から表示するため 2 時間戻す
+    const [scrollTime] = useState(() => {
+        const hour = Math.max(new Date().getHours() - 2, 0);
+        return `${String(hour).padStart(2, '0')}:00`;
+    });
     const [clickedEvent, setClickedEvent] = useState<EventImpl>();
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -115,6 +120,9 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
         <div>
             <Calendar
                 initialView={initialView}
+                // 固定高さで内部スクロールにし、現在時刻基準で開始する
+                height="70vh"
+                scrollTime={scrollTime}
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',

@@ -7,7 +7,7 @@ import {
     titleAtomFamily,
 } from '@/features/events/store/calendar';
 import { formStepAtomFamily } from '@/features/events/store/formStep';
-import type { ProposedDate } from '@/features/events/store/dates';
+import { buildDefaultCandidateSpan, type ProposedDate } from '@/features/events/store/dates';
 import DatesPanelView from '@/features/events/components/form/DatesPanelView';
 import { clearEditedEventFieldStateAtomFamily, mergedEventFormErrorsAtomFamily } from '@/features/events/store/errors';
 
@@ -28,16 +28,14 @@ const EditDatesPanel: React.FC<EditDatesPanelProps> = ({ formScope }) => {
         clearEditedFieldState('proposed_dates');
     };
 
-    const handleAdd = ({ start, end }: { start: Date; end: Date }) => {
-        handleDatesChange((prev) => {
-            const newDate: ProposedDate = {
-                id: new Date().getTime().toString(),
-                start,
-                end,
-                priority: prev.length + 1,
-            };
-            return [...prev, newDate];
-        });
+    const handleAdd = () => {
+        const newDate: ProposedDate = {
+            id: new Date().getTime().toString(),
+            ...buildDefaultCandidateSpan(),
+            priority: dates.length + 1,
+        };
+        handleDatesChange((prev) => [...prev, newDate]);
+        return newDate.id;
     };
 
     return (

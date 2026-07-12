@@ -40,17 +40,19 @@ const EventForm: React.FC<EventFormProps> = (props) => {
 
     return (
         <div className="space-y-6">
-            <FormStepper
-                current={step}
-                hasBasicErrors={hasBasicErrors}
-                hasDatesErrors={hasDatesErrors}
-                onSelect={setStep}
-            />
-
             {/* カレンダーは常設(md 以上で左)、隣のパネルだけステップで切り替える。
-                モバイルはパネル → カレンダーの縦積み */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-10">
-                <div className="md:order-2 md:col-span-4">
+                ステッパーは md 以上で右端の縦レール、モバイルは上部の横一列。
+                モバイルは ステッパー → パネル → カレンダー の縦積み */}
+            <div className="flex flex-col gap-6 md:flex-row">
+                <div className="order-3 min-w-0 md:order-1 md:flex-1">
+                    {props.formType === 'draft' ? (
+                        <DraftCalendarPane formScope={formScope} editingEvent={eventDetail} />
+                    ) : (
+                        <EditCalendarPane formScope={formScope} editingEvent={eventDetail} />
+                    )}
+                </div>
+                {/* ページスクロールに追従させる(ヘッダー sticky 分のオフセット) */}
+                <div className="order-2 md:sticky md:top-20 md:w-96 md:self-start">
                     {step === 'basic' ? (
                         <EventBasicForm formScope={formScope} />
                     ) : props.formType === 'draft' ? (
@@ -59,12 +61,13 @@ const EventForm: React.FC<EventFormProps> = (props) => {
                         <EditDatesPanel formScope={formScope} />
                     )}
                 </div>
-                <div className="md:order-1 md:col-span-6">
-                    {props.formType === 'draft' ? (
-                        <DraftCalendarPane formScope={formScope} editingEvent={eventDetail} />
-                    ) : (
-                        <EditCalendarPane formScope={formScope} editingEvent={eventDetail} />
-                    )}
+                <div className="order-1 md:order-3 md:sticky md:top-20 md:self-start">
+                    <FormStepper
+                        current={step}
+                        hasBasicErrors={hasBasicErrors}
+                        hasDatesErrors={hasDatesErrors}
+                        onSelect={setStep}
+                    />
                 </div>
             </div>
 

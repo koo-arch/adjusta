@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableItem from './SortableItem';
 
@@ -9,6 +9,8 @@ interface DraggableListProps<T> {
     onReorder: (newItems: T[]) => void;
     renderItem: (item: T, index: number) => React.ReactNode;
     getKey: (item: T) => string;
+    // ドラッグを無効にする行(例: インライン編集中の行)
+    disabledIds?: string[];
 }
 
 const DraggableList = <T extends unknown>({
@@ -16,6 +18,7 @@ const DraggableList = <T extends unknown>({
     onReorder,
     renderItem,
     getKey,
+    disabledIds,
 }: DraggableListProps<T>) => {
 
     // どの要素がドラッグされているかを管理するための変数
@@ -35,14 +38,20 @@ const DraggableList = <T extends unknown>({
         }
     }
 
-    // PointerSensor はマウス・タッチ・ペンを共通に扱う(モバイル対応。ui-review P2 #8)
-    const pointerSensor = useSensor(PointerSensor, {
+    // マウスは 5px 移動で即ドラッグ、タッチは長押し(250ms)で発動しスクロールと衝突させない
+    const mouseSensor = useSensor(MouseSensor, {
         activationConstraint: {
             distance: 5,
         },
     });
+    const touchSensor = useSensor(TouchSensor, {
+        activationConstraint: {
+            delay: 250,
+            tolerance: 8,
+        },
+    });
     const keyboardSensor = useSensor(KeyboardSensor);
-    const sensors = useSensors(pointerSensor, keyboardSensor);
+    const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
 
     return (
@@ -52,6 +61,7 @@ const DraggableList = <T extends unknown>({
                     <SortableItem
                         key={getKey(item)}
                         id={getKey(item)}
+                        disabled={disabledIds?.includes(getKey(item))}
                     >
                         {renderItem(item, index)}
                     </SortableItem>

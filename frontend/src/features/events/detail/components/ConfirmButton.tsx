@@ -19,7 +19,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import DateTimePicker from '@/components/DateTimePicker';
+import { DateTimePicker } from '@/components/common/DateTimePicker/DateTimePicker';
 import { formatJaDateSpan } from '@/lib/date/format';
 import type { EventDraftDetail } from '@/features/events/types';
 import { useConfirmEventMutation } from '@/features/events/detail/hooks/useConfirmEventMutation';

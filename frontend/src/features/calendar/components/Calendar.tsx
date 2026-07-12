@@ -29,7 +29,10 @@ interface CalendarProps<T extends CalendarEvent> {
     eventClick?: (e: EventClickArg) => void;
     eventDrop?: (e: EventDropArg) => void;
     eventResize?: (e: EventResizeDoneArg) => void;
-    editEvent?: EventDraftDetail
+    editEvent?: EventDraftDetail;
+    // 'auto' は全展開(内部スクロールなし)。固定値を渡すと timeGrid が内部スクロールになり scrollTime が効く
+    height?: number | string;
+    scrollTime?: string;
 }
 
 const Calendar = <T extends CalendarEvent>({
@@ -43,6 +46,8 @@ const Calendar = <T extends CalendarEvent>({
     eventDrop,
     eventResize,
     editEvent,
+    height = 'auto',
+    scrollTime,
 }: CalendarProps<T>) => {
     const { events, isLoading: isGoogleEventLoading } = useFetchGoogleCalendarEvents();
     const { searchEvents, isPending: isSearchLoading } = useSearchEvents({ status: "active" });
@@ -55,6 +60,7 @@ const Calendar = <T extends CalendarEvent>({
     useEffect(() => {
         if (isGoogleEventLoading || isSearchLoading) return;
 
+        // Google 由来の予定はニュートラル系で区別する(DESIGN.md「Third-Party Components」)
         const googleEventList: CalendarEvent[]  = events?.events
             .filter(ge => !confirmedGoogleEventID || confirmedGoogleEventID !== ge.id)
             .map(event => ({
@@ -66,9 +72,14 @@ const Calendar = <T extends CalendarEvent>({
                 description: event.description,
                 origin: "google",
                 local_event_id: null,
+                backgroundColor: '#e5e7eb',
+                borderColor: '#e5e7eb',
+                textColor: '#374151',
             })) ?? [];
-        
-        const searchEventList: CalendarEvent[] = searchEvents?.flatMap(event => 
+
+        // 他イベントの調整中候補は薄いインディゴ。編集中イベント自身の候補
+        // (selectedEvents 経由)は既定の Primary 塗りのままにして区別する
+        const searchEventList: CalendarEvent[] = searchEvents?.flatMap(event =>
             event.proposed_dates
                 .filter(date => !editEvent?.proposed_dates?.some(edit => edit.id === date.id))
                 .map(date => ({
@@ -79,7 +90,10 @@ const Calendar = <T extends CalendarEvent>({
                     location: event.location,
                     description: event.description,
                     origin: "local",
-                    local_event_id: event.id
+                    local_event_id: event.id,
+                    backgroundColor: '#e0e7ff',
+                    borderColor: '#c7d2fe',
+                    textColor: '#4338ca',
                 }))
         ) ?? [];
 
@@ -112,7 +126,10 @@ const Calendar = <T extends CalendarEvent>({
                     businessHours={{ daysOfWeek: [1, 2, 3, 4, 5] }}
                     eventClick={eventClick || (() => {})}
                     snapDuration={'00:10:00'}
-                    height={'auto'}
+                    height={height}
+                    nowIndicator={true}
+                    scrollTime={scrollTime}
+                    scrollTimeReset={false}
                     selectable={true}
                     selectMirror={true}
                     editable={true} // イベントのドラッグ＆ドロップを可能に

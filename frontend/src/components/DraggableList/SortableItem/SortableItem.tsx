@@ -7,10 +7,13 @@ import { GripVertical } from 'lucide-react';
 interface SortableItemProps {
     id: string;
     children: React.ReactNode;
+    disabled?: boolean;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ id, children }) => {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+// 行全体がドラッグ対象(マウスは即、タッチは長押しで発動)。
+// グリップアイコンは「掴める」ことを示す目印として置く
+const SortableItem: React.FC<SortableItemProps> = ({ id, children, disabled }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -23,19 +26,15 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, children }) => {
             style={style}
             className={cn(
                 'mb-2 flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 shadow-sm',
-                isDragging && 'z-10 opacity-80 shadow-md',
+                !disabled && 'cursor-grab',
+                isDragging && 'z-10 cursor-grabbing opacity-80 shadow-md',
             )}
+            {...attributes}
+            {...(disabled ? {} : listeners)}
         >
-            {/* ドラッグはハンドルに限定する(行内のボタン操作・モバイルのスクロールと衝突させない) */}
-            <button
-                type="button"
-                aria-label="ドラッグして並べ替え"
-                className="shrink-0 cursor-grab touch-none rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                {...attributes}
-                {...listeners}
-            >
-                <GripVertical className="size-4" />
-            </button>
+            {!disabled && (
+                <GripVertical aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            )}
             <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
