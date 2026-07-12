@@ -5,9 +5,16 @@ import { useAtomValue } from 'jotai';
 import { allEventsAtom } from '@/features/events/store/calendar';
 import Calendar from '@/features/calendar/components/Calendar';
 import type { EventClickArg } from '@fullcalendar/core';
-import Modal from '@/components/Modal/Modal';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import type { CalendarEvent } from '@/features/calendar/types';
-import { CalendarDaysIcon, MapPinIcon } from "@heroicons/react/20/solid";
+import { CalendarDays, MapPin } from 'lucide-react';
 import { formatJaDateSpan } from '@/lib/date/format';
 
 
@@ -24,53 +31,46 @@ const ModalCalendar: React.FC = () => {
         }
     }
 
-    const eventClose = () => {
-        setIsModalOpen(false);
-    }
     return (
         <div>
-            <Calendar 
+            {/* ダッシュボードのカレンダーは閲覧専用(選択・ドラッグ・リサイズ不可。ui-review P1 #3) */}
+            <Calendar
+                selectable={false}
+                editable={false}
                 eventClick={handleEventClick}
             />
 
-            <Modal
-                isOpen={isModalOpen}
-                onClose={eventClose}
-                title={selectedEvent?.title || ""}
-
-            >
-                <div>
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="break-words">{selectedEvent?.title || ''}</DialogTitle>
+                    </DialogHeader>
                     {selectedEvent && (
-                        <div>
-                            <p className="text-sm text-gray-700 mt-4">{selectedEvent.description}</p>
-
-                            <div className="flex item-center mt-2">
-                                <CalendarDaysIcon className="h-5 w-5 mr-2" />
-                                <p className="text-sm text-gray-500">
-                                    {formatJaDateSpan(selectedEvent.start, selectedEvent.end)}
+                        <div className="space-y-2">
+                            {selectedEvent.description && (
+                                <p className="whitespace-pre-wrap break-words text-sm text-gray-700">
+                                    {selectedEvent.description}
                                 </p>
-
-                            </div>
-                            <div className="flex item-center mt-2">
-                                <MapPinIcon className="h-5 w-5 mr-2" />
-                                <p className="text-sm text-gray-500">
-                                    {selectedEvent.location || "未設定"}
-                                </p>
-                            </div>
-                            {selectedEvent.origin === "local" && (
-                                <div className="mt-4">
-                                    <Link 
-                                        href={`/events/${selectedEvent.local_event_id}`}
-                                        className="text-sm no-underline text-blue-500 hover:underline"
-                                    >
-                                       詳細ページ
-                                    </Link>
-                                </div>
                             )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <CalendarDays className="size-4 shrink-0" />
+                                {formatJaDateSpan(selectedEvent.start, selectedEvent.end)}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <MapPin className="size-4 shrink-0" />
+                                {selectedEvent.location || '未設定'}
+                            </div>
                         </div>
                     )}
-                </div>
-            </Modal>
+                    {selectedEvent?.origin === 'local' && (
+                        <DialogFooter>
+                            <Button variant="ghost" className="text-primary hover:text-primary-dark" asChild>
+                                <Link href={`/events/${selectedEvent.local_event_id}`}>詳細ページへ</Link>
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

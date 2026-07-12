@@ -4,14 +4,15 @@ import { fetchUpcomingEvents } from '@/features/events/api/fetchUpcomingEvents';
 import { buildUpcomingEventsQueryKey } from '@/features/events/queryKeys';
 
 export const useFetchUpcomingEvents = () => {
-    const { data, isLoading, error } = useQuery({
+    const { data, isPending, error, refetch } = useQuery({
         queryKey: buildUpcomingEventsQueryKey(),
         queryFn: fetchUpcomingEvents,
     });
 
     return {
         upcomingEvents: data,
-        isLoading,
-        error
+        isPending,
+        error,
+        refetch,
     };
 }

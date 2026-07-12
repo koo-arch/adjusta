@@ -40,11 +40,12 @@ const EventForm: React.FC<EventFormProps> = (props) => {
 
     return (
         <div className="space-y-6">
-            {/* カレンダーは常設(md 以上で左)、隣のパネルだけステップで切り替える。
-                ステッパーは md 以上で右端の縦レール、モバイルは上部の横一列。
-                モバイルは ステッパー → パネル → カレンダー の縦積み */}
-            <div className="flex flex-col gap-6 md:flex-row">
-                <div className="order-3 min-w-0 md:order-1 md:flex-1">
+            {/* カレンダーは常設(lg 以上で左)、隣のパネルだけステップで切り替える。
+                ステッパーは lg 以上で右端の縦レール、それ未満は上部の横一列。
+                縦積み時は ステッパー → パネル → カレンダー の順
+                (lg 未満はパネル分を引くとカレンダーが潰れるため 1 カラムにする) */}
+            <div className="flex flex-col gap-6 lg:flex-row">
+                <div className="order-3 min-w-0 lg:order-1 lg:flex-1">
                     {props.formType === 'draft' ? (
                         <DraftCalendarPane formScope={formScope} editingEvent={eventDetail} />
                     ) : (
@@ -52,7 +53,7 @@ const EventForm: React.FC<EventFormProps> = (props) => {
                     )}
                 </div>
                 {/* ページスクロールに追従させる(ヘッダー sticky 分のオフセット) */}
-                <div className="order-2 md:sticky md:top-20 md:w-96 md:self-start">
+                <div className="order-2 lg:sticky lg:top-20 lg:w-96 lg:self-start">
                     {step === 'basic' ? (
                         <EventBasicForm formScope={formScope} />
                     ) : props.formType === 'draft' ? (
@@ -61,7 +62,7 @@ const EventForm: React.FC<EventFormProps> = (props) => {
                         <EditDatesPanel formScope={formScope} />
                     )}
                 </div>
-                <div className="order-1 md:order-3 md:sticky md:top-20 md:self-start">
+                <div className="order-1 lg:order-3 lg:sticky lg:top-20 lg:self-start">
                     <FormStepper
                         current={step}
                         hasBasicErrors={hasBasicErrors}

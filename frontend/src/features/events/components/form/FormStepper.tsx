@@ -16,14 +16,14 @@ const STEPS: { key: EventFormStep; label: string; icon: LucideIcon }[] = [
     { key: 'dates', label: '候補日程', icon: CalendarDays },
 ];
 
-// アイコンのステップレール(モバイルは横一列、md 以上は右端の縦レール)。
+// アイコンのステップレール(lg 未満は横一列、lg 以上は右端の縦レール)。
 // クリックで行き来でき、入力エラーのあるステップは赤いドットで示す
 const FormStepper: React.FC<FormStepperProps> = ({ current, hasBasicErrors, hasDatesErrors, onSelect }) => {
     const hasError = (step: EventFormStep) =>
         step === 'basic' ? !!hasBasicErrors : !!hasDatesErrors;
 
     return (
-        <nav aria-label="入力ステップ" className="flex flex-row gap-2 md:flex-col">
+        <nav aria-label="入力ステップ" className="flex flex-row gap-2 lg:flex-col">
             {STEPS.map((step) => {
                 const isActive = current === step.key;
                 const isError = hasError(step.key);
