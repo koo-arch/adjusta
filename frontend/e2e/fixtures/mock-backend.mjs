@@ -67,6 +67,21 @@ const server = createServer((request, response) => {
         return;
     }
 
+    if (request.url?.startsWith('/api/event/draft/search')) {
+        const url = new URL(request.url, `http://localhost:${port}`);
+        const page = Number(url.searchParams.get('page') ?? '1');
+        json(response, 200, {
+            items: [],
+            pagination: {
+                page,
+                per_page: 20,
+                total_items: 0,
+                total_pages: 0,
+            },
+        });
+        return;
+    }
+
     json(response, 404, { code: 'not_found', error: 'Not Found' });
 });
 
