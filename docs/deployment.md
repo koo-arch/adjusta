@@ -14,7 +14,7 @@
 
 ## この構成が本アプリと相性が良い理由(重要)
 
-通常のAPI呼び出しは **Next.js の `/api/[...path]` route handlerがサーバー側でbackendへ転送するproxy構成**になっている(`frontend/src/lib/api/client.ts`のbaseURLは`NEXT_PUBLIC_API_BASE_URL`未設定時に空 = same-origin)。OAuth login開始だけは末尾の「OAuthの既知課題」に記載した実装差分が残る。目標構成は以下とする。
+通常のAPI呼び出しは **Next.js の `/api/[...path]` route handlerがサーバー側でbackendへ転送するproxy構成**になっている(`frontend/src/lib/api/client.ts`のbaseURLは`NEXT_PUBLIC_API_BASE_URL`未設定時に空 = same-origin)。OAuth開始・callbackも専用Route Handlerがbackendのredirectとcookieを中継する。
 
 - **session cookie は Vercel ドメインの first-party のまま** — クロスドメイン cookie / SameSite=None / CORS の問題が発生しない
 - backend(Cloud Run)の URL はブラウザに露出せず、`INTERNAL_BACKEND_URL` としてサーバー側にだけ設定する
@@ -125,10 +125,6 @@ Productionで使用するGCPリソースは以下とする。
 - backend CI: PRでGoテストとAtlas migration整合性検査を実行
 - backend deploy: `Backend Deploy`を手動実行し、Artifact Registryへpush → DB migration適用 → Cloud Run deployの順で実行
 - 初回本番確認が完了するまでは自動deployにせず、GitHub `production` environmentのapprovalを利用する。安定後に`main` push triggerを追加する
-
-### OAuthの既知課題
-
-現状のfrontend login routeはbrowserをCloud Runの`/auth/google/login`へ直接redirectする一方、callbackはVercelのroute handlerを経由する。OAuth state cookieの発行元とcallback時のcookie送信先が一致しない可能性があり、「backend URLをbrowserに露出しない」という上記方針とも実装が一致していない。初回本番OAuth確認前に、login開始もVercel route handler経由でbackendへ問い合わせて`Location`と`Set-Cookie`を転送する形へ統一する必要がある。
 
 ## 未決事項(実施時に決める)
 

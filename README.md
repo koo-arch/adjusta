@@ -126,14 +126,13 @@ REDIRECT_URL_AFTER_LOGIN=
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=
 INTERNAL_BACKEND_URL=
-BACKEND_URL=
 ```
 
 補足:
 
 - `NEXT_PUBLIC_API_BASE_URL` は frontend 公開 URL を基準に `/api/*` を呼ぶための base URL です。
 - `INTERNAL_BACKEND_URL` は Next.js サーバー側から backend を呼ぶ URL です。`docker compose` 利用時は `http://backend:8080` を使えます。
-- `BACKEND_URL` は Google ログイン開始時のリダイレクト先に使う backend の公開 URL です。
+- Google OAuthの開始・callbackもNext.jsのRoute Handlerが`INTERNAL_BACKEND_URL`へ中継するため、browser向けのbackend URLは設定しません。
 
 2. 初回起動時、または migration が追加されたときにDB migrationを実行します。
 

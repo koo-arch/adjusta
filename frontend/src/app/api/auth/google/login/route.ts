@@ -1,7 +1,5 @@
-import { NextResponse } from 'next/server';
+import { proxyOAuthRequest } from '@/lib/server/oauthProxy';
 
-export function GET() {
-    return NextResponse.redirect(
-        `${process.env.BACKEND_URL}/auth/google/login`
-    );
+export function GET(request: Request) {
+    return proxyOAuthRequest(request, '/auth/google/login');
 }
