@@ -34,3 +34,38 @@ jobs:
 
       - name: Run backend tests
         run: go test ./...
+
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up Atlas
+        uses: ariga/setup-atlas@v0
+        with:
+          version: v1.2.0
+
+      - name: Validate migration directory
+        run: atlas migrate validate --env local
+
+      - name: Check ent schema and migration consistency
+        run: atlas migrate diff schema-check --env local
+
+      - name: Ensure no migration was generated
+        run: |
+          if [ -n "$(git status --porcelain -- migrations)" ]; then
+            git status --short -- migrations
+            exit 1
+          fi

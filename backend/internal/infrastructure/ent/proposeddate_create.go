@@ -328,6 +328,7 @@ func (pdc *ProposedDateCreate) createSpec() (*ProposedDate, *sqlgraph.CreateSpec
 		_node = &ProposedDate{config: pdc.config}
 		_spec = sqlgraph.NewCreateSpec(proposeddate.Table, sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID))
 	)
+	_spec.Schema = pdc.schemaConfig.ProposedDate
 	if id, ok := pdc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
@@ -387,6 +388,7 @@ func (pdc *ProposedDateCreate) createSpec() (*ProposedDate, *sqlgraph.CreateSpec
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = pdc.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}

@@ -20,13 +20,17 @@ services:
     networks:
       - app-network
   migrate:
-    build:
-      context: ./backend/
-      dockerfile: Dockerfile.dev
-    command: go run ./cmd/migrate
+    image: arigaio/atlas:1.2.0
+    command:
+      - migrate
+      - apply
+      - --dir
+      - file:///migrations
+      - --url
+      - postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
     profiles: ["tools"]
     volumes:
-      - ./backend:/backend
+      - ./backend/migrations:/migrations:ro
     environment:
       <<: *db-env
     depends_on:

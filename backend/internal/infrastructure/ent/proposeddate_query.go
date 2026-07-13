@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 )
@@ -77,6 +78,9 @@ func (pdq *ProposedDateQuery) QueryEvent() *EventQuery {
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, proposeddate.EventTable, proposeddate.EventColumn),
 		)
+		schemaConfig := pdq.schemaConfig
+		step.To.Schema = schemaConfig.Event
+		step.Edge.Schema = schemaConfig.ProposedDate
 		fromU = sqlgraph.SetNeighbors(pdq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -384,6 +388,8 @@ func (pdq *ProposedDateQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = pdq.schemaConfig.ProposedDate
+	ctx = internal.NewSchemaConfigContext(ctx, pdq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -434,6 +440,8 @@ func (pdq *ProposedDateQuery) loadEvent(ctx context.Context, query *EventQuery, 
 
 func (pdq *ProposedDateQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := pdq.querySpec()
+	_spec.Node.Schema = pdq.schemaConfig.ProposedDate
+	ctx = internal.NewSchemaConfigContext(ctx, pdq.schemaConfig)
 	_spec.Node.Columns = pdq.ctx.Fields
 	if len(pdq.ctx.Fields) > 0 {
 		_spec.Unique = pdq.ctx.Unique != nil && *pdq.ctx.Unique
@@ -499,6 +507,9 @@ func (pdq *ProposedDateQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if pdq.ctx.Unique != nil && *pdq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(pdq.schemaConfig.ProposedDate)
+	ctx = internal.NewSchemaConfigContext(ctx, pdq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range pdq.predicates {
 		p(selector)
 	}

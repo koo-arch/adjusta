@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/usercalendar"
 )
@@ -41,6 +42,8 @@ func (ucd *UserCalendarDelete) ExecX(ctx context.Context) int {
 
 func (ucd *UserCalendarDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(usercalendar.Table, sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID))
+	_spec.Node.Schema = ucd.schemaConfig.UserCalendar
+	ctx = internal.NewSchemaConfigContext(ctx, ucd.schemaConfig)
 	if ps := ucd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {

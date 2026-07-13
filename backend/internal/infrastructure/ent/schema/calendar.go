@@ -35,6 +35,7 @@ func (Calendar) Edges() []ent.Edge {
 
 func (Calendar) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 		mixins.SoftDeleteMixin{},
 	}

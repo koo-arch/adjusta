@@ -615,16 +615,15 @@ ent のスキーマ定義は infrastructure 層に配置する。
 backend/
   internal/
     infrastructure/
-      persistence/
-        ent/
-          schema/
-            user.go
-            account.go
-            session.go
-            calendar.go
-            usercalendar.go
-            event.go
-            proposeddate.go
+      ent/
+        schema/
+          user.go
+          account.go
+          session.go
+          calendar.go
+          usercalendar.go
+          event.go
+          proposeddate.go
 ```
 
 ### 12.2 中間テーブル
@@ -654,6 +653,24 @@ events.confirmed_date_id は proposed_dates.id を参照する。
 * FK 制約を DB で張るか、アプリケーション層で整合性を保証するか
 * confirmed_date_id が参照する proposed_dates が同じ event_id に属することをどこで検証するか
 * 日程確定処理を usecase 層のトランザクション内で実行すること
+
+### 12.5 Migration
+
+Ent Schemaをデータベーススキーマのdesired stateとし、Atlasのversioned migrationによって生成する`backend/migrations`配下のSQLファイルを、スキーマ変更履歴の正本とする。`atlas.sum`はマイグレーションファイルの完全性検証に使用し、各環境への適用状況はデータベース上のAtlasリビジョンテーブルで管理する。
+
+`atlas.sum`は手動編集せず、マイグレーションファイルを追加・変更した際にAtlasのコマンドで更新する。
+
+アプリケーション起動時のauto migrationは使用しない。スキーマ変更時はversioned migrationを生成し、生成されたSQLをレビューしたうえで、アプリケーションのデプロイとは分離したマイグレーション処理として適用する。
+
+Cloud Runでは新旧revisionが並行してリクエストを処理する可能性があるため、マイグレーションは新旧両方のアプリケーションと互換性を保たなければならない。カラムの削除・rename、型変更、NOT NULL制約や外部キー制約の追加など、後方互換性を損なう変更はexpand/contractパターンに従い、複数回のリリースに分けて実施する。
+
+「SQLを適用してから新revisionをデプロイする」という実行順序だけでは互換性は保証されない。Cloud Runのトラフィック分割やロールバックで旧revisionが動作する可能性を考慮し、マイグレーション後も旧revisionが動作できる状態を維持する。
+
+### 12.6 PostgreSQL schema
+
+アプリケーションテーブルは`public`ではなく`adjusta` schemaへ配置する。ent schemaの共通mixinで`entsql.Schema("adjusta")`を指定し、`sql/schemaconfig`によってruntime queryもschema修飾するため、接続URLの`search_path`には依存しない。
+
+初期migrationでは`public` schemaに対する`PUBLIC` roleの`CREATE`権限を明示的に取り消す。Atlasのmigration履歴はAtlas管理の`atlas_schema_revisions` schemaへ配置される。RLSはtable単位の別機能であり、導入時はmigration ownerとruntime roleの分離、request user IDのtransactionへの設定、policyを別途設計する。
 
 ---
 

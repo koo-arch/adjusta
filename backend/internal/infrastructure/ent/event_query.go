@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
@@ -83,6 +84,9 @@ func (eq *EventQuery) QueryUser() *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, event.UserTable, event.UserColumn),
 		)
+		schemaConfig := eq.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Event
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -105,6 +109,9 @@ func (eq *EventQuery) QueryPrimaryCalendar() *CalendarQuery {
 			sqlgraph.To(calendar.Table, calendar.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, event.PrimaryCalendarTable, event.PrimaryCalendarColumn),
 		)
+		schemaConfig := eq.schemaConfig
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.Event
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -127,6 +134,9 @@ func (eq *EventQuery) QueryConfirmedDate() *ProposedDateQuery {
 			sqlgraph.To(proposeddate.Table, proposeddate.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, event.ConfirmedDateTable, event.ConfirmedDateColumn),
 		)
+		schemaConfig := eq.schemaConfig
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.Event
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -149,6 +159,9 @@ func (eq *EventQuery) QueryProposedDates() *ProposedDateQuery {
 			sqlgraph.To(proposeddate.Table, proposeddate.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, event.ProposedDatesTable, event.ProposedDatesColumn),
 		)
+		schemaConfig := eq.schemaConfig
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.ProposedDate
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -495,6 +508,8 @@ func (eq *EventQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Event,
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = eq.schemaConfig.Event
+	ctx = internal.NewSchemaConfigContext(ctx, eq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -652,6 +667,8 @@ func (eq *EventQuery) loadProposedDates(ctx context.Context, query *ProposedDate
 
 func (eq *EventQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := eq.querySpec()
+	_spec.Node.Schema = eq.schemaConfig.Event
+	ctx = internal.NewSchemaConfigContext(ctx, eq.schemaConfig)
 	_spec.Node.Columns = eq.ctx.Fields
 	if len(eq.ctx.Fields) > 0 {
 		_spec.Unique = eq.ctx.Unique != nil && *eq.ctx.Unique
@@ -723,6 +740,9 @@ func (eq *EventQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if eq.ctx.Unique != nil && *eq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(eq.schemaConfig.Event)
+	ctx = internal.NewSchemaConfigContext(ctx, eq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range eq.predicates {
 		p(selector)
 	}

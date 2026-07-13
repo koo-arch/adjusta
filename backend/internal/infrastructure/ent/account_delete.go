@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 )
 
@@ -41,6 +42,8 @@ func (ad *AccountDelete) ExecX(ctx context.Context) int {
 
 func (ad *AccountDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(account.Table, sqlgraph.NewFieldSpec(account.FieldID, field.TypeUUID))
+	_spec.Node.Schema = ad.schemaConfig.Account
+	ctx = internal.NewSchemaConfigContext(ctx, ad.schemaConfig)
 	if ps := ad.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {

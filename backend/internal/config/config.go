@@ -45,14 +45,6 @@ func NewServer() (Config, error) {
 	return cfg, nil
 }
 
-func NewDatabase() (Config, error) {
-	cfg := New()
-	if err := cfg.validateDatabase(); err != nil {
-		return Config{}, err
-	}
-	return cfg, nil
-}
-
 func (c Config) IsDevelopment() bool {
 	return c.GoEnv == developmentEnv
 }
@@ -97,11 +89,4 @@ func (c Config) validateServer() error {
 	}
 
 	return errors.Join(errs...)
-}
-
-func (c Config) validateDatabase() error {
-	if c.DatabaseURL == "" {
-		return fmt.Errorf("DATABASE_URL is not set")
-	}
-	return nil
 }

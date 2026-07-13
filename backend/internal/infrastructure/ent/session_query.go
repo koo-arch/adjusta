@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
@@ -77,6 +78,9 @@ func (sq *SessionQuery) QueryUser() *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, session.UserTable, session.UserColumn),
 		)
+		schemaConfig := sq.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Session
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -384,6 +388,8 @@ func (sq *SessionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Sess
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = sq.schemaConfig.Session
+	ctx = internal.NewSchemaConfigContext(ctx, sq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -434,6 +440,8 @@ func (sq *SessionQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 
 func (sq *SessionQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := sq.querySpec()
+	_spec.Node.Schema = sq.schemaConfig.Session
+	ctx = internal.NewSchemaConfigContext(ctx, sq.schemaConfig)
 	_spec.Node.Columns = sq.ctx.Fields
 	if len(sq.ctx.Fields) > 0 {
 		_spec.Unique = sq.ctx.Unique != nil && *sq.ctx.Unique
@@ -499,6 +507,9 @@ func (sq *SessionQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if sq.ctx.Unique != nil && *sq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(sq.schemaConfig.Session)
+	ctx = internal.NewSchemaConfigContext(ctx, sq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range sq.predicates {
 		p(selector)
 	}

@@ -23,6 +23,8 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/usercalendar"
+
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 )
 
 // Client is the client that holds all ent builders.
@@ -77,6 +79,8 @@ type (
 		hooks *hooks
 		// interceptors to execute on queries.
 		inters *inters
+		// schemaConfig contains alternative names for all tables.
+		schemaConfig SchemaConfig
 	}
 	// Option function to configure the client.
 	Option func(*config)
@@ -85,6 +89,7 @@ type (
 // newConfig creates a new config for the client.
 func newConfig(opts ...Option) config {
 	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
+	cfg.schemaConfig = DefaultSchemaConfig
 	cfg.options(opts...)
 	return cfg
 }
@@ -374,6 +379,9 @@ func (c *AccountClient) QueryUser(a *Account) *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, account.UserTable, account.UserColumn),
 		)
+		schemaConfig := a.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Account
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -523,6 +531,9 @@ func (c *CalendarClient) QueryUserCalendars(ca *Calendar) *UserCalendarQuery {
 			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, calendar.UserCalendarsTable, calendar.UserCalendarsColumn),
 		)
+		schemaConfig := ca.schemaConfig
+		step.To.Schema = schemaConfig.UserCalendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -539,6 +550,9 @@ func (c *CalendarClient) QueryPrimaryEvents(ca *Calendar) *EventQuery {
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, calendar.PrimaryEventsTable, calendar.PrimaryEventsColumn),
 		)
+		schemaConfig := ca.schemaConfig
+		step.To.Schema = schemaConfig.Event
+		step.Edge.Schema = schemaConfig.Event
 		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -689,6 +703,9 @@ func (c *EventClient) QueryUser(e *Event) *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, event.UserTable, event.UserColumn),
 		)
+		schemaConfig := e.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Event
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -705,6 +722,9 @@ func (c *EventClient) QueryPrimaryCalendar(e *Event) *CalendarQuery {
 			sqlgraph.To(calendar.Table, calendar.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, event.PrimaryCalendarTable, event.PrimaryCalendarColumn),
 		)
+		schemaConfig := e.schemaConfig
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.Event
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -721,6 +741,9 @@ func (c *EventClient) QueryConfirmedDate(e *Event) *ProposedDateQuery {
 			sqlgraph.To(proposeddate.Table, proposeddate.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, event.ConfirmedDateTable, event.ConfirmedDateColumn),
 		)
+		schemaConfig := e.schemaConfig
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.Event
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -737,6 +760,9 @@ func (c *EventClient) QueryProposedDates(e *Event) *ProposedDateQuery {
 			sqlgraph.To(proposeddate.Table, proposeddate.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, event.ProposedDatesTable, event.ProposedDatesColumn),
 		)
+		schemaConfig := e.schemaConfig
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.ProposedDate
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -887,6 +913,9 @@ func (c *ProposedDateClient) QueryEvent(pd *ProposedDate) *EventQuery {
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, proposeddate.EventTable, proposeddate.EventColumn),
 		)
+		schemaConfig := pd.schemaConfig
+		step.To.Schema = schemaConfig.Event
+		step.Edge.Schema = schemaConfig.ProposedDate
 		fromV = sqlgraph.Neighbors(pd.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1038,6 +1067,9 @@ func (c *SessionClient) QueryUser(s *Session) *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, session.UserTable, session.UserColumn),
 		)
+		schemaConfig := s.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Session
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1187,6 +1219,9 @@ func (c *UserClient) QueryAccount(u *User) *AccountQuery {
 			sqlgraph.To(account.Table, account.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, user.AccountTable, user.AccountColumn),
 		)
+		schemaConfig := u.schemaConfig
+		step.To.Schema = schemaConfig.Account
+		step.Edge.Schema = schemaConfig.Account
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1203,6 +1238,9 @@ func (c *UserClient) QuerySessions(u *User) *SessionQuery {
 			sqlgraph.To(session.Table, session.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SessionsTable, user.SessionsColumn),
 		)
+		schemaConfig := u.schemaConfig
+		step.To.Schema = schemaConfig.Session
+		step.Edge.Schema = schemaConfig.Session
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1219,6 +1257,9 @@ func (c *UserClient) QueryUserCalendars(u *User) *UserCalendarQuery {
 			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.UserCalendarsTable, user.UserCalendarsColumn),
 		)
+		schemaConfig := u.schemaConfig
+		step.To.Schema = schemaConfig.UserCalendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1235,6 +1276,9 @@ func (c *UserClient) QueryEvents(u *User) *EventQuery {
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.EventsTable, user.EventsColumn),
 		)
+		schemaConfig := u.schemaConfig
+		step.To.Schema = schemaConfig.Event
+		step.Edge.Schema = schemaConfig.Event
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1386,6 +1430,9 @@ func (c *UserCalendarClient) QueryUser(uc *UserCalendar) *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, usercalendar.UserTable, usercalendar.UserColumn),
 		)
+		schemaConfig := uc.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromV = sqlgraph.Neighbors(uc.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1402,6 +1449,9 @@ func (c *UserCalendarClient) QueryCalendar(uc *UserCalendar) *CalendarQuery {
 			sqlgraph.To(calendar.Table, calendar.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, usercalendar.CalendarTable, usercalendar.CalendarColumn),
 		)
+		schemaConfig := uc.schemaConfig
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromV = sqlgraph.Neighbors(uc.driver.Dialect(), step)
 		return fromV, nil
 	}
@@ -1444,3 +1494,29 @@ type (
 		UserCalendar []ent.Interceptor
 	}
 )
+
+var (
+	// DefaultSchemaConfig represents the default schema names for all tables as defined in ent/schema.
+	DefaultSchemaConfig = SchemaConfig{
+		Account:      tableSchemas[0],
+		Calendar:     tableSchemas[0],
+		Event:        tableSchemas[0],
+		ProposedDate: tableSchemas[0],
+		Session:      tableSchemas[0],
+		User:         tableSchemas[0],
+		UserCalendar: tableSchemas[0],
+	}
+	tableSchemas = [...]string{"adjusta"}
+)
+
+// SchemaConfig represents alternative schema names for all tables
+// that can be passed at runtime.
+type SchemaConfig = internal.SchemaConfig
+
+// AlternateSchemas allows alternate schema names to be
+// passed into ent operations.
+func AlternateSchema(schemaConfig SchemaConfig) Option {
+	return func(c *config) {
+		c.schemaConfig = schemaConfig
+	}
+}

@@ -135,7 +135,13 @@ BACKEND_URL=
 - `INTERNAL_BACKEND_URL` は Next.js サーバー側から backend を呼ぶ URL です。`docker compose` 利用時は `http://backend:8080` を使えます。
 - `BACKEND_URL` は Google ログイン開始時のリダイレクト先に使う backend の公開 URL です。
 
-2. Docker Compose で一式を起動します。
+2. 初回起動時、または migration が追加されたときにDB migrationを実行します。
+
+```bash
+docker compose --profile tools run --rm migrate
+```
+
+3. Docker Compose で一式を起動します。
 
 ```bash
 docker compose up --build
@@ -147,7 +153,7 @@ docker compose up --build
 - Backend: `http://localhost:8080`
 - PostgreSQL: `.env` の `DB_PORT` で公開
 
-3. 必要に応じて、DB だけ Docker で起動し、frontend / backend を個別に立ち上げることもできます。
+4. 必要に応じて、DB だけ Docker で起動し、frontend / backend を個別に立ち上げることもできます。
 
 ```bash
 docker compose up db
@@ -179,6 +185,8 @@ npm run dev
 
 - フルスタック起動: `docker compose up --build`
 - フルスタック停止: `docker compose down`
+- DB migration適用: `docker compose --profile tools run --rm migrate`
+- DB migration生成: `cd backend && atlas migrate diff <name> --env local`
 - Frontend 開発サーバー: `cd frontend && npm run dev`
 - Frontend Lint: `cd frontend && npm run lint`
 - Frontend E2E: `cd frontend && npm run test:e2e`

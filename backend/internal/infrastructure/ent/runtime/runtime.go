@@ -21,16 +21,16 @@ import (
 // to their package variables.
 func init() {
 	accountMixin := schema.Account{}.Mixin()
-	accountMixinFields0 := accountMixin[0].Fields()
-	_ = accountMixinFields0
+	accountMixinFields1 := accountMixin[1].Fields()
+	_ = accountMixinFields1
 	accountFields := schema.Account{}.Fields()
 	_ = accountFields
 	// accountDescCreatedAt is the schema descriptor for created_at field.
-	accountDescCreatedAt := accountMixinFields0[0].Descriptor()
+	accountDescCreatedAt := accountMixinFields1[0].Descriptor()
 	// account.DefaultCreatedAt holds the default value on creation for the created_at field.
 	account.DefaultCreatedAt = accountDescCreatedAt.Default.(func() time.Time)
 	// accountDescUpdatedAt is the schema descriptor for updated_at field.
-	accountDescUpdatedAt := accountMixinFields0[1].Descriptor()
+	accountDescUpdatedAt := accountMixinFields1[1].Descriptor()
 	// account.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	account.DefaultUpdatedAt = accountDescUpdatedAt.Default.(func() time.Time)
 	// account.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -44,18 +44,18 @@ func init() {
 	// account.DefaultID holds the default value on creation for the id field.
 	account.DefaultID = accountDescID.Default.(func() uuid.UUID)
 	calendarMixin := schema.Calendar{}.Mixin()
-	calendarMixinInters1 := calendarMixin[1].Interceptors()
-	calendar.Interceptors[0] = calendarMixinInters1[0]
-	calendarMixinFields0 := calendarMixin[0].Fields()
-	_ = calendarMixinFields0
+	calendarMixinInters2 := calendarMixin[2].Interceptors()
+	calendar.Interceptors[0] = calendarMixinInters2[0]
+	calendarMixinFields1 := calendarMixin[1].Fields()
+	_ = calendarMixinFields1
 	calendarFields := schema.Calendar{}.Fields()
 	_ = calendarFields
 	// calendarDescCreatedAt is the schema descriptor for created_at field.
-	calendarDescCreatedAt := calendarMixinFields0[0].Descriptor()
+	calendarDescCreatedAt := calendarMixinFields1[0].Descriptor()
 	// calendar.DefaultCreatedAt holds the default value on creation for the created_at field.
 	calendar.DefaultCreatedAt = calendarDescCreatedAt.Default.(func() time.Time)
 	// calendarDescUpdatedAt is the schema descriptor for updated_at field.
-	calendarDescUpdatedAt := calendarMixinFields0[1].Descriptor()
+	calendarDescUpdatedAt := calendarMixinFields1[1].Descriptor()
 	// calendar.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	calendar.DefaultUpdatedAt = calendarDescUpdatedAt.Default.(func() time.Time)
 	// calendar.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -65,18 +65,18 @@ func init() {
 	// calendar.DefaultID holds the default value on creation for the id field.
 	calendar.DefaultID = calendarDescID.Default.(func() uuid.UUID)
 	eventMixin := schema.Event{}.Mixin()
-	eventMixinInters1 := eventMixin[1].Interceptors()
-	event.Interceptors[0] = eventMixinInters1[0]
-	eventMixinFields0 := eventMixin[0].Fields()
-	_ = eventMixinFields0
+	eventMixinInters2 := eventMixin[2].Interceptors()
+	event.Interceptors[0] = eventMixinInters2[0]
+	eventMixinFields1 := eventMixin[1].Fields()
+	_ = eventMixinFields1
 	eventFields := schema.Event{}.Fields()
 	_ = eventFields
 	// eventDescCreatedAt is the schema descriptor for created_at field.
-	eventDescCreatedAt := eventMixinFields0[0].Descriptor()
+	eventDescCreatedAt := eventMixinFields1[0].Descriptor()
 	// event.DefaultCreatedAt holds the default value on creation for the created_at field.
 	event.DefaultCreatedAt = eventDescCreatedAt.Default.(func() time.Time)
 	// eventDescUpdatedAt is the schema descriptor for updated_at field.
-	eventDescUpdatedAt := eventMixinFields0[1].Descriptor()
+	eventDescUpdatedAt := eventMixinFields1[1].Descriptor()
 	// event.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	event.DefaultUpdatedAt = eventDescUpdatedAt.Default.(func() time.Time)
 	// event.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -92,18 +92,18 @@ func init() {
 	proposeddateMixin := schema.ProposedDate{}.Mixin()
 	proposeddateHooks := schema.ProposedDate{}.Hooks()
 	proposeddate.Hooks[0] = proposeddateHooks[0]
-	proposeddateMixinInters1 := proposeddateMixin[1].Interceptors()
-	proposeddate.Interceptors[0] = proposeddateMixinInters1[0]
-	proposeddateMixinFields0 := proposeddateMixin[0].Fields()
-	_ = proposeddateMixinFields0
+	proposeddateMixinInters2 := proposeddateMixin[2].Interceptors()
+	proposeddate.Interceptors[0] = proposeddateMixinInters2[0]
+	proposeddateMixinFields1 := proposeddateMixin[1].Fields()
+	_ = proposeddateMixinFields1
 	proposeddateFields := schema.ProposedDate{}.Fields()
 	_ = proposeddateFields
 	// proposeddateDescCreatedAt is the schema descriptor for created_at field.
-	proposeddateDescCreatedAt := proposeddateMixinFields0[0].Descriptor()
+	proposeddateDescCreatedAt := proposeddateMixinFields1[0].Descriptor()
 	// proposeddate.DefaultCreatedAt holds the default value on creation for the created_at field.
 	proposeddate.DefaultCreatedAt = proposeddateDescCreatedAt.Default.(func() time.Time)
 	// proposeddateDescUpdatedAt is the schema descriptor for updated_at field.
-	proposeddateDescUpdatedAt := proposeddateMixinFields0[1].Descriptor()
+	proposeddateDescUpdatedAt := proposeddateMixinFields1[1].Descriptor()
 	// proposeddate.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	proposeddate.DefaultUpdatedAt = proposeddateDescUpdatedAt.Default.(func() time.Time)
 	// proposeddate.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -117,16 +117,16 @@ func init() {
 	// proposeddate.DefaultID holds the default value on creation for the id field.
 	proposeddate.DefaultID = proposeddateDescID.Default.(func() uuid.UUID)
 	sessionMixin := schema.Session{}.Mixin()
-	sessionMixinFields0 := sessionMixin[0].Fields()
-	_ = sessionMixinFields0
+	sessionMixinFields1 := sessionMixin[1].Fields()
+	_ = sessionMixinFields1
 	sessionFields := schema.Session{}.Fields()
 	_ = sessionFields
 	// sessionDescCreatedAt is the schema descriptor for created_at field.
-	sessionDescCreatedAt := sessionMixinFields0[0].Descriptor()
+	sessionDescCreatedAt := sessionMixinFields1[0].Descriptor()
 	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
 	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
 	// sessionDescUpdatedAt is the schema descriptor for updated_at field.
-	sessionDescUpdatedAt := sessionMixinFields0[1].Descriptor()
+	sessionDescUpdatedAt := sessionMixinFields1[1].Descriptor()
 	// session.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	session.DefaultUpdatedAt = sessionDescUpdatedAt.Default.(func() time.Time)
 	// session.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -142,18 +142,18 @@ func init() {
 	userMixin := schema.User{}.Mixin()
 	userHooks := schema.User{}.Hooks()
 	user.Hooks[0] = userHooks[0]
-	userMixinInters1 := userMixin[1].Interceptors()
-	user.Interceptors[0] = userMixinInters1[0]
-	userMixinFields0 := userMixin[0].Fields()
-	_ = userMixinFields0
+	userMixinInters2 := userMixin[2].Interceptors()
+	user.Interceptors[0] = userMixinInters2[0]
+	userMixinFields1 := userMixin[1].Fields()
+	_ = userMixinFields1
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userMixinFields0[0].Descriptor()
+	userDescCreatedAt := userMixinFields1[0].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userMixinFields0[1].Descriptor()
+	userDescUpdatedAt := userMixinFields1[1].Descriptor()
 	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -167,18 +167,18 @@ func init() {
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
 	usercalendarMixin := schema.UserCalendar{}.Mixin()
-	usercalendarMixinInters1 := usercalendarMixin[1].Interceptors()
-	usercalendar.Interceptors[0] = usercalendarMixinInters1[0]
-	usercalendarMixinFields0 := usercalendarMixin[0].Fields()
-	_ = usercalendarMixinFields0
+	usercalendarMixinInters2 := usercalendarMixin[2].Interceptors()
+	usercalendar.Interceptors[0] = usercalendarMixinInters2[0]
+	usercalendarMixinFields1 := usercalendarMixin[1].Fields()
+	_ = usercalendarMixinFields1
 	usercalendarFields := schema.UserCalendar{}.Fields()
 	_ = usercalendarFields
 	// usercalendarDescCreatedAt is the schema descriptor for created_at field.
-	usercalendarDescCreatedAt := usercalendarMixinFields0[0].Descriptor()
+	usercalendarDescCreatedAt := usercalendarMixinFields1[0].Descriptor()
 	// usercalendar.DefaultCreatedAt holds the default value on creation for the created_at field.
 	usercalendar.DefaultCreatedAt = usercalendarDescCreatedAt.Default.(func() time.Time)
 	// usercalendarDescUpdatedAt is the schema descriptor for updated_at field.
-	usercalendarDescUpdatedAt := usercalendarMixinFields0[1].Descriptor()
+	usercalendarDescUpdatedAt := usercalendarMixinFields1[1].Descriptor()
 	// usercalendar.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	usercalendar.DefaultUpdatedAt = usercalendarDescUpdatedAt.Default.(func() time.Time)
 	// usercalendar.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

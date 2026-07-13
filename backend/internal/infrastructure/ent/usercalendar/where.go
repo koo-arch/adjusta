@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 )
 
@@ -308,6 +309,9 @@ func HasUser() predicate.UserCalendar {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 		)
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.UserCalendar
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
@@ -316,6 +320,9 @@ func HasUser() predicate.UserCalendar {
 func HasUserWith(preds ...predicate.User) predicate.UserCalendar {
 	return predicate.UserCalendar(func(s *sql.Selector) {
 		step := newUserStep()
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.UserCalendar
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -331,6 +338,9 @@ func HasCalendar() predicate.UserCalendar {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, CalendarTable, CalendarColumn),
 		)
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
@@ -339,6 +349,9 @@ func HasCalendar() predicate.UserCalendar {
 func HasCalendarWith(preds ...predicate.Calendar) predicate.UserCalendar {
 	return predicate.UserCalendar(func(s *sql.Selector) {
 		step := newCalendarStep()
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

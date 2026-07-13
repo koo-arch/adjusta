@@ -91,6 +91,7 @@ func proposeddateHook(next ent.Mutator) ent.Mutator {
 
 func (ProposedDate) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 		mixins.SoftDeleteMixin{},
 	}

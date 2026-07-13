@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
@@ -455,6 +456,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.Event
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := eu.mutation.UserIDs(); len(nodes) > 0 {
@@ -468,6 +470,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.Event
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -484,6 +487,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.Event
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := eu.mutation.PrimaryCalendarIDs(); len(nodes) > 0 {
@@ -497,6 +501,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.Event
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -513,6 +518,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.Event
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := eu.mutation.ConfirmedDateIDs(); len(nodes) > 0 {
@@ -526,6 +532,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.Event
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -542,6 +549,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.ProposedDate
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := eu.mutation.RemovedProposedDatesIDs(); len(nodes) > 0 && !eu.mutation.ProposedDatesCleared() {
@@ -555,6 +563,7 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -571,11 +580,14 @@ func (eu *EventUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = eu.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = eu.schemaConfig.Event
+	ctx = internal.NewSchemaConfigContext(ctx, eu.schemaConfig)
 	if n, err = sqlgraph.UpdateNodes(ctx, eu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{event.Label}
@@ -1049,6 +1061,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.Event
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := euo.mutation.UserIDs(); len(nodes) > 0 {
@@ -1062,6 +1075,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.Event
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -1078,6 +1092,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.Event
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := euo.mutation.PrimaryCalendarIDs(); len(nodes) > 0 {
@@ -1091,6 +1106,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.Event
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -1107,6 +1123,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.Event
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := euo.mutation.ConfirmedDateIDs(); len(nodes) > 0 {
@@ -1120,6 +1137,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.Event
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -1136,6 +1154,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.ProposedDate
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := euo.mutation.RemovedProposedDatesIDs(); len(nodes) > 0 && !euo.mutation.ProposedDatesCleared() {
@@ -1149,6 +1168,7 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -1165,11 +1185,14 @@ func (euo *EventUpdateOne) sqlSave(ctx context.Context) (_node *Event, err error
 				IDSpec: sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = euo.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = euo.schemaConfig.Event
+	ctx = internal.NewSchemaConfigContext(ctx, euo.schemaConfig)
 	_node = &Event{config: euo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
