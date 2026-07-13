@@ -24,9 +24,6 @@ vendor/
 # ローカルバイナリ
 .DS_Store
 
-# モジュールキャッシュ
-go.sum
-
 # 一時ファイル
 *.tmp
 *.temp
