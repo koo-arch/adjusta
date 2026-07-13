@@ -156,7 +156,7 @@ const ConfirmButton: React.FC<ConfirmButtonProps> = ({ eventID, detail, isConfir
                         <div className="space-y-2">
                             <Label>日程</Label>
                             <Select
-                                value={selectedProposedDate?.id ?? undefined}
+                                value={selectedProposedDate?.id ?? ''}
                                 onValueChange={handleSelectProposedDate}
                             >
                                 <SelectTrigger aria-invalid={!!errors.confirm_date}>

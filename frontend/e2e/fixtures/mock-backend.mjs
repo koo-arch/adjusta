@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 
 const port = 3101;
 const expiredSessions = new Set();
+const confirmedEvents = new Set();
 
 const json = (response, status, body) => {
     response.writeHead(status, { 'Content-Type': 'application/json' });
@@ -29,6 +30,33 @@ const event = (id, title) => ({
     sync_status: 'not_synced',
     confirmed_date_id: null,
     proposed_dates: [],
+});
+
+const confirmationEvent = (id, confirmed = false) => ({
+    ...event(id, confirmed ? '確定済みイベント' : '日程確定イベント'),
+    status: confirmed ? 'confirmed' : 'active',
+    confirmed_date_id: confirmed ? '22222222-2222-4222-8222-222222222222' : null,
+    confirmed_google_event_id: confirmed ? 'confirmed-google-event' : undefined,
+    proposed_dates: [
+        {
+            id: '22222222-2222-4222-8222-222222222222',
+            google_event_id: 'candidate-google-event-1',
+            start: '2026-07-22T01:00:00.000Z',
+            end: '2026-07-22T02:00:00.000Z',
+            priority: 1,
+            status: confirmed ? 'confirmed' : 'active',
+            sync_status: 'synced',
+        },
+        {
+            id: '33333333-3333-4333-8333-333333333333',
+            google_event_id: 'candidate-google-event-2',
+            start: '2026-07-23T03:00:00.000Z',
+            end: '2026-07-23T04:00:00.000Z',
+            priority: 2,
+            status: confirmed ? 'not_selected' : 'active',
+            sync_status: 'synced',
+        },
+    ],
 });
 
 const server = createServer((request, response) => {
@@ -171,6 +199,26 @@ const server = createServer((request, response) => {
 
     if (request.method === 'PUT' && request.url === '/api/calendar/event/draft/edit-event') {
         response.writeHead(204).end();
+        return;
+    }
+
+    const confirmationDetailMatch = request.url?.match(
+        /^\/api\/calendar\/event\/draft\/(confirm-event|confirm-error-event|confirmed-event)$/,
+    );
+    if (request.method === 'GET' && confirmationDetailMatch) {
+        const id = confirmationDetailMatch[1];
+        json(response, 200, confirmationEvent(id, id === 'confirmed-event' || confirmedEvents.has(id)));
+        return;
+    }
+
+    if (request.method === 'PATCH' && request.url === '/api/calendar/event/confirm/confirm-event') {
+        confirmedEvents.add('confirm-event');
+        json(response, 200, { message: 'success' });
+        return;
+    }
+
+    if (request.method === 'PATCH' && request.url === '/api/calendar/event/confirm/confirm-error-event') {
+        json(response, 500, { code: 'internal_error', error: '日程の確定処理に失敗しました' });
         return;
     }
 
