@@ -17,10 +17,18 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
         },
     ],
-    webServer: {
-        command: 'NEXT_DIST_DIR=.next-e2e npm run dev -- --port 3100',
-        url: 'http://localhost:3100',
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-    },
+    webServer: [
+        {
+            command: 'node e2e/fixtures/mock-backend.mjs',
+            url: 'http://localhost:3101/health',
+            reuseExistingServer: !process.env.CI,
+            timeout: 30_000,
+        },
+        {
+            command: 'INTERNAL_BACKEND_URL=http://localhost:3101 NEXT_DIST_DIR=.next-e2e npm run dev -- --port 3100',
+            url: 'http://localhost:3100',
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
+        },
+    ],
 });
