@@ -134,6 +134,37 @@ const server = createServer((request, response) => {
         return;
     }
 
+    if (request.method === 'GET' && request.url === '/auth/google/login') {
+        response.writeHead(307, {
+            Location: `http://localhost:${port}/__e2e/google/authorize`,
+            'Set-Cookie': 'session=oauth-state-session; Path=/; HttpOnly; SameSite=Lax',
+        });
+        response.end();
+        return;
+    }
+
+    if (request.method === 'GET' && request.url === '/__e2e/google/authorize') {
+        response.writeHead(307, {
+            Location: 'http://localhost:3100/api/auth/google/callback?code=e2e-code&state=e2e-state',
+        });
+        response.end();
+        return;
+    }
+
+    if (request.method === 'GET' && request.url?.startsWith('/auth/google/callback?')) {
+        if (sessionToken(request) !== 'oauth-state-session') {
+            json(response, 400, { code: 'bad_request', error: 'stateが不正です' });
+            return;
+        }
+
+        response.writeHead(307, {
+            Location: 'http://localhost:3100/dashboard',
+            'Set-Cookie': 'session=authenticated-session; Path=/; HttpOnly; SameSite=Lax',
+        });
+        response.end();
+        return;
+    }
+
     const expireMatch = request.url?.match(/^\/__e2e\/sessions\/([^/]+)\/expire$/);
     if (request.method === 'POST' && expireMatch) {
         expiredSessions.add(decodeURIComponent(expireMatch[1]));
