@@ -670,7 +670,7 @@ Cloud Runでは新旧revisionが並行してリクエストを処理する可能
 
 アプリケーションテーブルは`public`ではなく`adjusta` schemaへ配置する。ent schemaの共通mixinで`entsql.Schema("adjusta")`を指定し、`sql/schemaconfig`によってruntime queryもschema修飾するため、接続URLの`search_path`には依存しない。
 
-初期migrationでは`public` schemaに対する`PUBLIC` roleの`CREATE`権限を明示的に取り消す。Atlasのmigration履歴はAtlas管理の`atlas_schema_revisions` schemaへ配置される。RLSはtable単位の別機能であり、導入時はmigration ownerとruntime roleの分離、request user IDのtransactionへの設定、policyを別途設計する。
+初期migrationでは`public` schemaに対する`PUBLIC` roleの`CREATE`権限を明示的に取り消す。Atlasのmigration履歴はアプリケーションテーブルとは分離し、ローカルPostgreSQLではdatabase scopeのデフォルトである専用schema、Neon productionでは`--revisions-schema public`を明示して`public.atlas_schema_revisions`で管理する。`public`にはこの履歴テーブル以外のテーブルを置かない。RLSはtable単位の別機能であり、導入時はmigration ownerとruntime roleの分離、request user IDのtransactionへの設定、policyを別途設計する。
 
 ---
 

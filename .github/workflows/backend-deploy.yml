@@ -59,7 +59,10 @@ jobs:
           DATABASE_URL_SECRET: ${{ vars.DATABASE_URL_SECRET }}
         run: |
           DATABASE_URL="$(gcloud secrets versions access latest --secret="${DATABASE_URL_SECRET}")"
-          atlas migrate apply --dir "file://backend/migrations" --url "${DATABASE_URL}"
+          atlas migrate apply \
+            --dir "file://backend/migrations" \
+            --url "${DATABASE_URL}" \
+            --revisions-schema "public"
 
       - name: Deploy backend to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v3
