@@ -202,6 +202,25 @@ const server = createServer((request, response) => {
         return;
     }
 
+    const deletionDetailMatch = request.url?.match(
+        /^\/api\/calendar\/event\/draft\/(delete-event|delete-error-event)$/,
+    );
+    if (request.method === 'GET' && deletionDetailMatch) {
+        const id = deletionDetailMatch[1];
+        json(response, 200, event(id, id === 'delete-event' ? '削除対象イベント' : '削除失敗イベント'));
+        return;
+    }
+
+    if (request.method === 'DELETE' && request.url === '/api/calendar/event/draft/delete-event') {
+        json(response, 200, { message: 'success' });
+        return;
+    }
+
+    if (request.method === 'DELETE' && request.url === '/api/calendar/event/draft/delete-error-event') {
+        json(response, 500, { code: 'internal_error', error: 'イベントの削除処理に失敗しました' });
+        return;
+    }
+
     const confirmationDetailMatch = request.url?.match(
         /^\/api\/calendar\/event\/draft\/(confirm-event|confirm-error-event|confirmed-event)$/,
     );
