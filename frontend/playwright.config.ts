@@ -6,10 +6,15 @@ export default defineConfig({
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 2 : 0,
     workers: process.env.CI ? 1 : undefined,
-    reporter: 'html',
+    reporter: [
+        ['list'],
+        ['html', { outputFolder: 'playwright-report', open: 'never' }],
+        ['junit', { outputFile: 'test-results/e2e-results.xml' }],
+    ],
     use: {
         baseURL: 'http://localhost:3100',
-        trace: 'on-first-retry',
+        screenshot: 'only-on-failure',
+        trace: 'retain-on-failure',
     },
     projects: [
         {
@@ -25,7 +30,7 @@ export default defineConfig({
             timeout: 30_000,
         },
         {
-            command: 'INTERNAL_BACKEND_URL=http://localhost:3101 NEXT_DIST_DIR=.next-e2e npm run dev -- --port 3100',
+            command: 'INTERNAL_BACKEND_URL=http://localhost:3101 NEXT_PUBLIC_API_BASE_URL= NEXT_DIST_DIR=.next-e2e npm run dev -- --port 3100',
             url: 'http://localhost:3100',
             reuseExistingServer: !process.env.CI,
             timeout: 120_000,

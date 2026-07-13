@@ -43,3 +43,79 @@ test('[AUTH-007] 期限切れセッションはcookieを削除してログイン
         .poll(async () => (await context.cookies()).some((cookie) => cookie.name === 'session'))
         .toBe(false);
 });
+
+test('[AUTH-008] 画面表示後にセッションが切れた場合は次のページ要求でログインページへ遷移する', async ({
+    context,
+    page,
+    request,
+}) => {
+    const token = `active-session-auth-008-${Date.now()}`;
+    await context.addCookies([
+        {
+            name: 'session',
+            value: token,
+            domain: 'localhost',
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+        },
+    ]);
+
+    await page.goto('/account');
+    await expect(page.getByRole('heading', { name: 'アカウント設定' })).toBeVisible();
+
+    const expireResponse = await request.post(
+        `http://localhost:3101/__e2e/sessions/${token}/expire`,
+    );
+    expect(expireResponse.ok()).toBe(true);
+
+    await page.reload();
+
+    await expect(page).toHaveURL('/login');
+    await expect
+        .poll(async () => (await context.cookies()).some((cookie) => cookie.name === 'session'))
+        .toBe(false);
+});
+
+test('[AUTH-009] 画面表示後のAPI操作が401になった場合はログインページへ遷移する', async ({
+    context,
+    page,
+    request,
+}) => {
+    const token = `active-session-auth-009-${Date.now()}`;
+    await context.addCookies([
+        {
+            name: 'session',
+            value: token,
+            domain: 'localhost',
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+        },
+    ]);
+
+    await page.goto('/account');
+    const candidateSync = page.getByRole('switch', {
+        name: '候補日程の Google Calendar 同期',
+    });
+    await expect(candidateSync).toBeEnabled();
+
+    const expireResponse = await request.post(
+        `http://localhost:3101/__e2e/sessions/${token}/expire`,
+    );
+    expect(expireResponse.ok()).toBe(true);
+
+    const updateResponsePromise = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PUT' &&
+            response.url().endsWith('/api/calendar-settings/candidate-sync'),
+    );
+    await candidateSync.click();
+
+    const updateResponse = await updateResponsePromise;
+    expect(updateResponse.status()).toBe(401);
+    await expect(page).toHaveURL('/login');
+    await expect
+        .poll(async () => (await context.cookies()).some((cookie) => cookie.name === 'session'))
+        .toBe(false);
+});

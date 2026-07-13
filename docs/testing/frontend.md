@@ -36,7 +36,28 @@ npm run test:e2e
 npm run test:e2e:list
 ```
 
+直近のHTML reportをブラウザで表示する。
+
+```bash
+npm run test:e2e:report
+```
+
 `test:e2e` は通常の開発サーバーと競合しないよう、Next.js 開発サーバーを `http://localhost:3100` で自動起動し、生成物を `.next-e2e` に分離する。同じURLですでにサーバーが起動している場合は、そのサーバーを再利用する。
+
+E2E起動時はローカルの `.env.local` に左右されないよう `NEXT_PUBLIC_API_BASE_URL` を空に固定し、ブラウザからのAPI呼び出しをNext.jsのsame-origin proxy経由でmock backendへ送る。
+
+## 実行結果
+
+`npm run test:e2e` は次の結果を生成する。
+
+| 出力 | 用途 |
+| --- | --- |
+| `playwright-report/index.html` | ケースごとの成否、エラー、添付データを人が確認する |
+| `test-results/e2e-results.xml` | CIやテスト結果集計で利用するJUnit XML |
+| `test-results/*/trace.zip` | 失敗時の操作、通信、DOM状態を追跡する |
+| `test-results/*/*.png` | 失敗時の画面状態を確認する |
+
+これらは実行ごとに更新される生成物のためGitへコミットしない。CI導入時は、テストが失敗した場合も確認できるよう `playwright-report` と `test-results` をartifactとして保存する。
 
 ## E2Eのディレクトリ構成
 
