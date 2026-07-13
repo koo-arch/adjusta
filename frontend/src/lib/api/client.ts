@@ -14,23 +14,20 @@ export interface APIClientResponse<T> {
     headers: Headers;
 }
 
-export interface APIErrorResponse {
+interface ParsedAPIErrorResponse {
     code?: string;
     error?: string;
-    details?: Record<string, string[]>;
 }
 
 export class APIClientError extends Error {
-    status: number;
-    code?: string;
-    data: unknown;
-
-    constructor(message: string, status: number, data: unknown, code?: string) {
+    constructor(
+        message: string,
+        readonly status: number,
+        readonly data: unknown,
+        readonly code?: string,
+    ) {
         super(message);
         this.name = 'APIClientError';
-        this.status = status;
-        this.code = code;
-        this.data = data;
     }
 }
 
@@ -105,6 +102,17 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
     return response.text() as Promise<T>;
 };
 
+const parseAPIErrorResponse = (data: unknown): ParsedAPIErrorResponse | undefined => {
+    if (typeof data !== 'object' || data === null) {
+        return undefined;
+    }
+
+    const code = 'code' in data && typeof data.code === 'string' ? data.code : undefined;
+    const error = 'error' in data && typeof data.error === 'string' ? data.error : undefined;
+
+    return code || error ? { code, error } : undefined;
+};
+
 const request = async <T>(path: string, options: RequestOptions = {}): Promise<APIClientResponse<T>> => {
     const { body, query, headers, allowStatuses = [], ...init } = options;
 
@@ -122,22 +130,10 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<A
     const isAllowedStatus = allowStatuses.includes(response.status);
 
     if (!response.ok && !isAllowedStatus) {
-        const code =
-            typeof data === 'object' &&
-            data !== null &&
-            'code' in data &&
-            typeof data.code === 'string'
-                ? data.code
-                : undefined;
-        const message =
-            typeof data === 'object' &&
-            data !== null &&
-            'error' in data &&
-            typeof data.error === 'string'
-                ? data.error
-                : `Request failed with status ${response.status}`;
+        const apiError = parseAPIErrorResponse(data);
+        const message = apiError?.error ?? `Request failed with status ${response.status}`;
 
-        throw new APIClientError(message, response.status, data, code);
+        throw new APIClientError(message, response.status, data, apiError?.code);
     }
 
     return {
@@ -154,17 +150,32 @@ export const apiClient = {
         path: string,
         body?: TBody,
         options?: Omit<RequestOptions, 'method' | 'body'>,
-    ) => request<TResponse>(path, { ...options, method: 'POST', body: body as RequestOptions['body'] }),
+    ) =>
+        request<TResponse>(path, {
+            ...options,
+            method: 'POST',
+            body: body as RequestOptions['body'],
+        }),
     put: <TResponse, TBody = unknown>(
         path: string,
         body?: TBody,
         options?: Omit<RequestOptions, 'method' | 'body'>,
-    ) => request<TResponse>(path, { ...options, method: 'PUT', body: body as RequestOptions['body'] }),
+    ) =>
+        request<TResponse>(path, {
+            ...options,
+            method: 'PUT',
+            body: body as RequestOptions['body'],
+        }),
     patch: <TResponse, TBody = unknown>(
         path: string,
         body?: TBody,
         options?: Omit<RequestOptions, 'method' | 'body'>,
-    ) => request<TResponse>(path, { ...options, method: 'PATCH', body: body as RequestOptions['body'] }),
+    ) =>
+        request<TResponse>(path, {
+            ...options,
+            method: 'PATCH',
+            body: body as RequestOptions['body'],
+        }),
     delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
         request<T>(path, { ...options, method: 'DELETE' }),
 };
