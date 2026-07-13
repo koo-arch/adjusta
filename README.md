@@ -181,13 +181,14 @@ npm run dev
 - フルスタック停止: `docker compose down`
 - Frontend 開発サーバー: `cd frontend && npm run dev`
 - Frontend Lint: `cd frontend && npm run lint`
+- Frontend E2E: `cd frontend && npm run test:e2e`
 - Frontend Storybook: `cd frontend && npm run storybook`
 - Backend テスト: `cd backend && go test ./...`
 
 ## テスト
 
 - Backend には `go test ./...` で実行できるテストがあります。
-- Frontend には現時点で `test` script が定義されていないため、`npm run lint` と Storybook による確認が中心です。
+- Frontend には Playwright によるE2Eテストがあります。初回実行前に `cd frontend && npx playwright install chromium` でブラウザを導入してください。
 
 ## 今後の拡張候補
 

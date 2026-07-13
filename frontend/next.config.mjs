@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // E2Eでは通常の開発サーバーとlockや生成物を共有しない。
+    distDir: process.env.NEXT_DIST_DIR ?? '.next',
     images: {
         remotePatterns: [
             {
