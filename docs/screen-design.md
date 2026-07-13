@@ -89,7 +89,7 @@ flowchart LR
 - `(app)` 以外の route group は認証状態を参照しない
 - middleware は session cookie の存在のみで楽観的にルーティングし、真の認証判定はサーバー側 API が行う
 - API が **401**(ログイン失効)を返した場合: `/api/auth/session-expired` に遷移して cookie を失効させ、フルリロードで `/login` へ誘導する
-- API が **409**(`google_reauthorization_required`)を返した場合: ログイン失効とは区別し、再認可導線のモーダル(`AuthErrorModal`)を表示する
+- API が `code = google_reauthorization_required`を返した場合(HTTP 409): ログイン失効とは区別し、再認可導線のモーダル(`AuthErrorModal`)を表示する
 - フォームの必須未入力、開始日時 ≧ 終了日時、候補日程が空、はいずれも画面内エラー表示とし、次に取るべき行動を提示する(要件 6.5、14章)
 
 ### 4.2 共通レイアウト
@@ -386,7 +386,7 @@ Google Calendar との同期は本画面アクセス時に行う(要件 12.3)。
 
 - 連携状態の表示: 正常 / 再認可が必要(accounts のトークン失効・スコープ不足から判定)
 - 付与スコープの説明(Google Calendar との連携に使用している旨)
-- **再認可ボタン**: 409(`google_reauthorization_required`)時の `AuthErrorModal` と同一の再認可フローに接続する(導線を一元化し、この画面独自のフローを作らない)
+- **再認可ボタン**: `code = google_reauthorization_required`時の `AuthErrorModal` と同一の再認可フローに接続する(導線を一元化し、この画面独自のフローを作らない)
 - **ログアウトボタン**(確認ダイアログ付き)→ `/` へ
 
 **3. カレンダー設定**(この画面のコア)

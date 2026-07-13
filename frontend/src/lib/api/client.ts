@@ -14,14 +14,22 @@ export interface APIClientResponse<T> {
     headers: Headers;
 }
 
+export interface APIErrorResponse {
+    code?: string;
+    error?: string;
+    details?: Record<string, string[]>;
+}
+
 export class APIClientError extends Error {
     status: number;
+    code?: string;
     data: unknown;
 
-    constructor(message: string, status: number, data: unknown) {
+    constructor(message: string, status: number, data: unknown, code?: string) {
         super(message);
         this.name = 'APIClientError';
         this.status = status;
+        this.code = code;
         this.data = data;
     }
 }
@@ -114,6 +122,13 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<A
     const isAllowedStatus = allowStatuses.includes(response.status);
 
     if (!response.ok && !isAllowedStatus) {
+        const code =
+            typeof data === 'object' &&
+            data !== null &&
+            'code' in data &&
+            typeof data.code === 'string'
+                ? data.code
+                : undefined;
         const message =
             typeof data === 'object' &&
             data !== null &&
@@ -122,7 +137,7 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<A
                 ? data.error
                 : `Request failed with status ${response.status}`;
 
-        throw new APIClientError(message, response.status, data);
+        throw new APIClientError(message, response.status, data, code);
     }
 
     return {

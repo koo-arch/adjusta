@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
 // JSON writes a successful or custom HTTP response payload.
@@ -35,13 +36,13 @@ func OKMessage(c *gin.Context, message string) {
 // BadRequest, Unauthorized, and Internal are for HTTP-local failures decided in the handler
 // or middleware itself, such as invalid input or session save failures.
 func BadRequest(c *gin.Context, message string) {
-	AbortJSON(c, http.StatusBadRequest, gin.H{"error": message})
+	AbortJSON(c, http.StatusBadRequest, gin.H{"code": internalErrors.KindBadRequest, "error": message})
 }
 
 func Unauthorized(c *gin.Context, message string) {
-	AbortJSON(c, http.StatusUnauthorized, gin.H{"error": message})
+	AbortJSON(c, http.StatusUnauthorized, gin.H{"code": internalErrors.KindUnauthorized, "error": message})
 }
 
 func Internal(c *gin.Context, message string) {
-	AbortJSON(c, http.StatusInternalServerError, gin.H{"error": message})
+	AbortJSON(c, http.StatusInternalServerError, gin.H{"code": internalErrors.KindInternal, "error": message})
 }
