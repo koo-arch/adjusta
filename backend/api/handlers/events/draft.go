@@ -84,20 +84,20 @@ func (eh *Handler) CreateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		var eventDraft *dto.EventDraftCreation
+		var eventDraft dto.EventDraftCreation
 		if err := c.ShouldBindJSON(&eventDraft); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return
 		}
 
-		if err := validation.CreateEventValidation(eventDraft); err != nil {
+		if err := validation.CreateEventValidation(&eventDraft); err != nil {
 			respond.Error(c, err, "イベントの作成に失敗しました")
 			return
 		}
 
 		eventUsecase := eh.draftUsecase
 
-		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, toDraftCreationRequest(eventDraft))
+		response, err := eventUsecase.CreateDraftedEvents(ctx, userid, email, toDraftCreationRequest(&eventDraft))
 		if err != nil {
 			log.Printf("failed to create events: %v", err)
 			respond.Error(c, err, "イベントの作成に失敗しました")
@@ -123,20 +123,20 @@ func (eh *Handler) UpdateEventDraftHandler() gin.HandlerFunc {
 			return
 		}
 
-		var eventDraft *dto.EventDraftUpdate
+		var eventDraft dto.EventDraftUpdate
 		if err := c.ShouldBindJSON(&eventDraft); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return
 		}
 
-		if err := validation.UpdateEventValidation(eventDraft); err != nil {
+		if err := validation.UpdateEventValidation(&eventDraft); err != nil {
 			respond.Error(c, err, "イベントの更新に失敗しました")
 			return
 		}
 
 		eventUsecase := eh.draftUsecase
 
-		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, toDraftUpdateRequest(eventDraft))
+		err = eventUsecase.UpdateDraftedEvents(ctx, userid, eventID, email, toDraftUpdateRequest(&eventDraft))
 		if err != nil {
 			log.Printf("failed to update events: %v", err)
 			respond.Error(c, err, "イベントの更新に失敗しました")

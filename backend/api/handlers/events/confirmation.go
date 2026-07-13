@@ -26,13 +26,13 @@ func (eh *Handler) EventFinalizeHandler() gin.HandlerFunc {
 			return
 		}
 
-		var confirmEvent *dto.ConfirmEvent
+		var confirmEvent dto.ConfirmEvent
 		if err := c.ShouldBindJSON(&confirmEvent); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return
 		}
 
-		if err := validation.FinalizeValidation(confirmEvent); err != nil {
+		if err := validation.FinalizeValidation(&confirmEvent); err != nil {
 			log.Printf("failed to validate confirm event: %v", err)
 			respond.Error(c, err, "イベントの確定に失敗しました")
 			return
