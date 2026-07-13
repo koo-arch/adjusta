@@ -5,6 +5,11 @@ const expiredSessions = new Set();
 const firstCandidateID = '22222222-2222-4222-8222-222222222222';
 const secondCandidateID = '33333333-3333-4333-8333-333333333333';
 const confirmedEventDates = new Map([['confirmed-event', firstCandidateID]]);
+const candidateSyncState = {
+    enabled: false,
+    calendarExists: false,
+    failUpdate: false,
+};
 
 const json = (response, status, body) => {
     response.writeHead(status, { 'Content-Type': 'application/json' });
@@ -22,6 +27,24 @@ const user = {
     email: 'e2e@example.com',
     picture: '',
 };
+
+const candidateCalendar = {
+    id: 'calendar-adjusta',
+    calendar_id: 'calendar-entity-adjusta',
+    google_calendar_id: 'adjusta-candidate@group.calendar.google.com',
+    summary: 'Adjusta 調整用',
+    timezone: 'Asia/Tokyo',
+    role: 'adjusta_candidate',
+    is_visible: true,
+    sync_proposed_dates: candidateSyncState.enabled,
+};
+
+const candidateSyncSetting = () => ({
+    enabled: candidateSyncState.enabled,
+    calendar: candidateSyncState.calendarExists
+        ? { ...candidateCalendar, sync_proposed_dates: candidateSyncState.enabled }
+        : null,
+});
 
 const event = (id, title) => ({
     id,
@@ -78,6 +101,18 @@ const server = createServer((request, response) => {
         return;
     }
 
+    const candidateSyncFixtureMatch = request.url?.match(
+        /^\/__e2e\/candidate-sync\/(off|on|fail-update)$/,
+    );
+    if (request.method === 'POST' && candidateSyncFixtureMatch) {
+        const mode = candidateSyncFixtureMatch[1];
+        candidateSyncState.enabled = mode === 'on';
+        candidateSyncState.calendarExists = mode === 'on';
+        candidateSyncState.failUpdate = mode === 'fail-update';
+        response.writeHead(204).end();
+        return;
+    }
+
     const token = sessionToken(request);
     if (!token || token === 'expired-session' || expiredSessions.has(token)) {
         json(response, 401, { code: 'unauthorized', error: '認証情報がありません' });
@@ -90,12 +125,24 @@ const server = createServer((request, response) => {
     }
 
     if (request.url === '/api/user-calendars') {
-        json(response, 200, []);
+        json(response, 200, candidateSyncState.calendarExists ? [candidateSyncSetting().calendar] : []);
         return;
     }
 
-    if (request.url === '/api/calendar-settings/candidate-sync') {
-        json(response, 200, { enabled: false, calendar: null });
+    if (request.method === 'GET' && request.url === '/api/calendar-settings/candidate-sync') {
+        json(response, 200, candidateSyncSetting());
+        return;
+    }
+
+    if (request.method === 'PUT' && request.url === '/api/calendar-settings/candidate-sync') {
+        if (candidateSyncState.failUpdate) {
+            json(response, 500, { code: 'internal_error', error: '同期設定を更新できませんでした' });
+            return;
+        }
+
+        candidateSyncState.enabled = !candidateSyncState.enabled;
+        candidateSyncState.calendarExists = true;
+        json(response, 200, candidateSyncSetting());
         return;
     }
 
