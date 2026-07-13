@@ -150,6 +150,30 @@ const server = createServer((request, response) => {
         return;
     }
 
+    if (request.method === 'GET' && request.url === '/api/calendar/event/draft/edit-event') {
+        json(response, 200, {
+            ...event('edit-event', '編集前イベント'),
+            description: '編集前の説明',
+            location: '会議室B',
+            proposed_dates: [
+                {
+                    id: '11111111-1111-4111-8111-111111111111',
+                    start: '2026-07-21T01:00:00.000Z',
+                    end: '2026-07-21T02:00:00.000Z',
+                    priority: 1,
+                    status: 'active',
+                    sync_status: 'not_synced',
+                },
+            ],
+        });
+        return;
+    }
+
+    if (request.method === 'PUT' && request.url === '/api/calendar/event/draft/edit-event') {
+        response.writeHead(204).end();
+        return;
+    }
+
     if (request.method === 'GET' && request.url === '/api/calendar/event/draft/missing-event') {
         json(response, 404, { code: 'not_found', error: 'イベントが見つかりません' });
         return;
