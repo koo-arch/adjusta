@@ -122,4 +122,6 @@ e2e/
 
 ## CI
 
-CIへ組み込む際は Chromium のみを必須とする。複数ブラウザや画面幅の網羅は、実際の不具合傾向を確認してから追加する。
+`.github/workflows/frontend-e2e.yml` で、frontend 関連ファイルを変更する PR と手動実行時に Chromium の E2E を実行する。Node.js 20、`npm ci`、`npx playwright install --with-deps chromium` を使用し、テストは CI 設定により 1 worker で動作する。
+
+テスト失敗時は `frontend-e2e-results` artifact に HTML report、JUnit XML、trace、スクリーンショットを 7 日間保存する。複数ブラウザや画面幅の網羅は、実際の不具合傾向を確認してから追加する。
