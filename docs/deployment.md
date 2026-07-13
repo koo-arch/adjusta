@@ -29,7 +29,7 @@
 | Cloud SQL for PostgreSQL | 本格運用 | 同一リージョンでレイテンシ最小・安定。最小構成でも固定費(月 $10〜)が掛かる。Cloud Run からは Cloud SQL コネクタ or プライベート IP |
 | Supabase | Neon 同等 | Auth 等の付随機能は使わない(自前 OAuth があるため)なら Neon とほぼ等価 |
 
-推奨: **まず Neon で開始し、負荷・運用要件が固まったら Cloud SQL を再検討**。
+初回productionは **Neonで開始**し、負荷・運用要件が固まったらCloud SQLを再検討する。
 
 ## 実施時に必要な設定
 
@@ -37,11 +37,11 @@
 
 | 変数 | 置き場所 | 値 |
 | --- | --- | --- |
-| `INTERNAL_BACKEND_URL` | Vercel(server) | Cloud Run の URL(例: `https://adjusta-api-xxxx.a.run.app`) |
+| `INTERNAL_BACKEND_URL` | Vercel(server) | `https://adjusta-api-1001878278191.asia-northeast1.run.app` |
 | `NEXT_PUBLIC_API_BASE_URL` | Vercel | **設定しない**(same-origin proxy を維持) |
 | `SESSION_SECRET` | Cloud Run | 十分に長いランダム値 |
 | DB DSN(`DATABASE_URL` 等、`backend/internal/config` 参照) | Cloud Run | Neon / Cloud SQL の接続文字列 |
-| `CORS_ALLOW_ORIGINS` | Cloud Run | Vercel のドメイン(proxy 経由ならサーバー間通信のため実質不要だが、設定しておく) |
+| `CORS_ALLOW_ORIGINS` | Cloud Run | `https://adjusta.vercel.app` |
 | Google OAuth client ID / secret | Cloud Run | GCP コンソールで発行 |
 
 ### GitHub production environment
@@ -56,6 +56,7 @@ Repository / environment variables:
 | `GCP_REGION` | Artifact Registry / Cloud Runのregion |
 | `GCP_ARTIFACT_REPOSITORY` | Docker repository名 |
 | `CLOUD_RUN_SERVICE` | Cloud Run service名 |
+| `CLOUD_RUN_SERVICE_ACCOUNT` | Cloud Run実行用service accountのメールアドレス |
 | `DATABASE_URL_SECRET` | Secret Manager上のDB接続文字列secret名 |
 | `SESSION_SECRET_SECRET` | Secret Manager上のsession secret名 |
 | `GOOGLE_CLIENT_SECRET_SECRET` | Secret Manager上のOAuth client secret名 |
@@ -63,7 +64,7 @@ Repository / environment variables:
 | `GOOGLE_REDIRECT_URI` | Googleへ登録したcallback URL |
 | `REDIRECT_URL_AFTER_LOGIN` | ログイン完了後のfrontend URL |
 | `CORS_ALLOW_ORIGINS` | 許可するfrontend origin |
-| `COOKIE_DOMAIN` | session cookieのdomain |
+| `COOKIE_DOMAIN` | 空のままにし、Vercel originのhost-only cookieとして扱う |
 
 Environment secrets:
 
@@ -74,15 +75,30 @@ Environment secrets:
 
 長期service account keyは置かず、GitHub OIDCとWorkload Identity Federationを使う。deploy用identityにはArtifact Registryへのpush、Cloud Run更新、DB migration用secretの参照、およびCloud Run実行service accountを利用するための最小権限を付与する。Cloud Runの実行service accountにも、runtimeで参照するSecret Manager secretへのaccessor権限が必要になる。
 
+`production` environmentのdeployment branch policyとWorkload Identity Providerのattribute conditionは、どちらも`main`からの実行だけを許可する。初回本番確認までは`koo-arch`をrequired reviewerとし、個人運用で承認不能にならないようself-reviewは許可する。
+
 ### Google OAuth
 
-- 承認済みリダイレクトURIに **frontendのcallback URL**(`https://<vercel-domain>/api/auth/google/callback`)を登録
+- 承認済みリダイレクトURIに **frontendのcallback URL**(`https://adjusta.vercel.app/api/auth/google/callback`)を登録
 - OAuth 同意画面の公開設定(テストユーザー→本番公開)を確認
 
 ### Cloud Run
 
+Productionで使用するGCPリソースは以下とする。
+
+| 項目 | 値 |
+| --- | --- |
+| Project | `adjusta` |
+| Region | `asia-northeast1` |
+| Cloud Run service | `adjusta-api` |
+| Cloud Run URL | `https://adjusta-api-1001878278191.asia-northeast1.run.app` |
+| Artifact Registry | `adjusta` |
+| Runtime service account | `adjusta-runtime@adjusta.iam.gserviceaccount.com` |
+| Deploy service account | `adjusta-deploy@adjusta.iam.gserviceaccount.com` |
+
 - `backend/Dockerfile` をそのままビルド(GitHub Actions から `gcloud run deploy` が簡単)
 - **min-instances**: 0 だと初回アクセス・OAuth コールバックにコールドスタート遅延が乗る。体感を優先するなら 1(常時課金)。まず 0 で始めて気になったら上げる
+- Cloud Runの実行identityには専用service accountを使用し、workflowの`CLOUD_RUN_SERVICE_ACCOUNT`で明示する
 - cookie の `Secure` / ドメイン設定が本番 URL 前提になっているか `backend/api/cookie` を確認
 
 初回作成時はVercelのserver-side proxyから到達できるようCloud Run invocationのIAMを設定する。workflowはrevisionのデプロイのみを担当し、公開・非公開のIAM設定は変更しない。
@@ -117,7 +133,5 @@ Environment secrets:
 ## 未決事項(実施時に決める)
 
 1. **独自ドメイン**を取るか(取るなら Vercel に割当。backend はブラウザ非公開のため Cloud Run ドメインのままでよい)
-2. **DB の最終選択**(推奨は Neon スタート)
-3. **staging 環境**の要否(Vercel Preview + Cloud Run のリビジョンタグで軽く済ませる案が有力)
-4. Cloud Run の **min-instances**(0 か 1 か)
-5. 初回本番確認後、backend deployを`main` pushで自動実行するか
+2. **staging 環境**の要否(Vercel Preview + Cloud Run のリビジョンタグで軽く済ませる案が有力)
+3. 初回本番確認後、backend deployを`main` pushで自動実行するか
