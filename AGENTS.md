@@ -31,6 +31,7 @@
 - `docs/ui-guidelines.md`: コンポーネント利用規約・shadcn/ui 移行規定。
 - `docs/ui-review.md`: UI 改善バックログ（P1〜P3。UI 実装タスクの出典。残タスクの推奨着手順も記載）。
 - `docs/deployment.md`: デプロイ方針（Vercel + Cloud Run + PostgreSQL の構成判断・必要設定・未決事項）。
+- `docs/testing/frontend.md`: フロントエンドのテスト範囲・E2E実行方法・認証と外部APIの扱い。
 
 ### 参照ルール
 - 機能の追加・変更時は、まず `docs/requirements.md` で対象機能の要件を確認する。
