@@ -82,7 +82,7 @@ func (ah *Handler) UpdateCalendarSettingHandler() gin.HandlerFunc {
 			return
 		}
 
-		var req *dto.CalendarSettingUpdate
+		var req dto.CalendarSettingUpdate
 		if err := c.ShouldBindJSON(&req); err != nil {
 			respond.BadRequest(c, "リクエストのデータ形式が不正です")
 			return
@@ -92,7 +92,7 @@ func (ah *Handler) UpdateCalendarSettingHandler() gin.HandlerFunc {
 			return
 		}
 
-		setting, err := ah.calendarSettingsUsecase.UpdateCalendarSetting(ctx, userid, userCalendarID, email, toCalendarSettingUpdateRequest(req))
+		setting, err := ah.calendarSettingsUsecase.UpdateCalendarSetting(ctx, userid, userCalendarID, email, toCalendarSettingUpdateRequest(&req))
 		if err != nil {
 			log.Printf("failed to update calendar setting for account: %s, %v", email, err)
 			respond.Error(c, err, "カレンダー設定の更新に失敗しました")
