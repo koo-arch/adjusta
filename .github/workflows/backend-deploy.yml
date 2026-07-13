@@ -67,6 +67,9 @@ jobs:
           service: ${{ vars.CLOUD_RUN_SERVICE }}
           region: ${{ vars.GCP_REGION }}
           image: ${{ env.IMAGE }}
+          flags: >-
+            --service-account=${{ vars.CLOUD_RUN_SERVICE_ACCOUNT }}
+            --min-instances=0
           env_vars: |-
             GO_ENV=production
             CORS_ALLOW_ORIGINS=${{ vars.CORS_ALLOW_ORIGINS }}
