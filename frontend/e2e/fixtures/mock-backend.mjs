@@ -20,6 +20,17 @@ const user = {
     picture: '',
 };
 
+const event = (id, title) => ({
+    id,
+    title,
+    description: '',
+    location: '',
+    status: 'active',
+    sync_status: 'not_synced',
+    confirmed_date_id: null,
+    proposed_dates: [],
+});
+
 const server = createServer((request, response) => {
     if (request.url === '/health') {
         response.writeHead(200).end('ok');
@@ -70,6 +81,34 @@ const server = createServer((request, response) => {
     if (request.url?.startsWith('/api/event/draft/search')) {
         const url = new URL(request.url, `http://localhost:${port}`);
         const page = Number(url.searchParams.get('page') ?? '1');
+        const title = url.searchParams.get('title');
+
+        if (title === '表示確認') {
+            json(response, 200, {
+                items: [event('visible-event', '表示確認イベント')],
+                pagination: {
+                    page,
+                    per_page: 20,
+                    total_items: 1,
+                    total_pages: 1,
+                },
+            });
+            return;
+        }
+
+        if (title === 'ページング') {
+            json(response, 200, {
+                items: [event(`page-${page}-event`, `${page}ページ目のイベント`)],
+                pagination: {
+                    page,
+                    per_page: 20,
+                    total_items: 21,
+                    total_pages: 2,
+                },
+            });
+            return;
+        }
+
         json(response, 200, {
             items: [],
             pagination: {
