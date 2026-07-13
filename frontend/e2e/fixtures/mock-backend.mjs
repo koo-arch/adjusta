@@ -121,6 +121,16 @@ const server = createServer((request, response) => {
         return;
     }
 
+    if (request.method === 'POST' && request.url === '/api/calendar/event/draft') {
+        json(response, 201, { id: 'created-event' });
+        return;
+    }
+
+    if (request.method === 'GET' && request.url === '/api/calendar/event/draft/created-event') {
+        json(response, 200, event('created-event', 'E2E作成イベント'));
+        return;
+    }
+
     json(response, 404, { code: 'not_found', error: 'Not Found' });
 });
 
