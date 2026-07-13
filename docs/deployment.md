@@ -108,7 +108,8 @@ Productionで使用するGCPリソースは以下とする。
 - Ent Schemaをdesired state、`backend/migrations`配下のSQLをスキーマ変更履歴の正本とする
 - `atlas.sum`はマイグレーションディレクトリの完全性検証に使用し、手動編集せずAtlasのコマンドで更新する
 - 各環境への適用状況はDB上のAtlasリビジョンテーブルで管理する
-- アプリケーションテーブルは`adjusta` schema、Atlasの履歴は`atlas_schema_revisions` schemaへ配置し、`public`にはアプリケーションテーブルを置かない
+- アプリケーションテーブルは`adjusta` schemaへ配置し、`public`にはAtlasの履歴テーブル`atlas_schema_revisions`以外のテーブルを置かない
+- Neon productionではdatabase scopeの履歴schema自動判定が不整合にならないよう、migration適用時は`--revisions-schema public`を明示する。ローカルPostgreSQLはdatabase scopeのデフォルトである専用schemaを使用する
 - ent queryはschema修飾されるため、`DATABASE_URL`へ`search_path`を追加しない
 - schema変更時は`cd backend && atlas migrate diff <name> --env local`でmigrationを生成し、SQLをレビューする
 - ローカル適用は`docker compose --profile tools run --rm migrate`を使う
