@@ -63,7 +63,6 @@ const config: Config = {
       },
     },
   },
-  darkMode: "class",
   plugins: [tailwindcssAnimate],
 };
 export default config;
