@@ -10,13 +10,16 @@ import (
 // Error converts an application or infrastructure error into an HTTP response.
 func Error(c *gin.Context, err error, fallbackMessage string) {
 	if apiErr, ok := err.(*internalErrors.APIError); ok {
-		payload := gin.H{"error": apiErr.Error()}
+		payload := gin.H{"code": apiErr.Kind, "error": apiErr.Error()}
 		if len(apiErr.Details) > 0 {
 			payload["details"] = apiErr.Details
 		}
 		AbortJSON(c, statusCodeForKind(apiErr.Kind), payload)
 	} else {
-		AbortJSON(c, http.StatusInternalServerError, gin.H{"error": fallbackMessage})
+		AbortJSON(c, http.StatusInternalServerError, gin.H{
+			"code":  internalErrors.KindInternal,
+			"error": fallbackMessage,
+		})
 	}
 }
 
