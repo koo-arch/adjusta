@@ -2,7 +2,9 @@ import { createServer } from 'node:http';
 
 const port = 3101;
 const expiredSessions = new Set();
-const confirmedEvents = new Set();
+const firstCandidateID = '22222222-2222-4222-8222-222222222222';
+const secondCandidateID = '33333333-3333-4333-8333-333333333333';
+const confirmedEventDates = new Map([['confirmed-event', firstCandidateID]]);
 
 const json = (response, status, body) => {
     response.writeHead(status, { 'Content-Type': 'application/json' });
@@ -32,32 +34,36 @@ const event = (id, title) => ({
     proposed_dates: [],
 });
 
-const confirmationEvent = (id, confirmed = false) => ({
-    ...event(id, confirmed ? '確定済みイベント' : '日程確定イベント'),
-    status: confirmed ? 'confirmed' : 'active',
-    confirmed_date_id: confirmed ? '22222222-2222-4222-8222-222222222222' : null,
-    confirmed_google_event_id: confirmed ? 'confirmed-google-event' : undefined,
-    proposed_dates: [
-        {
-            id: '22222222-2222-4222-8222-222222222222',
-            google_event_id: 'candidate-google-event-1',
-            start: '2026-07-22T01:00:00.000Z',
-            end: '2026-07-22T02:00:00.000Z',
-            priority: 1,
-            status: confirmed ? 'confirmed' : 'active',
-            sync_status: 'synced',
-        },
-        {
-            id: '33333333-3333-4333-8333-333333333333',
-            google_event_id: 'candidate-google-event-2',
-            start: '2026-07-23T03:00:00.000Z',
-            end: '2026-07-23T04:00:00.000Z',
-            priority: 2,
-            status: confirmed ? 'not_selected' : 'active',
-            sync_status: 'synced',
-        },
-    ],
-});
+const confirmationEvent = (id, confirmedDateID = null) => {
+    const confirmed = confirmedDateID !== null;
+
+    return {
+        ...event(id, confirmed ? '確定済みイベント' : '日程確定イベント'),
+        status: confirmed ? 'confirmed' : 'active',
+        confirmed_date_id: confirmedDateID,
+        confirmed_google_event_id: confirmed ? 'confirmed-google-event' : undefined,
+        proposed_dates: [
+            {
+                id: firstCandidateID,
+                google_event_id: 'candidate-google-event-1',
+                start: '2026-07-22T01:00:00.000Z',
+                end: '2026-07-22T02:00:00.000Z',
+                priority: 1,
+                status: confirmedDateID === firstCandidateID ? 'confirmed' : confirmed ? 'not_selected' : 'active',
+                sync_status: 'synced',
+            },
+            {
+                id: secondCandidateID,
+                google_event_id: 'candidate-google-event-2',
+                start: '2026-07-23T03:00:00.000Z',
+                end: '2026-07-23T04:00:00.000Z',
+                priority: 2,
+                status: confirmedDateID === secondCandidateID ? 'confirmed' : confirmed ? 'not_selected' : 'active',
+                sync_status: 'synced',
+            },
+        ],
+    };
+};
 
 const server = createServer((request, response) => {
     if (request.url === '/health') {
@@ -226,12 +232,18 @@ const server = createServer((request, response) => {
     );
     if (request.method === 'GET' && confirmationDetailMatch) {
         const id = confirmationDetailMatch[1];
-        json(response, 200, confirmationEvent(id, id === 'confirmed-event' || confirmedEvents.has(id)));
+        json(response, 200, confirmationEvent(id, confirmedEventDates.get(id) ?? null));
         return;
     }
 
     if (request.method === 'PATCH' && request.url === '/api/calendar/event/confirm/confirm-event') {
-        confirmedEvents.add('confirm-event');
+        confirmedEventDates.set('confirm-event', firstCandidateID);
+        json(response, 200, { message: 'success' });
+        return;
+    }
+
+    if (request.method === 'PATCH' && request.url === '/api/calendar/event/confirm/confirmed-event') {
+        confirmedEventDates.set('confirmed-event', secondCandidateID);
         json(response, 200, { message: 'success' });
         return;
     }
