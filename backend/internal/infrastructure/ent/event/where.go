@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 )
 
@@ -778,6 +779,9 @@ func HasUser() predicate.Event {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 		)
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Event
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
@@ -786,6 +790,9 @@ func HasUser() predicate.Event {
 func HasUserWith(preds ...predicate.User) predicate.Event {
 	return predicate.Event(func(s *sql.Selector) {
 		step := newUserStep()
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Event
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -801,6 +808,9 @@ func HasPrimaryCalendar() predicate.Event {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, PrimaryCalendarTable, PrimaryCalendarColumn),
 		)
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.Event
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
@@ -809,6 +819,9 @@ func HasPrimaryCalendar() predicate.Event {
 func HasPrimaryCalendarWith(preds ...predicate.Calendar) predicate.Event {
 	return predicate.Event(func(s *sql.Selector) {
 		step := newPrimaryCalendarStep()
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.Event
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -824,6 +837,9 @@ func HasConfirmedDate() predicate.Event {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, ConfirmedDateTable, ConfirmedDateColumn),
 		)
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.Event
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
@@ -832,6 +848,9 @@ func HasConfirmedDate() predicate.Event {
 func HasConfirmedDateWith(preds ...predicate.ProposedDate) predicate.Event {
 	return predicate.Event(func(s *sql.Selector) {
 		step := newConfirmedDateStep()
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.Event
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -847,6 +866,9 @@ func HasProposedDates() predicate.Event {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ProposedDatesTable, ProposedDatesColumn),
 		)
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.ProposedDate
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
@@ -855,6 +877,9 @@ func HasProposedDates() predicate.Event {
 func HasProposedDatesWith(preds ...predicate.ProposedDate) predicate.Event {
 	return predicate.Event(func(s *sql.Selector) {
 		step := newProposedDatesStep()
+		schemaConfig := internal.SchemaConfigFromContext(s.Context())
+		step.To.Schema = schemaConfig.ProposedDate
+		step.Edge.Schema = schemaConfig.ProposedDate
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

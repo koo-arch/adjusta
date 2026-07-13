@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 )
@@ -351,6 +352,7 @@ func (pdu *ProposedDateUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = pdu.schemaConfig.ProposedDate
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := pdu.mutation.EventIDs(); len(nodes) > 0 {
@@ -364,11 +366,14 @@ func (pdu *ProposedDateUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = pdu.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = pdu.schemaConfig.ProposedDate
+	ctx = internal.NewSchemaConfigContext(ctx, pdu.schemaConfig)
 	if n, err = sqlgraph.UpdateNodes(ctx, pdu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{proposeddate.Label}
@@ -740,6 +745,7 @@ func (pduo *ProposedDateUpdateOne) sqlSave(ctx context.Context) (_node *Proposed
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = pduo.schemaConfig.ProposedDate
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := pduo.mutation.EventIDs(); len(nodes) > 0 {
@@ -753,11 +759,14 @@ func (pduo *ProposedDateUpdateOne) sqlSave(ctx context.Context) (_node *Proposed
 				IDSpec: sqlgraph.NewFieldSpec(event.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = pduo.schemaConfig.ProposedDate
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = pduo.schemaConfig.ProposedDate
+	ctx = internal.NewSchemaConfigContext(ctx, pduo.schemaConfig)
 	_node = &ProposedDate{config: pduo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

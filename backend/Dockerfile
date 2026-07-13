@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 # ent のコード生成（intercept 機能を有効に）
 RUN go run -mod=mod entgo.io/ent/cmd/ent generate \
-    --feature intercept \
+    --feature intercept,sql/schemaconfig \
     ./internal/infrastructure/ent/schema
 
 # Linux amd64 向けにクロスコンパイルする
@@ -25,6 +25,9 @@ RUN go build -mod=mod -o server ./cmd/server
 # ── 2. runtime stage ─────────────────────────
 FROM alpine:3.18
 WORKDIR /app
+
+# Google APIとのTLS通信とタイムゾーン処理に必要なランタイムデータ
+RUN apk add --no-cache ca-certificates tzdata
 
 # ビルド済バイナリだけコピー
 COPY --from=builder /app/server .

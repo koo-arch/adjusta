@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
@@ -175,6 +176,7 @@ func (su *SessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = su.schemaConfig.Session
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := su.mutation.UserIDs(); len(nodes) > 0 {
@@ -188,11 +190,14 @@ func (su *SessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = su.schemaConfig.Session
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = su.schemaConfig.Session
+	ctx = internal.NewSchemaConfigContext(ctx, su.schemaConfig)
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{session.Label}
@@ -388,6 +393,7 @@ func (suo *SessionUpdateOne) sqlSave(ctx context.Context) (_node *Session, err e
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = suo.schemaConfig.Session
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := suo.mutation.UserIDs(); len(nodes) > 0 {
@@ -401,11 +407,14 @@ func (suo *SessionUpdateOne) sqlSave(ctx context.Context) (_node *Session, err e
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = suo.schemaConfig.Session
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = suo.schemaConfig.Session
+	ctx = internal.NewSchemaConfigContext(ctx, suo.schemaConfig)
 	_node = &Session{config: suo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

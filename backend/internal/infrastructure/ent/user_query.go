@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
@@ -84,6 +85,9 @@ func (uq *UserQuery) QueryAccount() *AccountQuery {
 			sqlgraph.To(account.Table, account.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, user.AccountTable, user.AccountColumn),
 		)
+		schemaConfig := uq.schemaConfig
+		step.To.Schema = schemaConfig.Account
+		step.Edge.Schema = schemaConfig.Account
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -106,6 +110,9 @@ func (uq *UserQuery) QuerySessions() *SessionQuery {
 			sqlgraph.To(session.Table, session.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SessionsTable, user.SessionsColumn),
 		)
+		schemaConfig := uq.schemaConfig
+		step.To.Schema = schemaConfig.Session
+		step.Edge.Schema = schemaConfig.Session
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -128,6 +135,9 @@ func (uq *UserQuery) QueryUserCalendars() *UserCalendarQuery {
 			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.UserCalendarsTable, user.UserCalendarsColumn),
 		)
+		schemaConfig := uq.schemaConfig
+		step.To.Schema = schemaConfig.UserCalendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -150,6 +160,9 @@ func (uq *UserQuery) QueryEvents() *EventQuery {
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.EventsTable, user.EventsColumn),
 		)
+		schemaConfig := uq.schemaConfig
+		step.To.Schema = schemaConfig.Event
+		step.Edge.Schema = schemaConfig.Event
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -496,6 +509,8 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = uq.schemaConfig.User
+	ctx = internal.NewSchemaConfigContext(ctx, uq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -655,6 +670,8 @@ func (uq *UserQuery) loadEvents(ctx context.Context, query *EventQuery, nodes []
 
 func (uq *UserQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := uq.querySpec()
+	_spec.Node.Schema = uq.schemaConfig.User
+	ctx = internal.NewSchemaConfigContext(ctx, uq.schemaConfig)
 	_spec.Node.Columns = uq.ctx.Fields
 	if len(uq.ctx.Fields) > 0 {
 		_spec.Unique = uq.ctx.Unique != nil && *uq.ctx.Unique
@@ -717,6 +734,9 @@ func (uq *UserQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if uq.ctx.Unique != nil && *uq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(uq.schemaConfig.User)
+	ctx = internal.NewSchemaConfigContext(ctx, uq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range uq.predicates {
 		p(selector)
 	}

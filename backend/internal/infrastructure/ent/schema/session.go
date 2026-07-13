@@ -45,6 +45,7 @@ func (Session) Indexes() []ent.Index {
 
 func (Session) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 	}
 }

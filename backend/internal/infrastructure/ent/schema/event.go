@@ -77,6 +77,7 @@ func (Event) Indexes() []ent.Index {
 
 func (Event) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 		mixins.SoftDeleteMixin{},
 	}

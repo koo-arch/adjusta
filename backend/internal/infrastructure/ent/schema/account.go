@@ -41,6 +41,7 @@ func (Account) Edges() []ent.Edge {
 
 func (Account) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 	}
 }

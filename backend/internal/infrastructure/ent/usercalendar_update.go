@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/usercalendar"
@@ -247,6 +248,7 @@ func (ucu *UserCalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucu.schemaConfig.UserCalendar
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := ucu.mutation.UserIDs(); len(nodes) > 0 {
@@ -260,6 +262,7 @@ func (ucu *UserCalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucu.schemaConfig.UserCalendar
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -276,6 +279,7 @@ func (ucu *UserCalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucu.schemaConfig.UserCalendar
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := ucu.mutation.CalendarIDs(); len(nodes) > 0 {
@@ -289,11 +293,14 @@ func (ucu *UserCalendarUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucu.schemaConfig.UserCalendar
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = ucu.schemaConfig.UserCalendar
+	ctx = internal.NewSchemaConfigContext(ctx, ucu.schemaConfig)
 	if n, err = sqlgraph.UpdateNodes(ctx, ucu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{usercalendar.Label}
@@ -560,6 +567,7 @@ func (ucuo *UserCalendarUpdateOne) sqlSave(ctx context.Context) (_node *UserCale
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucuo.schemaConfig.UserCalendar
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := ucuo.mutation.UserIDs(); len(nodes) > 0 {
@@ -573,6 +581,7 @@ func (ucuo *UserCalendarUpdateOne) sqlSave(ctx context.Context) (_node *UserCale
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucuo.schemaConfig.UserCalendar
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -589,6 +598,7 @@ func (ucuo *UserCalendarUpdateOne) sqlSave(ctx context.Context) (_node *UserCale
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucuo.schemaConfig.UserCalendar
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := ucuo.mutation.CalendarIDs(); len(nodes) > 0 {
@@ -602,11 +612,14 @@ func (ucuo *UserCalendarUpdateOne) sqlSave(ctx context.Context) (_node *UserCale
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucuo.schemaConfig.UserCalendar
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	_spec.Node.Schema = ucuo.schemaConfig.UserCalendar
+	ctx = internal.NewSchemaConfigContext(ctx, ucuo.schemaConfig)
 	_node = &UserCalendar{config: ucuo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues

@@ -3,3 +3,6 @@
 .codex/
 .env
 tmp/
+
+# Google GitHub Actions が生成する一時認証情報
+gha-creds-*.json

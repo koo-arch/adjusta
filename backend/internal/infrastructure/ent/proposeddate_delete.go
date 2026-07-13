@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 )
@@ -41,6 +42,8 @@ func (pdd *ProposedDateDelete) ExecX(ctx context.Context) int {
 
 func (pdd *ProposedDateDelete) sqlExec(ctx context.Context) (int, error) {
 	_spec := sqlgraph.NewDeleteSpec(proposeddate.Table, sqlgraph.NewFieldSpec(proposeddate.FieldID, field.TypeUUID))
+	_spec.Node.Schema = pdd.schemaConfig.ProposedDate
+	ctx = internal.NewSchemaConfigContext(ctx, pdd.schemaConfig)
 	if ps := pdd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {

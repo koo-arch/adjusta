@@ -1,6 +1,6 @@
 # デプロイ方針メモ
 
-2026-07-12 作成。初回デプロイの構成判断と、実施時に必要な設定の一覧。未決事項は末尾に明示する。
+2026-07-12 作成、2026-07-13更新。初回デプロイの構成判断と、実施時に必要な設定の一覧。未決事項は末尾に明示する。
 
 ## 結論(推奨構成)
 
@@ -14,12 +14,12 @@
 
 ## この構成が本アプリと相性が良い理由(重要)
 
-ブラウザからの API 呼び出しは **Next.js の `/api/[...path]` route handler がサーバー側で backend へ転送する proxy 構成**になっている(`frontend/src/lib/api/client.ts` の baseURL は `NEXT_PUBLIC_API_BASE_URL` 未設定時に空 = same-origin)。つまり:
+通常のAPI呼び出しは **Next.js の `/api/[...path]` route handlerがサーバー側でbackendへ転送するproxy構成**になっている(`frontend/src/lib/api/client.ts`のbaseURLは`NEXT_PUBLIC_API_BASE_URL`未設定時に空 = same-origin)。OAuth login開始だけは末尾の「OAuthの既知課題」に記載した実装差分が残る。目標構成は以下とする。
 
 - **session cookie は Vercel ドメインの first-party のまま** — クロスドメイン cookie / SameSite=None / CORS の問題が発生しない
 - backend(Cloud Run)の URL はブラウザに露出せず、`INTERNAL_BACKEND_URL` としてサーバー側にだけ設定する
 - 本番では **`NEXT_PUBLIC_API_BASE_URL` は未設定(空)のままにする**こと。値を入れるとブラウザ直アクセスになり、上記の利点が崩れる
-- OAuth 開始・コールバックも `/api/auth/*` の route handler 経由で成立している(`frontend/src/app/api/`)
+- OAuth開始・callbackも`/api/auth/*`のroute handler経由へ統一する(`frontend/src/app/api/`)
 
 ## DB の選択
 
@@ -44,9 +44,39 @@
 | `CORS_ALLOW_ORIGINS` | Cloud Run | Vercel のドメイン(proxy 経由ならサーバー間通信のため実質不要だが、設定しておく) |
 | Google OAuth client ID / secret | Cloud Run | GCP コンソールで発行 |
 
+### GitHub production environment
+
+`.github/workflows/backend-deploy.yml`はGitHubの`production` environmentを使用する。初回実行前に以下を登録する。
+
+Repository / environment variables:
+
+| 名前 | 内容 |
+| --- | --- |
+| `GCP_PROJECT_ID` | GCP project ID |
+| `GCP_REGION` | Artifact Registry / Cloud Runのregion |
+| `GCP_ARTIFACT_REPOSITORY` | Docker repository名 |
+| `CLOUD_RUN_SERVICE` | Cloud Run service名 |
+| `DATABASE_URL_SECRET` | Secret Manager上のDB接続文字列secret名 |
+| `SESSION_SECRET_SECRET` | Secret Manager上のsession secret名 |
+| `GOOGLE_CLIENT_SECRET_SECRET` | Secret Manager上のOAuth client secret名 |
+| `GOOGLE_CLIENT_ID` | OAuth client ID |
+| `GOOGLE_REDIRECT_URI` | Googleへ登録したcallback URL |
+| `REDIRECT_URL_AFTER_LOGIN` | ログイン完了後のfrontend URL |
+| `CORS_ALLOW_ORIGINS` | 許可するfrontend origin |
+| `COOKIE_DOMAIN` | session cookieのdomain |
+
+Environment secrets:
+
+| 名前 | 内容 |
+| --- | --- |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | Workload Identity Providerの完全なresource名 |
+| `GCP_DEPLOY_SERVICE_ACCOUNT` | GitHub Actionsがimpersonateするservice account |
+
+長期service account keyは置かず、GitHub OIDCとWorkload Identity Federationを使う。deploy用identityにはArtifact Registryへのpush、Cloud Run更新、DB migration用secretの参照、およびCloud Run実行service accountを利用するための最小権限を付与する。Cloud Runの実行service accountにも、runtimeで参照するSecret Manager secretへのaccessor権限が必要になる。
+
 ### Google OAuth
 
-- 承認済みリダイレクト URI に **backend の公開 URL**(`https://<cloud-run>/auth/google/callback`)を登録
+- 承認済みリダイレクトURIに **frontendのcallback URL**(`https://<vercel-domain>/api/auth/google/callback`)を登録
 - OAuth 同意画面の公開設定(テストユーザー→本番公開)を確認
 
 ### Cloud Run
@@ -55,10 +85,34 @@
 - **min-instances**: 0 だと初回アクセス・OAuth コールバックにコールドスタート遅延が乗る。体感を優先するなら 1(常時課金)。まず 0 で始めて気になったら上げる
 - cookie の `Secure` / ドメイン設定が本番 URL 前提になっているか `backend/api/cookie` を確認
 
+初回作成時はVercelのserver-side proxyから到達できるようCloud Run invocationのIAMを設定する。workflowはrevisionのデプロイのみを担当し、公開・非公開のIAM設定は変更しない。
+
+### DB migration
+
+- Ent Schemaをdesired state、`backend/migrations`配下のSQLをスキーマ変更履歴の正本とする
+- `atlas.sum`はマイグレーションディレクトリの完全性検証に使用し、手動編集せずAtlasのコマンドで更新する
+- 各環境への適用状況はDB上のAtlasリビジョンテーブルで管理する
+- アプリケーションテーブルは`adjusta` schema、Atlasの履歴は`atlas_schema_revisions` schemaへ配置し、`public`にはアプリケーションテーブルを置かない
+- ent queryはschema修飾されるため、`DATABASE_URL`へ`search_path`を追加しない
+- schema変更時は`cd backend && atlas migrate diff <name> --env local`でmigrationを生成し、SQLをレビューする
+- ローカル適用は`docker compose --profile tools run --rm migrate`を使う
+- PRではmigration履歴を一時PostgreSQLへ再適用し、ent schemaとの差分が残っていないことを検査する
+- productionではbackend imageのbuild / push後、Cloud Run revisionの切り替え前に独立したstepとしてpending migrationを適用する
+- 上記の実行順序だけでは互換性は保証されない。Cloud Runのトラフィック分割やロールバックで旧revisionが動作する可能性を前提に、migration後も新旧両方が動作できる状態を維持する
+- 削除・rename・型変更・NOT NULL化・外部キー追加など後方互換性を損なう変更は、expand/contractで複数回のreleaseに分ける
+
+初期migrationは空DB向けである。auto migrationで`public`に作成済みの既存開発DBは、不要なデータであればvolumeを作り直してから適用する。保持が必要な場合は`public`から`adjusta`への明示的なデータ移行が必要であり、そのままbaseline扱いにはしない。productionは初回デプロイ前のため、空DBへ通常適用する。
+
 ### CI/CD
 
 - frontend: Vercel の Git 連携(main への push で本番、PR ごとに Preview)
-- backend: GitHub Actions → Artifact Registry へ push → Cloud Run デプロイ(`.github/workflows` は未整備、要作成)
+- backend CI: PRでGoテストとAtlas migration整合性検査を実行
+- backend deploy: `Backend Deploy`を手動実行し、Artifact Registryへpush → DB migration適用 → Cloud Run deployの順で実行
+- 初回本番確認が完了するまでは自動deployにせず、GitHub `production` environmentのapprovalを利用する。安定後に`main` push triggerを追加する
+
+### OAuthの既知課題
+
+現状のfrontend login routeはbrowserをCloud Runの`/auth/google/login`へ直接redirectする一方、callbackはVercelのroute handlerを経由する。OAuth state cookieの発行元とcallback時のcookie送信先が一致しない可能性があり、「backend URLをbrowserに露出しない」という上記方針とも実装が一致していない。初回本番OAuth確認前に、login開始もVercel route handler経由でbackendへ問い合わせて`Location`と`Set-Cookie`を転送する形へ統一する必要がある。
 
 ## 未決事項(実施時に決める)
 
@@ -66,4 +120,4 @@
 2. **DB の最終選択**(推奨は Neon スタート)
 3. **staging 環境**の要否(Vercel Preview + Cloud Run のリビジョンタグで軽く済ませる案が有力)
 4. Cloud Run の **min-instances**(0 か 1 か)
-5. DB マイグレーションの実行方法(ent のマイグレーションをデプロイパイプラインに組み込むか、手動か)
+5. 初回本番確認後、backend deployを`main` pushで自動実行するか

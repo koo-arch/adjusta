@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/usercalendar"
 )
@@ -80,6 +81,9 @@ func (cq *CalendarQuery) QueryUserCalendars() *UserCalendarQuery {
 			sqlgraph.To(usercalendar.Table, usercalendar.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, calendar.UserCalendarsTable, calendar.UserCalendarsColumn),
 		)
+		schemaConfig := cq.schemaConfig
+		step.To.Schema = schemaConfig.UserCalendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -102,6 +106,9 @@ func (cq *CalendarQuery) QueryPrimaryEvents() *EventQuery {
 			sqlgraph.To(event.Table, event.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, calendar.PrimaryEventsTable, calendar.PrimaryEventsColumn),
 		)
+		schemaConfig := cq.schemaConfig
+		step.To.Schema = schemaConfig.Event
+		step.Edge.Schema = schemaConfig.Event
 		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -422,6 +429,8 @@ func (cq *CalendarQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cal
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = cq.schemaConfig.Calendar
+	ctx = internal.NewSchemaConfigContext(ctx, cq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -511,6 +520,8 @@ func (cq *CalendarQuery) loadPrimaryEvents(ctx context.Context, query *EventQuer
 
 func (cq *CalendarQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := cq.querySpec()
+	_spec.Node.Schema = cq.schemaConfig.Calendar
+	ctx = internal.NewSchemaConfigContext(ctx, cq.schemaConfig)
 	_spec.Node.Columns = cq.ctx.Fields
 	if len(cq.ctx.Fields) > 0 {
 		_spec.Unique = cq.ctx.Unique != nil && *cq.ctx.Unique
@@ -573,6 +584,9 @@ func (cq *CalendarQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if cq.ctx.Unique != nil && *cq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(cq.schemaConfig.Calendar)
+	ctx = internal.NewSchemaConfigContext(ctx, cq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range cq.predicates {
 		p(selector)
 	}

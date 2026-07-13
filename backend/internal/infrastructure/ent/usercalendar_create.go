@@ -257,6 +257,7 @@ func (ucc *UserCalendarCreate) createSpec() (*UserCalendar, *sqlgraph.CreateSpec
 		_node = &UserCalendar{config: ucc.config}
 		_spec = sqlgraph.NewCreateSpec(usercalendar.Table, sqlgraph.NewFieldSpec(usercalendar.FieldID, field.TypeUUID))
 	)
+	_spec.Schema = ucc.schemaConfig.UserCalendar
 	if id, ok := ucc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
@@ -296,6 +297,7 @@ func (ucc *UserCalendarCreate) createSpec() (*UserCalendar, *sqlgraph.CreateSpec
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucc.schemaConfig.UserCalendar
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
@@ -313,6 +315,7 @@ func (ucc *UserCalendarCreate) createSpec() (*UserCalendar, *sqlgraph.CreateSpec
 				IDSpec: sqlgraph.NewFieldSpec(calendar.FieldID, field.TypeUUID),
 			},
 		}
+		edge.Schema = ucc.schemaConfig.UserCalendar
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}

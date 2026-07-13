@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
 )
@@ -77,6 +78,9 @@ func (aq *AccountQuery) QueryUser() *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, account.UserTable, account.UserColumn),
 		)
+		schemaConfig := aq.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.Account
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -384,6 +388,8 @@ func (aq *AccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Acco
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = aq.schemaConfig.Account
+	ctx = internal.NewSchemaConfigContext(ctx, aq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -434,6 +440,8 @@ func (aq *AccountQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 
 func (aq *AccountQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := aq.querySpec()
+	_spec.Node.Schema = aq.schemaConfig.Account
+	ctx = internal.NewSchemaConfigContext(ctx, aq.schemaConfig)
 	_spec.Node.Columns = aq.ctx.Fields
 	if len(aq.ctx.Fields) > 0 {
 		_spec.Unique = aq.ctx.Unique != nil && *aq.ctx.Unique
@@ -499,6 +507,9 @@ func (aq *AccountQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if aq.ctx.Unique != nil && *aq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(aq.schemaConfig.Account)
+	ctx = internal.NewSchemaConfigContext(ctx, aq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range aq.predicates {
 		p(selector)
 	}

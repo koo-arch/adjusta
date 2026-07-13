@@ -70,6 +70,7 @@ func (UserCalendar) Indexes() []ent.Index {
 
 func (UserCalendar) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 		mixins.SoftDeleteMixin{},
 	}

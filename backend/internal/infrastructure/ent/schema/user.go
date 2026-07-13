@@ -62,6 +62,7 @@ func userhook(next ent.Mutator) ent.Mutator {
 
 func (User) Mixin() []ent.Mixin {
 	return []ent.Mixin{
+		mixins.SchemaMixin{},
 		mixins.TimeMixin{},
 		mixins.SoftDeleteMixin{},
 	}

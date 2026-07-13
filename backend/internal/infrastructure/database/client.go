@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
@@ -21,11 +20,4 @@ func New(databaseURL string) (*ent.Client, error) {
 	}
 
 	return client, nil
-}
-
-func Migrate(ctx context.Context, client *ent.Client) error {
-	if err := client.Schema.Create(ctx); err != nil {
-		return fmt.Errorf("failed creating schema resources: %w", err)
-	}
-	return nil
 }

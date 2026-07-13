@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/internal"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/usercalendar"
@@ -79,6 +80,9 @@ func (ucq *UserCalendarQuery) QueryUser() *UserQuery {
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, usercalendar.UserTable, usercalendar.UserColumn),
 		)
+		schemaConfig := ucq.schemaConfig
+		step.To.Schema = schemaConfig.User
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromU = sqlgraph.SetNeighbors(ucq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -101,6 +105,9 @@ func (ucq *UserCalendarQuery) QueryCalendar() *CalendarQuery {
 			sqlgraph.To(calendar.Table, calendar.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, usercalendar.CalendarTable, usercalendar.CalendarColumn),
 		)
+		schemaConfig := ucq.schemaConfig
+		step.To.Schema = schemaConfig.Calendar
+		step.Edge.Schema = schemaConfig.UserCalendar
 		fromU = sqlgraph.SetNeighbors(ucq.driver.Dialect(), step)
 		return fromU, nil
 	}
@@ -421,6 +428,8 @@ func (ucq *UserCalendarQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
+	_spec.Node.Schema = ucq.schemaConfig.UserCalendar
+	ctx = internal.NewSchemaConfigContext(ctx, ucq.schemaConfig)
 	for i := range hooks {
 		hooks[i](ctx, _spec)
 	}
@@ -506,6 +515,8 @@ func (ucq *UserCalendarQuery) loadCalendar(ctx context.Context, query *CalendarQ
 
 func (ucq *UserCalendarQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := ucq.querySpec()
+	_spec.Node.Schema = ucq.schemaConfig.UserCalendar
+	ctx = internal.NewSchemaConfigContext(ctx, ucq.schemaConfig)
 	_spec.Node.Columns = ucq.ctx.Fields
 	if len(ucq.ctx.Fields) > 0 {
 		_spec.Unique = ucq.ctx.Unique != nil && *ucq.ctx.Unique
@@ -574,6 +585,9 @@ func (ucq *UserCalendarQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if ucq.ctx.Unique != nil && *ucq.ctx.Unique {
 		selector.Distinct()
 	}
+	t1.Schema(ucq.schemaConfig.UserCalendar)
+	ctx = internal.NewSchemaConfigContext(ctx, ucq.schemaConfig)
+	selector.WithContext(ctx)
 	for _, p := range ucq.predicates {
 		p(selector)
 	}
