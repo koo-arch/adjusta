@@ -100,3 +100,18 @@ test('[EVENT-013] 候補日程を追加してイベントを作成できる', as
     await expect(page).toHaveURL('/events/created-event', { timeout: 15_000 });
     await expect(page.getByRole('heading', { name: 'E2E作成イベント' })).toBeVisible();
 });
+
+test('[EVENT-017] 追加した候補日程の編集を完了できる', async ({
+    authenticatedSession: _authenticatedSession,
+    page,
+}) => {
+    await page.goto('/events/new');
+    await page.getByRole('button', { name: '次へ' }).click();
+    await page.getByRole('button', { name: '日時を追加' }).click();
+
+    const completeButton = page.getByRole('button', { name: '編集を完了' });
+    await expect(completeButton).toBeEnabled();
+    await completeButton.click();
+
+    await expect(page.getByRole('button', { name: '日時を編集', exact: true })).toBeVisible();
+});

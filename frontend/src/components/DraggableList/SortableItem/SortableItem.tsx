@@ -29,7 +29,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ id, children, disabled }) =
                 !disabled && 'cursor-grab',
                 isDragging && 'z-10 cursor-grabbing opacity-80 shadow-md',
             )}
-            {...attributes}
+            {...(disabled ? {} : attributes)}
             {...(disabled ? {} : listeners)}
         >
             {!disabled && (
