@@ -54,6 +54,19 @@ const server = createServer((request, response) => {
         return;
     }
 
+    if (
+        request.url === '/api/event/draft/needs-action' ||
+        request.url === '/api/event/confirmed/upcoming'
+    ) {
+        json(response, 200, []);
+        return;
+    }
+
+    if (request.url === '/api/calendar/list') {
+        json(response, 200, { events: [], warning: { failed_calendars: [] } });
+        return;
+    }
+
     json(response, 404, { code: 'not_found', error: 'Not Found' });
 });
 
