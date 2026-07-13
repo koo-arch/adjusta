@@ -131,6 +131,30 @@ const server = createServer((request, response) => {
         return;
     }
 
+    if (request.method === 'GET' && request.url === '/api/calendar/event/draft/detail-event') {
+        json(response, 200, {
+            ...event('detail-event', '詳細確認イベント'),
+            description: 'イベント詳細の説明',
+            location: '会議室A',
+            proposed_dates: [
+                {
+                    id: 'candidate-1',
+                    start: '2026-07-20T01:00:00.000Z',
+                    end: '2026-07-20T02:00:00.000Z',
+                    priority: 1,
+                    status: 'active',
+                    sync_status: 'not_synced',
+                },
+            ],
+        });
+        return;
+    }
+
+    if (request.method === 'GET' && request.url === '/api/calendar/event/draft/missing-event') {
+        json(response, 404, { code: 'not_found', error: 'イベントが見つかりません' });
+        return;
+    }
+
     json(response, 404, { code: 'not_found', error: 'Not Found' });
 });
 
