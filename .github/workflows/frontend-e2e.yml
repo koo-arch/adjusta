@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - "frontend/**"
-      - "docs/testing/frontend.md"
       - ".github/workflows/frontend-e2e.yml"
   workflow_dispatch:
 
@@ -43,8 +42,8 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
 
-      - name: Upload failure artifacts
-        if: failure()
+      - name: Upload test artifacts
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: frontend-e2e-results
