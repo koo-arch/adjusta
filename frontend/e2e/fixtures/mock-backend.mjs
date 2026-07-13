@@ -10,6 +10,12 @@ const candidateSyncState = {
     calendarExists: false,
     failUpdate: false,
 };
+const calendarSettingsState = {
+    primaryID: 'calendar-primary',
+    primaryVisible: true,
+    referenceVisible: true,
+    failUpdate: false,
+};
 
 const json = (response, status, body) => {
     response.writeHead(status, { 'Content-Type': 'application/json' });
@@ -45,6 +51,40 @@ const candidateSyncSetting = () => ({
         ? { ...candidateCalendar, sync_proposed_dates: candidateSyncState.enabled }
         : null,
 });
+
+const calendarSettings = () => [
+    {
+        id: 'calendar-primary',
+        calendar_id: 'calendar-entity-primary',
+        google_calendar_id: 'e2e@example.com',
+        summary: 'メインカレンダー',
+        timezone: 'Asia/Tokyo',
+        role: calendarSettingsState.primaryID === 'calendar-primary' ? 'primary' : 'reference',
+        is_visible: calendarSettingsState.primaryVisible,
+        sync_proposed_dates: false,
+    },
+    {
+        id: 'calendar-reference',
+        calendar_id: 'calendar-entity-reference',
+        google_calendar_id: 'team@example.com',
+        summary: 'チームカレンダー',
+        timezone: 'Asia/Tokyo',
+        role: calendarSettingsState.primaryID === 'calendar-reference' ? 'primary' : 'reference',
+        is_visible: calendarSettingsState.referenceVisible,
+        sync_proposed_dates: false,
+    },
+    {
+        id: 'calendar-holiday',
+        calendar_id: 'calendar-entity-holiday',
+        google_calendar_id: 'ja.japanese#holiday@group.v.calendar.google.com',
+        summary: '日本の祝日',
+        timezone: 'Asia/Tokyo',
+        role: 'reference',
+        is_visible: true,
+        sync_proposed_dates: false,
+    },
+    ...(candidateSyncState.calendarExists ? [candidateSyncSetting().calendar] : []),
+];
 
 const event = (id, title) => ({
     id,
@@ -113,6 +153,18 @@ const server = createServer((request, response) => {
         return;
     }
 
+    const calendarSettingsFixtureMatch = request.url?.match(
+        /^\/__e2e\/calendar-settings\/(reset|fail-update)$/,
+    );
+    if (request.method === 'POST' && calendarSettingsFixtureMatch) {
+        calendarSettingsState.primaryID = 'calendar-primary';
+        calendarSettingsState.primaryVisible = true;
+        calendarSettingsState.referenceVisible = true;
+        calendarSettingsState.failUpdate = calendarSettingsFixtureMatch[1] === 'fail-update';
+        response.writeHead(204).end();
+        return;
+    }
+
     const token = sessionToken(request);
     if (!token || token === 'expired-session' || expiredSessions.has(token)) {
         json(response, 401, { code: 'unauthorized', error: '認証情報がありません' });
@@ -125,7 +177,26 @@ const server = createServer((request, response) => {
     }
 
     if (request.url === '/api/user-calendars') {
-        json(response, 200, candidateSyncState.calendarExists ? [candidateSyncSetting().calendar] : []);
+        json(response, 200, calendarSettings());
+        return;
+    }
+
+    const calendarSettingUpdateMatch = request.url?.match(
+        /^\/api\/user-calendars\/(calendar-primary|calendar-reference)$/,
+    );
+    if (request.method === 'PATCH' && calendarSettingUpdateMatch) {
+        if (calendarSettingsState.failUpdate) {
+            json(response, 500, { code: 'internal_error', error: 'カレンダー設定を更新できませんでした' });
+            return;
+        }
+
+        const id = calendarSettingUpdateMatch[1];
+        if (id === 'calendar-reference') {
+            calendarSettingsState.primaryID = id;
+        } else {
+            calendarSettingsState.primaryVisible = !calendarSettingsState.primaryVisible;
+        }
+        json(response, 200, calendarSettings().find((setting) => setting?.id === id));
         return;
     }
 
