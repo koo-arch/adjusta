@@ -84,7 +84,8 @@ func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxR
 	)
 
 	for _, proposedDate := range storedEvent.ProposedDates {
-		if proposedDate == nil {
+		if proposedDate == nil ||
+			(storedEvent.SyncStatus == value.SyncStatusSynced && proposedDate.SyncStatus == value.SyncStatusSynced) {
 			continue
 		}
 		attemptedSync = true

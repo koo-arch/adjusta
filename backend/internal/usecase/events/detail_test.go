@@ -12,7 +12,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 )
 
-func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
+func TestFetchDraftedEventDetailSkipsSyncedProposedDatesUntilEventChanges(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -25,8 +25,8 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 	start2 := start1.Add(24 * time.Hour)
 	end2 := start2.Add(time.Hour)
 	existingGoogleEventID := "google-existing-2"
-	upsertedEventIDs := []string{"google-created-1", "google-updated-2"}
 	upsertCallCount := 0
+	expectedTitle := "Draft"
 
 	storedEvent := &domainEvent.Event{
 		ID:          eventID,
@@ -111,18 +111,36 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 				if calendarID != "adjusta-candidate" {
 					t.Fatalf("unexpected calendar id: %s", calendarID)
 				}
-				if title != "Draft" || location != "Tokyo" || description != "Discuss roadmap" {
+				if title != expectedTitle || location != "Tokyo" || description != "Discuss roadmap" {
 					t.Fatalf("unexpected event payload: %s %s %s", title, location, description)
 				}
-				if upsertCallCount == 0 && existingGoogleEventID != nil {
-					t.Fatalf("expected first upsert to create new event, got %#v", existingGoogleEventID)
+				var expectedExistingID *string
+				var returnedID string
+				switch upsertCallCount {
+				case 0:
+					returnedID = "google-created-1"
+				case 1:
+					expectedExistingID = stringPointer("google-existing-2")
+					returnedID = "google-updated-2"
+				case 2:
+					expectedExistingID = stringPointer("google-created-1")
+					returnedID = "google-created-1"
+				case 3:
+					expectedExistingID = stringPointer("google-updated-2")
+					returnedID = "google-updated-2"
+				default:
+					t.Fatalf("unexpected upsert call: %d", upsertCallCount+1)
 				}
-				if upsertCallCount == 1 && (existingGoogleEventID == nil || *existingGoogleEventID != "google-existing-2") {
-					t.Fatalf("unexpected existing google event id: %#v", existingGoogleEventID)
+
+				if expectedExistingID == nil && existingGoogleEventID != nil {
+					t.Fatalf("expected a new event, got existing id %#v", existingGoogleEventID)
 				}
-				id := upsertedEventIDs[upsertCallCount]
+				if expectedExistingID != nil && (existingGoogleEventID == nil || *existingGoogleEventID != *expectedExistingID) {
+					t.Fatalf("expected existing google event id %q, got %#v", *expectedExistingID, existingGoogleEventID)
+				}
+
 				upsertCallCount++
-				return id, nil
+				return returnedID, nil
 			},
 			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*EventCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
 				t.Fatalf("fetch events should not be called")
@@ -136,7 +154,7 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 		t.Fatalf("FetchDraftedEventDetail returned error: %v", err)
 	}
 	if upsertCallCount != 2 {
-		t.Fatalf("expected two upsert calls, got %d", upsertCallCount)
+		t.Fatalf("expected two initial upsert calls, got %d", upsertCallCount)
 	}
 	if detail.SyncStatus != value.SyncStatusSynced {
 		t.Fatalf("unexpected event sync status: %s", detail.SyncStatus)
@@ -157,8 +175,8 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 	}
 
 	for id, expectedGoogleEventID := range map[uuid.UUID]string{
-		dateID1: upsertedEventIDs[0],
-		dateID2: upsertedEventIDs[1],
+		dateID1: "google-created-1",
+		dateID2: "google-updated-2",
 	} {
 		proposedDate, ok := datesByID[id]
 		if !ok {
@@ -177,6 +195,36 @@ func TestFetchDraftedEventDetailResyncsProposedDates(t *testing.T) {
 			t.Fatalf("expected last sync error to be cleared for %s, got %#v", id, proposedDate.LastSyncError)
 		}
 	}
+
+	// 同期済みの詳細を再取得しても、Google Calendar API は呼ばない。
+	secondDetail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID)
+	if err != nil {
+		t.Fatalf("second FetchDraftedEventDetail returned error: %v", err)
+	}
+	if upsertCallCount != 2 {
+		t.Fatalf("expected no additional upsert calls, got %d total calls", upsertCallCount)
+	}
+	for _, proposedDate := range secondDetail.ProposedDates {
+		if proposedDate.GoogleEventID == nil {
+			t.Fatalf("expected google event id after repeated sync: %#v", proposedDate)
+		}
+	}
+
+	// Adjusta 側でイベント基本情報が変更された場合は、同期済み候補も再同期する。
+	expectedTitle = "Updated Draft"
+	storedEvent.Title = expectedTitle
+	storedEvent.SyncStatus = value.SyncStatusPending
+
+	updatedDetail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID)
+	if err != nil {
+		t.Fatalf("FetchDraftedEventDetail after event update returned error: %v", err)
+	}
+	if upsertCallCount != 4 {
+		t.Fatalf("expected synced proposed dates to be resynced after event update, got %d total calls", upsertCallCount)
+	}
+	if updatedDetail.SyncStatus != value.SyncStatusSynced {
+		t.Fatalf("expected updated event to be synced, got %s", updatedDetail.SyncStatus)
+	}
 }
 
 func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
@@ -189,6 +237,7 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 	start := time.Date(2026, 6, 17, 10, 0, 0, 0, time.UTC)
 	end := start.Add(time.Hour)
 	upsertCallCount := 0
+	googleAvailable := false
 
 	storedEvent := &domainEvent.Event{
 		ID:          eventID,
@@ -249,7 +298,10 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 		&fakeGoogleCalendarGateway{
 			upsertEventFn: func(ctx context.Context, gotUserID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
 				upsertCallCount++
-				return "", errors.New("google unavailable")
+				if !googleAvailable {
+					return "", errors.New("google unavailable")
+				}
+				return "google-created-after-retry", nil
 			},
 			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*EventCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
 				t.Fatalf("fetch events should not be called")
@@ -280,6 +332,38 @@ func TestFetchDraftedEventDetailMarksSyncFailureButReturnsDetail(t *testing.T) {
 	if detail.ProposedDates[0].LastSyncError == nil || *detail.ProposedDates[0].LastSyncError != "google unavailable" {
 		t.Fatalf("unexpected proposed date last sync error: %#v", detail.ProposedDates[0].LastSyncError)
 	}
+
+	googleAvailable = true
+	retriedDetail, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID)
+	if err != nil {
+		t.Fatalf("retry FetchDraftedEventDetail returned error: %v", err)
+	}
+	if upsertCallCount != 2 {
+		t.Fatalf("expected one failed and one successful upsert, got %d", upsertCallCount)
+	}
+	if retriedDetail.SyncStatus != value.SyncStatusSynced || retriedDetail.LastSyncError != nil {
+		t.Fatalf("expected event sync error to be cleared after retry, got %+v", retriedDetail)
+	}
+	if len(retriedDetail.ProposedDates) != 1 || retriedDetail.ProposedDates[0].SyncStatus != value.SyncStatusSynced {
+		t.Fatalf("expected proposed date to be synced after retry, got %#v", retriedDetail.ProposedDates)
+	}
+	if retriedDetail.ProposedDates[0].GoogleEventID == nil || *retriedDetail.ProposedDates[0].GoogleEventID != "google-created-after-retry" {
+		t.Fatalf("unexpected google event id after retry: %#v", retriedDetail.ProposedDates[0].GoogleEventID)
+	}
+	if retriedDetail.ProposedDates[0].LastSyncError != nil {
+		t.Fatalf("expected proposed date sync error to be cleared after retry, got %#v", retriedDetail.ProposedDates[0].LastSyncError)
+	}
+
+	if _, err := uc.FetchDraftedEventDetail(ctx, userID, "user@example.com", eventID); err != nil {
+		t.Fatalf("FetchDraftedEventDetail after successful retry returned error: %v", err)
+	}
+	if upsertCallCount != 2 {
+		t.Fatalf("expected synced proposed date to skip another retry, got %d upsert calls", upsertCallCount)
+	}
+}
+
+func stringPointer(value string) *string {
+	return &value
 }
 
 func TestFetchDraftedEventDetailSkipsResyncWhenCandidateSyncDisabled(t *testing.T) {
