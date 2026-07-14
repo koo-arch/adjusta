@@ -72,7 +72,7 @@
 
 - cookie は session cookie のみを採用する
 - `access_token` cookie や `refresh_token` cookie は採用しない
-- session cookie は `HttpOnly` を前提とし、`Secure` / `SameSite` は環境ごとの設定で管理する
+- session cookie は `HttpOnly` を前提とし、`Secure` は環境ごとに設定する。`SameSite` はfrontendのsame-origin proxyを前提に`Lax`へ固定する
 - frontend は cookie の中身を認証の「判定」に使わない。proxy(middleware)は cookie の存在だけを見る楽観的ルーティング(UX)に徹し、権威的な認証判定は Go API のセッション検証に集約する(詳細は 4.1.8)
 
 #### 4.1.4 ログインフローの最終形

@@ -33,7 +33,7 @@ func (m *Manager) Options() sessions.Options {
 		MaxAge:   defaultMaxAge,
 		HttpOnly: true,
 		Secure:   m.secure,
-		SameSite: m.sameSite(),
+		SameSite: http.SameSiteLaxMode,
 	}
 }
 
@@ -46,13 +46,6 @@ func (m *Manager) Expired(name string) *http.Cookie {
 		Domain:   m.domain,
 		HttpOnly: true,
 		Secure:   m.secure,
-		SameSite: m.sameSite(),
+		SameSite: http.SameSiteLaxMode,
 	}
-}
-
-func (m *Manager) sameSite() http.SameSite {
-	if m.secure {
-		return http.SameSiteNoneMode
-	}
-	return http.SameSiteLaxMode
 }
