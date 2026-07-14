@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import type { ConfirmFormErrors } from '@/features/events/detail/schema';
 import { emptyFormErrors, type FormErrors } from '@/lib/form/errors';
 import { confirmEvent, type ConfirmEventInput } from '@/features/events/detail/api/confirmEvent';

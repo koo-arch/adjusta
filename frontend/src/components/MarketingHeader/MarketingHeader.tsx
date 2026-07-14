@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import Button from '@/components/Button';
+import { Button } from '@/components/ui/button';
 
 const MarketingHeader: React.FC = () => {
     return (
@@ -11,8 +11,8 @@ const MarketingHeader: React.FC = () => {
                         Adjusta
                     </div>
                 </Link>
-                <Button to="/login">
-                    ログイン
+                <Button asChild>
+                    <Link href="/login">ログイン</Link>
                 </Button>
             </div>
         </header>

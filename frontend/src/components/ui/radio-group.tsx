@@ -31,7 +31,7 @@ const RadioGroupItem = React.forwardRef<
       )}
       {...props}
     >
-      {/* アイコンは heroicons 優先の規約(ui-guidelines 3.4)のため @radix-ui/react-icons に依存しない */}
+      {/* 塗りつぶし円はアイコン依存を増やさず CSS で表現する */}
       <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
         <span className="h-2 w-2 rounded-full bg-primary" />
       </RadioGroupPrimitive.Indicator>

@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import StatusBadge from '@/components/StatusBadge';
+import StatusBadge from '@/components/common/StatusBadge/StatusBadge';
 import { formatJaDateSpan } from '@/lib/date/format';
 import { EVENT_STATUS_COLORS, EVENT_STATUS_LABELS } from '@/features/events/status';
 import type { EventDraftDetail } from '@/features/events/types';
@@ -27,8 +27,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     <div className="shrink-0">
                         <StatusBadge
                             label={EVENT_STATUS_LABELS[event.status]}
-                            circleColor={EVENT_STATUS_COLORS[event.status]}
-                            textColor={EVENT_STATUS_COLORS[event.status]}
+                            color={EVENT_STATUS_COLORS[event.status]}
                             textSize="sm"
                         />
                     </div>

@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import DraggableList from '@/components/DraggableList';
+import DraggableList from '@/components/common/DraggableList/DraggableList';
 import { Button } from '@/components/ui/button';
 import { DateTimePicker } from '@/components/common/DateTimePicker/DateTimePicker';
 import { formatJaDateOnly, formatJaTimeSpan } from '@/lib/date/format';

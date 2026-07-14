@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
-import StatusBadge from '@/components/StatusBadge';
+import StatusBadge from '@/components/common/StatusBadge/StatusBadge';
 import { formatJaDateSpan } from '@/lib/date/format';
 import { Calendar } from 'lucide-react';
 
@@ -25,7 +25,7 @@ const MiniEventCard: React.FC<MiniEventCardProps> = ({ title, start, end, needs_
                     <p className="min-w-0 truncate text-sm font-medium text-foreground">{title}</p>
                     {needs_attention && (
                         <div className="shrink-0">
-                            <StatusBadge label="要対応" circleColor="red" textColor="red" textSize="sm" circleSize="sm" />
+                            <StatusBadge label="要対応" color="red" textSize="sm" dotSize="sm" />
                         </div>
                     )}
                 </div>

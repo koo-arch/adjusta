@@ -1,17 +1,16 @@
 'use client'
 import React from 'react';
-import IconButton from '@/components/IconButton';
-import { PlusIcon } from '@heroicons/react/20/solid';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 const DraftRegisterButton = () => {
     return (
-        <IconButton
-            iconColor="primary"
-            iconSize="lg"
-            to="/events/new"
-        >
-            <PlusIcon />
-        </IconButton>
+        <Button variant="ghost" size="icon" asChild>
+            <Link href="/events/new" aria-label="イベントを作成" title="イベントを作成">
+                <Plus className="text-primary" />
+            </Link>
+        </Button>
     )
 }
 
