@@ -17,6 +17,7 @@
 通常のAPI呼び出しは **Next.js の `/api/[...path]` route handlerがサーバー側でbackendへ転送するproxy構成**になっている(`frontend/src/lib/api/client.ts`のbaseURLは`NEXT_PUBLIC_API_BASE_URL`未設定時に空 = same-origin)。OAuth開始・callbackも専用Route Handlerがbackendのredirectとcookieを中継する。
 
 - **session cookie は Vercel ドメインの first-party のまま** — クロスドメイン cookie / SameSite=None / CORS の問題が発生しない
+- session cookieは`HttpOnly`・`Secure`・host-only・`SameSite=Lax`とし、OAuth callbackを含む認証導線もsame-origin proxy経由で扱う
 - backend(Cloud Run)の URL はブラウザに露出せず、`INTERNAL_BACKEND_URL` としてサーバー側にだけ設定する
 - 本番では **`NEXT_PUBLIC_API_BASE_URL` は未設定(空)のままにする**こと。値を入れるとブラウザ直アクセスになり、上記の利点が崩れる
 - OAuth開始・callbackも`/api/auth/*`のroute handler経由へ統一する(`frontend/src/app/api/`)
