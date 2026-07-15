@@ -12,13 +12,13 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
-import { CalendarDays, Menu } from 'lucide-react';
+import { CalendarDays, Menu, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// ナビは「場所」のみ。作成アクションは右側の ghost アイコンボタンに分離する
 const navigation = [
     { name: 'ホーム', href: '/dashboard' },
     { name: 'イベント一覧', href: '/events' },
-    { name: '新規作成', href: '/events/new' },
 ];
 
 interface HeaderProps {
@@ -95,6 +95,17 @@ const Header: React.FC<HeaderProps> = ({ userMenu }) => {
                 </nav>
 
                 <div className="ml-auto flex items-center gap-2">
+                    <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        aria-label="新規作成"
+                        title="新規作成"
+                    >
+                        <Link href="/events/new">
+                            <Plus aria-hidden="true" />
+                        </Link>
+                    </Button>
                     {userMenu}
                 </div>
             </div>

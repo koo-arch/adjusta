@@ -63,6 +63,7 @@ export const useEventListSearch = () => {
     return {
         statusTab,
         title,
+        page,
         selectTab,
         search,
         goToPage,

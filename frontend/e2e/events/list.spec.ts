@@ -17,7 +17,7 @@ test('[EVENT-002] イベント一覧から作成画面へ移動できる', async
 }) => {
     await page.goto('/events');
     await expect(page.getByText('イベントがまだありません')).toBeVisible();
-    await page.getByRole('link', { name: 'イベントを作成' }).last().click();
+    await page.getByRole('main').getByRole('link', { name: '新規作成' }).first().click();
 
     await expect(page).toHaveURL('/events/new', { timeout: 15_000 });
     await expect(page.getByRole('heading', { name: 'イベント作成' })).toBeVisible();
