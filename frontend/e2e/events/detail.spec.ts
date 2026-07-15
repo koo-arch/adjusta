@@ -13,8 +13,10 @@ test('[EVENT-014] イベント詳細と候補日程を表示できる', async ({
     await expect(page.getByText('会議室A')).toBeVisible();
     await expect(page.getByText('イベント詳細の説明')).toBeVisible();
     await expect(page.getByRole('heading', { name: '候補日程' })).toBeVisible();
-    await expect(page.getByLabel('第1候補')).toBeVisible();
-    await expect(page.getByText('未同期', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('第1候補').locator('..')).toContainText('7月22日(水) 1:00 - 2:00');
+    await expect(page.getByLabel('第2候補').locator('..')).toContainText('7月21日(火) 1:00 - 2:00');
+    await expect(page.getByLabel('第3候補').locator('..')).toContainText('7月20日(月) 1:00 - 2:00');
+    await expect(page.getByText('未同期', { exact: true }).first()).toBeVisible();
 });
 
 test('[EVENT-015] 存在しないイベントでは404表示になる', async ({

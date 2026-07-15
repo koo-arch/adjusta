@@ -15,7 +15,7 @@ interface ProposedDatesSectionProps {
 }
 
 const sortByPriority = (dates: EventProposedDate[]) =>
-    [...dates].sort((a, b) => a.priority - b.priority);
+    [...dates].sort((a, b) => b.priority - a.priority);
 
 // 相手にそのまま貼れるテキスト(要件 5.6: 初期リリースの共有主導線)
 const buildCopyText = (title: string, dates: EventProposedDate[]) =>
