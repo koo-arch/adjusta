@@ -132,7 +132,7 @@ flowchart LR
 
 | 分類 | 技術 |
 | --- | --- |
-| Frontend | Next.js 16、React 19、TypeScript、Tailwind CSS、TanStack Query、Jotai、FullCalendar、shadcn/ui・Radix UI（段階移行中） |
+| Frontend | Next.js 16、React 19、TypeScript、Tailwind CSS、TanStack Query、Jotai、FullCalendar、shadcn/ui・Radix UI |
 | Backend | Go 1.23、Gin、ent |
 | Database | PostgreSQL、Atlas |
 | Authentication | Google OAuth 2.0、セッションCookie |
