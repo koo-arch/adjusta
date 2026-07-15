@@ -1,6 +1,6 @@
 'use client'
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { deleteDraftEvent } from '@/features/events/detail/api/deleteDraftEvent';
 import {
     buildDraftEventSearchQueryKey,

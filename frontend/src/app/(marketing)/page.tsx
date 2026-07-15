@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
-import Button from '@/components/Button';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const scheduleManageImage = '/images/schedule_manage.jpg';
 
@@ -15,12 +16,8 @@ const Home: React.FC = () => {
         <p className="text-lg text-gray-600 mb-6 break-keep">
           あなたのイベントの日程調整を効率的に<wbr />サポートします。
         </p>
-        <Button
-          to="/login"
-          shape="full"
-          size="xl"
-         >
-          今すぐ始める
+        <Button size="lg" className="rounded-full" asChild>
+          <Link href="/login">今すぐ始める</Link>
         </Button>
       </div>
 

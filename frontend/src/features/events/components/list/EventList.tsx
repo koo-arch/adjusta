@@ -1,22 +1,23 @@
 'use client'
 import React from 'react';
-import Link from 'next/link';
 import { STATUS_TABS, useEventListSearch, type StatusTab } from '@/features/events/hooks/useEventListSearch';
-import EventCard from './EventCard';
-import EventSearchForm from './EventSearchForm';
+import EventsToolbar from './EventsToolbar';
+import EventGrid from './EventGrid';
 import { PaginationControls } from '@/components/common/pagination/PaginationControls';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EVENT_STATUS_LABELS } from '@/features/events/status';
-import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
 
 const TAB_LABELS: Record<StatusTab, string> = {
     all: 'すべて',
     ...EVENT_STATUS_LABELS,
 };
+
+const TOOLBAR_TABS = STATUS_TABS.map((tab) => ({ value: tab, label: TAB_LABELS[tab] }));
+
+// 「疎な状態」(絞り込みなし・1ページ目・lg の1行未満)でのみ作成プレースホルダを出す
+const SPARSE_THRESHOLD = 3;
 
 const EventCardSkeleton = () => (
     <Card className="h-full">
@@ -33,7 +34,13 @@ const EventCardSkeleton = () => (
 
 export const EventListSkeleton = () => (
     <div className="space-y-4">
-        <Skeleton className="h-9 w-80 max-w-full" />
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Skeleton className="h-9 w-80 max-w-full" />
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-10 w-full md:w-64" />
+                <Skeleton className="hidden h-10 w-28 md:block" />
+            </div>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
                 <EventCardSkeleton key={index} />
@@ -46,6 +53,7 @@ const EventList: React.FC = () => {
     const {
         statusTab,
         title,
+        page,
         selectTab,
         search,
         goToPage,
@@ -56,6 +64,8 @@ const EventList: React.FC = () => {
         error,
         refetch,
     } = useEventListSearch();
+
+    const isUnfilteredFirstPage = statusTab === 'all' && title === '' && page === 1;
 
     const renderContent = () => {
         if (isPending) {
@@ -110,40 +120,25 @@ const EventList: React.FC = () => {
                 );
             }
             return (
-                <Card>
-                    <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
-                        <div className="space-y-1">
-                            <p className="font-medium">イベントがまだありません</p>
-                            <p className="text-sm text-muted-foreground">
-                                候補日程を登録して、日程調整を始めましょう。
-                            </p>
-                        </div>
-                        <Button asChild>
-                            <Link href="/events/new">
-                                <Plus className="size-4" />
-                                イベントを作成
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
+                <div className="space-y-4">
+                    <div className="space-y-1 pt-4 text-center">
+                        <p className="font-medium">イベントがまだありません</p>
+                        <p className="text-sm text-muted-foreground">
+                            候補日程を登録して、日程調整を始めましょう。
+                        </p>
+                    </div>
+                    <EventGrid events={[]} showCreatePlaceholder />
+                </div>
             );
         }
 
         return (
             <div>
-                <ul
-                    className={cn(
-                        'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3',
-                        // 次ページ取得中は前ページの内容を薄めて表示する
-                        isPlaceholderData && 'opacity-60',
-                    )}
-                >
-                    {searchEvents.map((event) => (
-                        <li key={event.id}>
-                            <EventCard event={event} />
-                        </li>
-                    ))}
-                </ul>
+                <EventGrid
+                    events={searchEvents}
+                    showCreatePlaceholder={isUnfilteredFirstPage && searchEvents.length < SPARSE_THRESHOLD}
+                    isDimmed={isPlaceholderData}
+                />
                 {pagination && (
                     <PaginationControls
                         page={pagination.page}
@@ -158,20 +153,13 @@ const EventList: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <Tabs value={statusTab} onValueChange={selectTab}>
-                    <div className="overflow-x-auto">
-                        <TabsList>
-                            {STATUS_TABS.map((tab) => (
-                                <TabsTrigger key={tab} value={tab}>
-                                    {TAB_LABELS[tab]}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </div>
-                </Tabs>
-                <EventSearchForm defaultValue={title} onSearch={search} />
-            </div>
+            <EventsToolbar
+                tabs={TOOLBAR_TABS}
+                activeTab={statusTab}
+                onTabChange={selectTab}
+                searchValue={title}
+                onSearch={search}
+            />
             {renderContent()}
         </div>
     );

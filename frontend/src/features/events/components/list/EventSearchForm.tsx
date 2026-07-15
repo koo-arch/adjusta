@@ -33,8 +33,8 @@ const EventSearchForm: React.FC<EventSearchFormProps> = ({ defaultValue, onSearc
 
     // 入力は 1 つだけなので Enter の暗黙送信で検索が発火する(検索ボタンは置かない)
     return (
-        <form role="search" onSubmit={handleSubmit} className="w-full sm:w-auto">
-            <div className="relative sm:w-64">
+        <form role="search" onSubmit={handleSubmit} className="w-full md:w-auto">
+            <div className="relative md:w-64">
                 <Search
                     className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                     aria-hidden
@@ -49,7 +49,7 @@ const EventSearchForm: React.FC<EventSearchFormProps> = ({ defaultValue, onSearc
                     placeholder="タイトルで検索"
                     aria-label="タイトルで検索"
                     onKeyDown={handleKeyDown}
-                    className={cn('pl-9', defaultValue !== '' && 'pr-9')}
+                    className={cn('h-10 pl-9', defaultValue !== '' && 'pr-9')}
                 />
                 {defaultValue !== '' && (
                     <button

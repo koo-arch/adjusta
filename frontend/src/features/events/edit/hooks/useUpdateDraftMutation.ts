@@ -6,7 +6,7 @@ import {
     setClientEventFormErrorsAtomFamily,
     setServerEventFormErrorsAtomFamily,
 } from '@/features/events/store/errors';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import type { EventUpdateForm } from '@/features/events/schema';
 import { updateDraftEvent } from '@/features/events/edit/api/updateDraftEvent';
 import {

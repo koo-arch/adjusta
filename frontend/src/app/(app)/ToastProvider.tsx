@@ -1,7 +1,6 @@
 'use client'
 import React from 'react';
-import "react-toastify/dist/ReactToastify.css";
-import { Flip, ToastContainer } from 'react-toastify';
+import { Toaster } from '@/components/ui/sonner';
 
 interface ToastProviderProps {
     children: React.ReactNode;
@@ -9,21 +8,10 @@ interface ToastProviderProps {
 
 const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     return (
-        <div>
+        <>
             {children}
-            <ToastContainer
-                position="top-right"
-                autoClose={5000}
-                hideProgressBar
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                transition={Flip}
-            />
-        </div>
+            <Toaster position="top-right" duration={5000} closeButton richColors />
+        </>
     )
 }
 

@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { useAtom } from 'jotai';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { allEventsAtom } from '@/features/events/store/calendar';
 import { StyleWrapper } from './style';
 import FullCalendar from '@fullcalendar/react';
@@ -109,8 +109,8 @@ const Calendar = <T extends CalendarEvent>({
     // Google Calendar API から部分的な取得失敗が返ったときだけ警告トーストを出す。
     useEffect(() => {
         if (events?.warning?.failed_calendars) {
-            toast.warn(`取得に失敗したカレンダーがあります: ${events.warning.failed_calendars.join(', ')}`,{
-                toastId: warningToastId,
+            toast.warning(`取得に失敗したカレンダーがあります: ${events.warning.failed_calendars.join(', ')}`,{
+                id: warningToastId,
             });
         }
     }, [events?.warning])

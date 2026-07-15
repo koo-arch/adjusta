@@ -9,7 +9,7 @@
 ### 1.2 前提
 
 - **コンポーネント構成の根本的な変更も許容する**。現構成(例: `DetailCard` の単一カード形式)の維持は前提としない
-- shadcn/ui への段階的移行は決定済み(2026-07-09)。本書は既存実装の課題を整理し、再設計・置換の優先順位を決めるためのレビューとして扱う
+- shadcn/ui への移行は完了済み(2026-07-14)。本書は既存実装の課題を整理し、再設計・置換の優先順位を決めるためのレビューとして扱う
 - `frontend/DESIGN.md` をビジュアル仕様の正、`ui-guidelines.md` をコンポーネント利用・移行規約の正とする。本レビューは改善バックログとして扱う
 - 記載の課題はすべてコード読解に基づく(2026-07 時点の実装)
 
@@ -249,7 +249,7 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 8 | ~~モバイル DnD(PointerSensor+上下ボタン代替)~~ **対応済み(2026-07-10)**: ハンドル限定ドラッグ+上下ボタン | DraggableList | 2.6 |
 | 9 | ログインのエラー表示+押下フィードバック | login | 3.5 |
 | 10 | ~~一覧のステータス絞り込みタブ~~ **対応済み(2026-07-10)**: shadcn Tabs(すべて/調整中/確定/下書き/キャンセル)、URL クエリ `?status=` に保持 | list | 3.3 |
-| 11 | サードパーティ UI のテーマ統一(FullCalendar / react-datepicker / Splide / トースト) | calendar・form・dashboard | DESIGN.md「Third-Party Components」。**FullCalendar 分は適用済み(2026-07-11)**: `--fc-*` トークン接続+StyleWrapper のパレット外色をトークン化。**react-datepicker は置換済み(2026-07-12)**: shadcn calendar + popover の共通 DateTimePicker に統一し依存を削除。**Splide はスライダー廃止に伴い依存ごと削除(2026-07-12)**。残りはトースト(sonner 置換)のみ |
+| 11 | ~~サードパーティ UI のテーマ統一(FullCalendar / react-datepicker / Splide / トースト)~~ **対応済み(2026-07-14)** | calendar・form・dashboard | FullCalendar はトークン接続済み。react-datepicker / Splide は置換・廃止し、通知は sonner へ統一 |
 | 12 | ~~一覧のページネーション UI~~ **対応済み(2026-07-10)**: `PaginationControls`(`src/components/common/pagination/`)+ URL クエリ `?page=`。#10 と同時対応 | list | 3.3、要件 9.3 |
 
 ### P3 — 磨き込み
@@ -264,23 +264,21 @@ API 整備後に UI を進めることで、一覧・アカウント・詳細画
 | 18 | モバイルのカレンダー表示改善(日ビュー以上の最適化) | calendar | 2026-07-12 ユーザー起票 |
 | 19 | カレンダーの時間タッチ/タップでの候補追加(モバイル) | form・calendar | 2026-07-12 ユーザー起票。現状モバイルの候補追加は「日時を追加」が主導線 |
 | 20 | アカウント画面の UI 再調整 | account | 2026-07-12 ユーザー起票。UI 方針(サーフェス戦略・ghost アイコン・lucide・テキスト CTA)確定前の実装のため見直す — カード3枚構成の要否(設定画面は「セクション複数なら区切り線、囲いなし」の中間ケースとして判定)、ラベル付き outline ボタン→ghost アイコン化、heroicons→lucide |
-| 21 | レガシーコンポーネント一掃(shadcn 完全移行スイープ) | 全体 | 3.5 の規定 4 の実行。残存する自作プリミティブ(Card / Button / IconButton / BaseButton / TextField / TextArea / Modal / PopupMenu / DropdownSelect / ToggleButton / ToggleSwitch / WrapText)の置換・削除、再利用する業務・共通部品だけを `components/common` へ移動、Header(headlessui Disclosure)の shadcn 化と @headlessui/react 依存の削除、heroicons→lucide、残存 `dark:`、#17 のタイポ類もここで回収。ThemeButton / ThemeProvider は解消済み |
+| 21 | ~~レガシーコンポーネント一掃(shadcn 完全移行スイープ)~~ **対応済み(2026-07-14)** | 全体 | 旧自作プリミティブを削除し、StatusBadge / DraggableList は `components/common` へ移動。Header・メニュー・ダイアログ・通知を shadcn 化し、@headlessui/react / @heroicons/react / react-toastify を削除 |
 
 ### ユーザー判断が必要な項目(バックログ着手前に決める)
 
 | 項目 | 選択肢 |
 | --- | --- |
 | ~~ダークモード方針~~ | **決定済み(2026-07-09): light 固定、ダークは将来拡張**(`frontend/DESIGN.md` 参照)。ThemeProvider / ThemeButton は撤去済み。自作プリミティブの `dark:` は#21でファイルごと削除する |
-| ~~UI 基盤~~ | **決定済み(2026-07-09): shadcn/ui へ段階的移行**(`ui-guidelines.md` 3.5 の移行規定参照。AGENTS.md の `src/components/ui/*` 記述は目指す方向として確定)。a11y 課題(2.6)の多くは Radix ベースへの置換で解消見込み。**セットアップ済み(2026-07-09)**: components.json + `src/components/ui/`(button / card / badge / switch / skeleton / alert-dialog / radio-group)+ DESIGN.md トークンの CSS 変数化(globals.css)・Noto Sans JP + Inter 導入。アカウント画面から利用開始 |
+| ~~UI 基盤~~ | **決定済み(2026-07-09)、移行完了(2026-07-14): shadcn/ui**(`ui-guidelines.md` 3.5 参照)。旧自作プリミティブと関連依存を撤去済み |
 | LP 拡充のスコープ | P3 の最小追加のみ / 本格的な LP 制作として別プロジェクト化 |
 
-### 推奨する着手順(2026-07-12 時点の残タスク)
+### 推奨する着手順(2026-07-14 時点の残タスク)
 
 1. **ログイン(P2 #9)**: エラー表示+押下フィードバック。小さく独立
-2. **トーストの sonner 一括置換(P2 #11 の残り)**: 3.5 規定 2 の横断置換。react-toastify 依存の削除まで
-3. **#20 アカウント画面の UI 再調整**: 確定済みの方針への追随
-4. **#21 レガシーコンポーネント一掃**: 参照ゼロの自作プリミティブ削除と依存整理(ここで shadcn 移行完了)
-5. **LP(P3 #15)**: スコープ(最小追加 or 本格制作)のユーザー判断待ち
+2. **#20 アカウント画面の UI 再調整**: 確定済みの方針への追随
+3. **LP(P3 #15)**: スコープ(最小追加 or 本格制作)のユーザー判断待ち
 
 デプロイについては `docs/deployment.md` を参照。
 

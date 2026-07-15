@@ -31,6 +31,7 @@
 - `src/features/<...>/queryKeys.ts` には TanStack Query の query key 定義を置く。
 - `src/components/ui/*` には shadcn/ui ベースの共通 UI を置く。
 - `src/components/common/*` には複数 feature で使う共通部品を置く。
+- `src/components/layout/*` には route group のシェルを構成するヘッダー・フッター等を置く。
 - `src/lib/server/*` には Server Component 専用の DAL（`serverApi` / `requireUser`）を置く。cookie 転送と 401 → `/login` redirect はここに集約する。
 
 ## Components

@@ -1,6 +1,6 @@
 'use client'
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { updateCalendarSetting } from '@/features/auth/api/updateCalendarSetting';
 import { buildCalendarSettingsQueryKey } from '@/features/auth/queryKeys';
 import type { CalendarSetting, CalendarSettingUpdate } from '@/features/auth/types';

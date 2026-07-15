@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import StatusBadge from '@/components/StatusBadge';
+import StatusBadge from '@/components/common/StatusBadge/StatusBadge';
 import { EVENT_STATUS_COLORS, EVENT_STATUS_LABELS } from '@/features/events/status';
 import type { EventDraftDetail } from '@/features/events/types';
 import { MapPin, Pencil } from 'lucide-react';
@@ -36,8 +36,7 @@ const EventDetailHeader: React.FC<EventDetailHeaderProps> = ({ eventID, detail }
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <StatusBadge
                     label={EVENT_STATUS_LABELS[detail.status]}
-                    circleColor={EVENT_STATUS_COLORS[detail.status]}
-                    textColor={EVENT_STATUS_COLORS[detail.status]}
+                    color={EVENT_STATUS_COLORS[detail.status]}
                     textSize="sm"
                 />
                 {detail.location && (

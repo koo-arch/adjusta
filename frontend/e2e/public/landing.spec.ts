@@ -6,7 +6,7 @@ test('[PUBLIC-001] トップページを表示できる', async ({ page }) => {
     await expect(
         page.getByRole('heading', { name: '日程調整をもっとシンプルに' }),
     ).toBeVisible();
-    await page.getByRole('button', { name: '今すぐ始める' }).click();
+    await page.getByRole('link', { name: '今すぐ始める' }).click();
 
     await expect(page).toHaveURL('/login');
 });

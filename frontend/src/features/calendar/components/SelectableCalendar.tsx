@@ -1,11 +1,20 @@
 'use client'
-import React, { useState, useRef } from 'react';
-import { toast } from 'react-toastify';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 import type { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import Calendar from '@/features/calendar/components/Calendar';
 import { EventImpl } from '@fullcalendar/core/internal';
-import PopupMenu from '@/components/PopupMenu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { CalendarEvent } from '@/features/calendar/types';
 import type { EventDraftDetail } from '@/features/events/types';
 import type { ProposedDate, SelectedDate } from '@/features/events/store/dates';
@@ -42,14 +51,13 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
         return `${String(hour).padStart(2, '0')}:00`;
     });
     const [clickedEvent, setClickedEvent] = useState<EventImpl>();
-    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const handleDateSelect = (e: DateSelectArg) => {
         // 月ビューの選択は全日(時刻なし)になるため候補にしない
         if (e.allDay) {
             toast.info('月ビューでは時刻を選択できません。週ビューに切り替えるか「日時を追加」を使ってください', {
-                toastId: 'all-day-select-info',
+                id: 'all-day-select-info',
             });
             return;
         }
@@ -62,17 +70,13 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
         onDatesChange((prev) => [...prev, newDate]);
     }
 
-    // イベントをクリックした時にポップアップを表示する
+    // 選択済みの候補日程をクリックしたときだけ削除確認を表示する
     const handleEventClick = (e: EventClickArg) => {
         const event = dates.find((date) => date.id === e.event.id);
 
         if (event) {
-            if (buttonRef.current) {
-                buttonRef.current.click();
-            }
-
             setClickedEvent(e.event);
-            setPopupPosition({ top: e.jsEvent.pageY, left: e.jsEvent.pageX });
+            setIsDeleteDialogOpen(true);
         }
     }
 
@@ -113,6 +117,7 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
         if (clickedEvent) {
             clickedEvent.remove();
             onDatesChange((prev) => prev.filter((date) => date.id !== clickedEvent.id));
+            setClickedEvent(undefined);
         }
     }
 
@@ -136,13 +141,25 @@ const SelectableCalendar = <TDate extends SelectedDate | ProposedDate>({
                 eventResize={handleEventResize}
                 editEvent={editingEvent}
             />
-            <PopupMenu
-                items={[
-                    { label: '削除', onClick: handleDeleteEvent },
-                ]}
-                position={popupPosition}
-                buttonRef={buttonRef}
-            />
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>候補日程を削除しますか？</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            選択した候補日程をイベントから削除します。
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteEvent}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            削除
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

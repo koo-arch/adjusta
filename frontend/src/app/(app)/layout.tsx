@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Header from "@/components/Header";
+import Header from "@/components/layout/Header";
 import Providers from "./providers";
 import AuthErrorModal from "@/features/auth/components/AuthErrorModal";
 import UserMenu from "@/features/auth/components/UserMenu";

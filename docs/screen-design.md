@@ -98,7 +98,7 @@ flowchart LR
 | --- | --- |
 | (marketing) | `MarketingHeader`(ロゴ + ログインボタン)/ `MarketingFooter` |
 | (auth) | 中央寄せの単純なレイアウト(ヘッダーなし) |
-| (app) ヘッダー | sticky。ロゴ(`/dashboard` へ)/ ナビ「ホーム」「イベント一覧」/ イベント作成ボタン / ユーザーメニュー(Suspense + async server component、名前・アバター表示、アカウント設定・ログアウト) |
+| (app) ヘッダー | sticky。ロゴ(`/dashboard` へ)/ ナビ「ホーム」「イベント一覧」/ 新規作成アイコン/ ユーザーメニュー(Suspense + async server component、名前・アバター表示、アカウント設定・ログアウト) |
 | (app) 共通 | トースト通知、`AuthErrorModal`(再認可モーダル)、モバイルはハンバーガーメニュー |
 | テーマ | light 固定。dark / system 対応は将来拡張(`frontend/DESIGN.md` に従う) |
 

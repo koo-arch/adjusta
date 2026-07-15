@@ -1,8 +1,8 @@
 'use client'
 import React from 'react';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import StatusBadge from '@/components/StatusBadge';
+import StatusBadge from '@/components/common/StatusBadge/StatusBadge';
 import { formatJaDateSpan } from '@/lib/date/format';
 import { SYNC_STATUS_COLORS, SYNC_STATUS_LABELS } from '@/features/events/status';
 import type { EventDraftDetail, EventProposedDate } from '@/features/events/types';
@@ -41,10 +41,9 @@ const ProposedDateRow: React.FC<{ date: EventProposedDate; index: number }> = ({
             <div className="flex shrink-0 items-center gap-3">
                 <StatusBadge
                     label={SYNC_STATUS_LABELS[date.sync_status]}
-                    circleColor={SYNC_STATUS_COLORS[date.sync_status]}
-                    textColor={SYNC_STATUS_COLORS[date.sync_status]}
+                    color={SYNC_STATUS_COLORS[date.sync_status]}
                     textSize="sm"
-                    circleSize="sm"
+                    dotSize="sm"
                 />
             </div>
         </div>

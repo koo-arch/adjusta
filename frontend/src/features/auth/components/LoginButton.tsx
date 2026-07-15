@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import Button from '@/components/Button';
+import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useLogin } from '@/features/auth/hooks/useLogin';
 
@@ -8,22 +8,8 @@ const LoginButton: React.FC = () => {
     const loginHandler = useLogin();
 
     return (
-        <Button
-            shape={'full'}
-            variant='outline'
-            intent='clear'
-            size="lg"
-            onClick={loginHandler}
-            startIcon={
-                <Image
-                    src="https://www.svgrepo.com/show/475656/google-color.svg"
-                    loading="lazy"
-                    alt="google logo"
-                    height={24}
-                    width={24}
-                ></Image>
-            }
-        >
+        <Button variant="outline" size="lg" className="rounded-full" onClick={loginHandler}>
+            <Image src="/images/google.svg" alt="" height={24} width={24} />
             Googleでログイン
         </Button>
     )
