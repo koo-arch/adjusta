@@ -321,10 +321,26 @@ const server = createServer((request, response) => {
             location: '会議室A',
             proposed_dates: [
                 {
+                    id: 'candidate-3',
+                    start: '2026-07-22T01:00:00.000Z',
+                    end: '2026-07-22T02:00:00.000Z',
+                    priority: 3072,
+                    status: 'active',
+                    sync_status: 'not_synced',
+                },
+                {
+                    id: 'candidate-2',
+                    start: '2026-07-21T01:00:00.000Z',
+                    end: '2026-07-21T02:00:00.000Z',
+                    priority: 2048,
+                    status: 'active',
+                    sync_status: 'not_synced',
+                },
+                {
                     id: 'candidate-1',
                     start: '2026-07-20T01:00:00.000Z',
                     end: '2026-07-20T02:00:00.000Z',
-                    priority: 1,
+                    priority: 1024,
                     status: 'active',
                     sync_status: 'not_synced',
                 },
