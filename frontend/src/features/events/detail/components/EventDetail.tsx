@@ -12,7 +12,7 @@ interface EventDetailProps {
     eventID: string;
 }
 
-const EventDetailSkeleton = () => (
+export const EventDetailSkeleton = () => (
     <div className="space-y-6">
         <div className="space-y-3">
             <div className="flex items-start justify-between gap-4">

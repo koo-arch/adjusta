@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import EventDraft from '@/features/events/draft/components/EventDraft';
+import EventFormSkeleton from '@/features/events/components/form/EventFormSkeleton';
 import { ChevronLeft } from 'lucide-react';
 
 const DraftRegisterPageContainer = () => {
@@ -14,7 +15,9 @@ const DraftRegisterPageContainer = () => {
                 イベント一覧へ
             </Link>
             <h1 className="text-2xl font-bold leading-snug tracking-normal text-gray-900">イベント作成</h1>
-            <EventDraft />
+            <Suspense fallback={<EventFormSkeleton />}>
+                <EventDraft />
+            </Suspense>
         </main>
     );
 };

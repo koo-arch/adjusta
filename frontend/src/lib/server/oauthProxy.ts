@@ -11,11 +11,15 @@ export const proxyOAuthRequest = async (request: Request, path: string) => {
         );
     }
 
+    // Request 依存の読み取りは try の外で行い、Next.js のプリレンダリング中断を
+    // backend 接続エラーとして握りつぶさない。
+    const cookie = request.headers.get('cookie') ?? '';
+
     try {
         const backendResponse = await fetch(`${backend}${path}`, {
             method: 'GET',
             headers: {
-                cookie: request.headers.get('cookie') ?? '',
+                cookie,
             },
             redirect: 'manual',
             cache: 'no-store',

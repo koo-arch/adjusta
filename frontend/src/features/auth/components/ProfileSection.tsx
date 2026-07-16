@@ -2,11 +2,28 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { AuthUser } from '@/features/auth/types';
 
 interface ProfileSectionProps {
     user: AuthUser;
 }
+
+export const ProfileSectionSkeleton = () => (
+    <Card>
+        <CardHeader>
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+        </CardHeader>
+        <CardContent className="flex items-center gap-4">
+            <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-5 w-40 max-w-full" />
+                <Skeleton className="h-4 w-64 max-w-full" />
+            </div>
+        </CardContent>
+    </Card>
+);
 
 const ProfileSection: React.FC<ProfileSectionProps> = ({ user }) => {
     const [imageFailed, setImageFailed] = useState(false);
