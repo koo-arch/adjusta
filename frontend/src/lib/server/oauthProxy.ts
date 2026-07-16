@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
 export const proxyOAuthRequest = async (request: Request, path: string) => {
+    // Request 依存の読み取りは try の外で行い、Next.js のプリレンダリング中断を
+    // backend 接続エラーとして握りつぶさない。
+    const cookie = request.headers.get('cookie') ?? '';
     const backend = process.env.INTERNAL_BACKEND_URL?.replace(/\/$/, '');
     if (!backend) {
         return NextResponse.json(
@@ -10,10 +13,6 @@ export const proxyOAuthRequest = async (request: Request, path: string) => {
             { status: 500 },
         );
     }
-
-    // Request 依存の読み取りは try の外で行い、Next.js のプリレンダリング中断を
-    // backend 接続エラーとして握りつぶさない。
-    const cookie = request.headers.get('cookie') ?? '';
 
     try {
         const backendResponse = await fetch(`${backend}${path}`, {
