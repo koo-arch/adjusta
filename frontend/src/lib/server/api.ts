@@ -36,7 +36,8 @@ export const serverApi = async <T>(path: string, init?: RequestInit): Promise<T>
         cache: 'no-store',
     });
 
-    // redirect は NEXT_REDIRECT を throw するため、この関数を try/catch で包まないこと
+    // redirect は NEXT_REDIRECT を throw するため、この関数を try/catch で包む場合は
+    // 必ず unstable_rethrow で Next 内部エラーを再送出すること(UserMenu 参照)
     if (response.status === 401) {
         redirect('/api/auth/session-expired');
     }
