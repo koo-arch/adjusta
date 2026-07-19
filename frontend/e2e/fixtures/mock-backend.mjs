@@ -2,6 +2,11 @@ import { createServer } from 'node:http';
 
 const port = 3101;
 const expiredSessions = new Set();
+// backend 障害(5xx)を再現するセッション。token 単位にして並列テストと干渉しない
+const outageSessions = new Set();
+// PPR の配信順序を時間依存なしで検証するため、/users/me の応答を明示的に保留する
+const pausedUserSessions = new Set();
+const pendingUserResponses = new Map();
 const firstCandidateID = '22222222-2222-4222-8222-222222222222';
 const secondCandidateID = '33333333-3333-4333-8333-333333333333';
 const confirmedEventDates = new Map([['confirmed-event', firstCandidateID]]);
@@ -172,6 +177,37 @@ const server = createServer((request, response) => {
         return;
     }
 
+    const outageMatch = request.url?.match(/^\/__e2e\/sessions\/([^/]+)\/(outage|recover)$/);
+    if (request.method === 'POST' && outageMatch) {
+        const token = decodeURIComponent(outageMatch[1]);
+        if (outageMatch[2] === 'outage') {
+            outageSessions.add(token);
+        } else {
+            outageSessions.delete(token);
+        }
+        response.writeHead(204).end();
+        return;
+    }
+
+    const userPauseMatch = request.url?.match(
+        /^\/__e2e\/sessions\/([^/]+)\/user\/(pause|release)$/,
+    );
+    if (request.method === 'POST' && userPauseMatch) {
+        const token = decodeURIComponent(userPauseMatch[1]);
+        if (userPauseMatch[2] === 'pause') {
+            pausedUserSessions.add(token);
+        } else {
+            pausedUserSessions.delete(token);
+            const responses = pendingUserResponses.get(token) ?? [];
+            pendingUserResponses.delete(token);
+            for (const pendingResponse of responses) {
+                json(pendingResponse, 200, user);
+            }
+        }
+        response.writeHead(204).end();
+        return;
+    }
+
     const candidateSyncFixtureMatch = request.url?.match(
         /^\/__e2e\/candidate-sync\/(off|on|fail-update)$/,
     );
@@ -199,6 +235,19 @@ const server = createServer((request, response) => {
     const token = sessionToken(request);
     if (!token || token === 'expired-session' || expiredSessions.has(token)) {
         json(response, 401, { code: 'unauthorized', error: '認証情報がありません' });
+        return;
+    }
+
+    if (outageSessions.has(token)) {
+        json(response, 500, { code: 'internal_error', error: '一時的な障害が発生しています' });
+        return;
+    }
+
+    if (request.url === '/api/users/me' && pausedUserSessions.has(token)) {
+        const responses = pendingUserResponses.get(token) ?? new Set();
+        responses.add(response);
+        pendingUserResponses.set(token, responses);
+        response.on('close', () => responses.delete(response));
         return;
     }
 

@@ -14,12 +14,8 @@ import {
 } from '@/components/ui/sheet';
 import { CalendarDays, Menu, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 // ナビは「場所」のみ。作成アクションは右側の ghost アイコンボタンに分離する
-const navigation = [
-    { name: 'ホーム', href: '/dashboard' },
-    { name: 'イベント一覧', href: '/events' },
-];
+import { navigation } from './navigation';
 
 interface HeaderProps {
     userMenu: React.ReactNode;

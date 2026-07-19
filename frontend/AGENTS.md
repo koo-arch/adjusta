@@ -20,6 +20,12 @@
   - `(marketing)` と `(auth)` は `next/headers`・TanStack Query・`useAuth`・`requireUser`・認証 API 呼び出しを推移的に import しない（静的レンダリング維持）。
   - cookie 保持者は `/` と `/login` の両方から `/dashboard` へ redirect する。期限切れ cookie は `/api/auth/session-expired`(Route Handler)が失効させて `/login` へ 303 するためループしない。RSC レンダリング中は Set-Cookie できないため、401 の着地はこの handler に集約する。
 
+## Cache Components / PPR
+- `next.config.mjs` で `cacheComponents: true` を有効化している。各ルートは静的シェル + Suspense 内の動的ホールとしてプリレンダーされる。
+- 動的 API(`headers` / `cookies` / `params` / `searchParams`、および `requireUser` などその推移的利用)は必ず Suspense 境界の内側でのみ await する。境界の外で使うとビルドエラーになる。
+- 静的シェルに入るコンポーネントで `new Date()` 等の実行時値が必要な場合は `'use cache'` を付ける(例: `MarketingFooter`)。
+- route segment config(`export const dynamic` / `revalidate` など)は cacheComponents と併用できないため使わない。
+
 ## Directory Rules
 - `src/app/*` にはルーティングとページエントリのみを置く。
 - `src/features/<domain>/<feature>/*` を機能単位の実装場所とする。

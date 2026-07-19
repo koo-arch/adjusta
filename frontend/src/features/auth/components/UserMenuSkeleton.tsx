@@ -1,10 +1,15 @@
 import React from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
+// UserButton の trigger(h-8 w-8 の丸アイコン)と同寸に保ち、
+// 静的シェル → ストリーミング差し替え時のレイアウトシフトを防ぐ
 const UserMenuSkeleton: React.FC = () => {
     return (
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-            <div className="ml-3 h-8 w-8 animate-pulse rounded-full bg-gray-200" />
-        </div>
+        <Skeleton
+            className="size-8 rounded-full"
+            role="status"
+            aria-label="ユーザー情報を読み込み中"
+        />
     );
 };
 

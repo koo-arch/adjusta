@@ -18,15 +18,15 @@ export class ServerAPIError extends Error {
 // Server Component 専用の DAL。cookie を明示的に転送し、401 は cookie を
 // 失効できる Route Handler に逃がす（RSC レンダリング中は Set-Cookie できない）。
 export const serverApi = async <T>(path: string, init?: RequestInit): Promise<T> => {
+    // cookies().toString() は値を encodeURIComponent で再構築するため、
+    // base64 パディング(=)を含む gin のセッション cookie が %3D に化けて
+    // backend の検証が壊れる。ブラウザが送った Cookie ヘッダを生のまま転送する
+    const headerStore = await headers();
     const baseURL = process.env.INTERNAL_BACKEND_URL?.replace(/\/$/, '');
     if (!baseURL) {
         throw new Error('INTERNAL_BACKEND_URL is not set');
     }
 
-    // cookies().toString() は値を encodeURIComponent で再構築するため、
-    // base64 パディング(=)を含む gin のセッション cookie が %3D に化けて
-    // backend の検証が壊れる。ブラウザが送った Cookie ヘッダを生のまま転送する
-    const headerStore = await headers();
     const response = await fetch(`${baseURL}${path}`, {
         ...init,
         headers: {
@@ -36,7 +36,8 @@ export const serverApi = async <T>(path: string, init?: RequestInit): Promise<T>
         cache: 'no-store',
     });
 
-    // redirect は NEXT_REDIRECT を throw するため、この関数を try/catch で包まないこと
+    // redirect は NEXT_REDIRECT を throw するため、この関数を try/catch で包む場合は
+    // 必ず unstable_rethrow で Next 内部エラーを再送出すること(UserMenu 参照)
     if (response.status === 401) {
         redirect('/api/auth/session-expired');
     }
