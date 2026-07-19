@@ -13,6 +13,8 @@ export default function AppLayout({
 }>) {
   return (
     <Providers>
+      {/* Header は usePathname を使うため、動的ルート([id])のプリレンダーでは
+          suspend してこの fallback が静的シェルに入る。静的ルートでは実物が入る */}
       <Suspense fallback={<HeaderSkeleton />}>
         <Header
           userMenu={

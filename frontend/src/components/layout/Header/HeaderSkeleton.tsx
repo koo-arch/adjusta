@@ -2,11 +2,7 @@ import Link from 'next/link';
 import { CalendarDays, Menu, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import UserMenuSkeleton from '@/features/auth/components/UserMenuSkeleton';
-
-const navigation = [
-    { name: 'ホーム', href: '/dashboard' },
-    { name: 'イベント一覧', href: '/events' },
-];
+import { navigation } from './navigation';
 
 const HeaderSkeleton = () => (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
