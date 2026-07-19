@@ -30,10 +30,14 @@ export default defineConfig({
             timeout: 30_000,
         },
         {
-            command: 'INTERNAL_BACKEND_URL=http://localhost:3101 NEXT_PUBLIC_API_BASE_URL= NEXT_DIST_DIR=.next-e2e npm run dev -- --port 3100',
+            // 本番ビルドで走らせ、PPR(静的シェル + ストリーミング)の実挙動と
+            // cacheComponents のビルドエラーを PR 時点で検出する。
+            // ローカルで高速に回したい場合は 3100 番にサーバーを立てておけば
+            // reuseExistingServer がそれを使う(ビルドをスキップできる)。
+            command: 'INTERNAL_BACKEND_URL=http://localhost:3101 NEXT_PUBLIC_API_BASE_URL= NEXT_DIST_DIR=.next-e2e npm run build && INTERNAL_BACKEND_URL=http://localhost:3101 NEXT_DIST_DIR=.next-e2e npm run start -- --port 3100',
             url: 'http://localhost:3100',
             reuseExistingServer: !process.env.CI,
-            timeout: 120_000,
+            timeout: 240_000,
         },
     ],
 });
