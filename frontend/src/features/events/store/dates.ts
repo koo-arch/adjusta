@@ -27,7 +27,7 @@ export const buildLocalCalendarEvents = <T extends SelectedDate>(dates: T[], tit
 
     return dates.map((date, index) => ({
         ...date,
-        title: `${eventTitle} ${index + 1}`,
+        title: `${eventTitle}【第${index + 1}候補】`,
         origin: 'local' as const,
         local_event_id: '',
     }));

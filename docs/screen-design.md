@@ -113,6 +113,7 @@ flowchart LR
 | SyncStatus | not_synced(未同期)/ pending_sync(同期待ち)/ synced(同期済み)/ sync_failed(同期失敗) |
 
 候補日程の優先順位(`proposed_dates.priority`)は、内部的には数値が大きいほど高優先だが、**画面上は最優先を 1 とした順位(1, 2, 3, …)で表示**する(要件 5.4.2、`db-design.md` 5.7 補足)。
+作成・編集画面のカレンダー内および Google Calendar 上の候補予定タイトルは、同じ表示順位を用いて `イベント名【第1候補】` の形式とする。確定後の予定タイトルには候補表記を付けない。
 
 ---
 
