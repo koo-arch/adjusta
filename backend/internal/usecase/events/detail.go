@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,9 +85,25 @@ func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxR
 		lastSyncErr   error
 	)
 
-	for _, proposedDate := range storedEvent.ProposedDates {
-		if proposedDate == nil ||
-			(storedEvent.SyncStatus == value.SyncStatusSynced && proposedDate.SyncStatus == value.SyncStatusSynced) {
+	proposedDates := slices.Clone(storedEvent.ProposedDates)
+	sort.SliceStable(proposedDates, func(i, j int) bool {
+		if proposedDates[i] == nil {
+			return false
+		}
+		if proposedDates[j] == nil {
+			return true
+		}
+		return proposedDates[i].Priority > proposedDates[j].Priority
+	})
+
+	candidateRank := 0
+	for _, proposedDate := range proposedDates {
+		if proposedDate == nil {
+			continue
+		}
+		candidateRank++
+
+		if storedEvent.SyncStatus == value.SyncStatusSynced && proposedDate.SyncStatus == value.SyncStatusSynced {
 			continue
 		}
 		attemptedSync = true
@@ -95,7 +113,7 @@ func (uc *Usecase) syncProposedDatesOnDetail(ctx context.Context, repos EventTxR
 			userID,
 			calendarID,
 			proposedDate.GoogleEventID,
-			storedEvent.Title,
+			fmt.Sprintf("%s【第%d候補】", storedEvent.Title, candidateRank),
 			storedEvent.Location,
 			storedEvent.Description,
 			proposedDate.StartTime,

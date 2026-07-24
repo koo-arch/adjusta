@@ -26,7 +26,7 @@ func TestFetchDraftedEventDetailSkipsSyncedProposedDatesUntilEventChanges(t *tes
 	end2 := start2.Add(time.Hour)
 	existingGoogleEventID := "google-existing-2"
 	upsertCallCount := 0
-	expectedTitle := "Draft"
+	expectedCandidateTitles := []string{"Draft【第1候補】", "Draft【第2候補】"}
 
 	storedEvent := &domainEvent.Event{
 		ID:          eventID,
@@ -37,14 +37,6 @@ func TestFetchDraftedEventDetailSkipsSyncedProposedDatesUntilEventChanges(t *tes
 		SyncStatus:  value.SyncStatusPending,
 		ProposedDates: []*domainProposedDate.ProposedDate{
 			{
-				ID:         dateID1,
-				StartTime:  start1,
-				EndTime:    end1,
-				Priority:   20,
-				Status:     value.ProposedDateStatusActive,
-				SyncStatus: value.SyncStatusPending,
-			},
-			{
 				ID:            dateID2,
 				GoogleEventID: &existingGoogleEventID,
 				StartTime:     start2,
@@ -52,6 +44,14 @@ func TestFetchDraftedEventDetailSkipsSyncedProposedDatesUntilEventChanges(t *tes
 				Priority:      10,
 				Status:        value.ProposedDateStatusActive,
 				SyncStatus:    value.SyncStatusPending,
+			},
+			{
+				ID:         dateID1,
+				StartTime:  start1,
+				EndTime:    end1,
+				Priority:   20,
+				Status:     value.ProposedDateStatusActive,
+				SyncStatus: value.SyncStatusPending,
 			},
 		},
 	}
@@ -111,7 +111,8 @@ func TestFetchDraftedEventDetailSkipsSyncedProposedDatesUntilEventChanges(t *tes
 				if calendarID != "adjusta-candidate" {
 					t.Fatalf("unexpected calendar id: %s", calendarID)
 				}
-				if title != expectedTitle || location != "Tokyo" || description != "Discuss roadmap" {
+				expectedCandidateTitle := expectedCandidateTitles[upsertCallCount%len(expectedCandidateTitles)]
+				if title != expectedCandidateTitle || location != "Tokyo" || description != "Discuss roadmap" {
 					t.Fatalf("unexpected event payload: %s %s %s", title, location, description)
 				}
 				var expectedExistingID *string
@@ -211,7 +212,8 @@ func TestFetchDraftedEventDetailSkipsSyncedProposedDatesUntilEventChanges(t *tes
 	}
 
 	// Adjusta 側でイベント基本情報が変更された場合は、同期済み候補も再同期する。
-	expectedTitle = "Updated Draft"
+	expectedTitle := "Updated Draft"
+	expectedCandidateTitles = []string{"Updated Draft【第1候補】", "Updated Draft【第2候補】"}
 	storedEvent.Title = expectedTitle
 	storedEvent.SyncStatus = value.SyncStatusPending
 
