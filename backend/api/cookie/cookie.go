@@ -10,6 +10,8 @@ const (
 	SessionCookieName = "session"
 	SessionTokenKey   = "session_token"
 	OAuthStateKey     = "oauth_state"
+	OAuthFlowKey      = "oauth_flow"
+	OAuthReturnToKey  = "oauth_return_to"
 
 	defaultMaxAge = 60 * 60 * 24 * 7
 )

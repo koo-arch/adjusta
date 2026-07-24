@@ -9,5 +9,6 @@ import (
 type OAuthUsecase interface {
 	GoogleLoginURL(state string) string
 	CompleteGoogleSignIn(ctx context.Context, code string) (*usecaseAuth.GoogleSignInResult, error)
+	CompleteGoogleReauthorization(ctx context.Context, code, sessionToken string) error
 	Logout(ctx context.Context, sessionToken string) error
 }

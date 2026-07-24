@@ -51,7 +51,7 @@ const ConnectionStatus = () => {
                         // 409 時の AuthErrorModal と同じ再認可フローに接続する(導線を一元化。screen-design 5.8)
                         setAuthError({
                             isOpen: true,
-                            message: 'Googleアカウントの再認可が必要です。再度ログインしてください。',
+                            message: 'Googleアカウントの再認可が必要です。',
                         })
                     }
                 >

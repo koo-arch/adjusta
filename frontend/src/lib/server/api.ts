@@ -15,6 +15,13 @@ export class ServerAPIError extends Error {
     }
 }
 
+export const isGoogleReauthorizationServerError = (error: unknown): error is ServerAPIError =>
+    error instanceof ServerAPIError &&
+    typeof error.data === 'object' &&
+    error.data !== null &&
+    'code' in error.data &&
+    error.data.code === 'google_reauthorization_required';
+
 // Server Component 専用の DAL。cookie を明示的に転送し、401 は cookie を
 // 失効できる Route Handler に逃がす（RSC レンダリング中は Set-Cookie できない）。
 export const serverApi = async <T>(path: string, init?: RequestInit): Promise<T> => {

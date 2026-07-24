@@ -12,12 +12,28 @@ import (
 )
 
 type fakeSessionAuthenticator struct {
-	signInWithGoogleFn func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error)
-	deleteSessionFn    func(ctx context.Context, sessionToken string) error
+	authenticateSessionFn func(ctx context.Context, sessionToken string) (*repoUser.User, error)
+	signInWithGoogleFn    func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error)
+	reauthorizeGoogleFn   func(ctx context.Context, userID uuid.UUID, userInfo *google.UserProfile, oauthToken *google.AuthToken) error
+	deleteSessionFn       func(ctx context.Context, sessionToken string) error
+}
+
+func (f *fakeSessionAuthenticator) AuthenticateSession(ctx context.Context, sessionToken string) (*repoUser.User, error) {
+	if f.authenticateSessionFn == nil {
+		return nil, nil
+	}
+	return f.authenticateSessionFn(ctx, sessionToken)
 }
 
 func (f *fakeSessionAuthenticator) SignInWithGoogle(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
 	return f.signInWithGoogleFn(ctx, userInfo, oauthToken)
+}
+
+func (f *fakeSessionAuthenticator) ReauthorizeGoogle(ctx context.Context, userID uuid.UUID, userInfo *google.UserProfile, oauthToken *google.AuthToken) error {
+	if f.reauthorizeGoogleFn == nil {
+		return nil
+	}
+	return f.reauthorizeGoogleFn(ctx, userID, userInfo, oauthToken)
 }
 
 func (f *fakeSessionAuthenticator) DeleteSession(ctx context.Context, sessionToken string) error {
@@ -135,5 +151,60 @@ func TestOAuthUsecaseGoogleLoginURL(t *testing.T) {
 	got := usecase.GoogleLoginURL("oauth-state")
 	if got != "https://example.com/oauth?state=oauth-state" {
 		t.Fatalf("unexpected login url: %q", got)
+	}
+}
+
+func TestOAuthUsecaseCompleteGoogleReauthorizationKeepsSession(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	userID := uuid.New()
+	profile := &google.UserProfile{GoogleID: "google-id", Email: "user@example.com"}
+	token := &google.AuthToken{AccessToken: "new-access-token", RefreshToken: "new-refresh-token"}
+	var gotUserID uuid.UUID
+
+	usecase := NewOAuthUsecase(
+		&fakeSessionAuthenticator{
+			authenticateSessionFn: func(ctx context.Context, sessionToken string) (*repoUser.User, error) {
+				if sessionToken != "session-token" {
+					t.Fatalf("unexpected session token: %s", sessionToken)
+				}
+				return &repoUser.User{ID: userID, Email: profile.Email}, nil
+			},
+			signInWithGoogleFn: func(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error) {
+				t.Fatal("sign in should not be called during reauthorization")
+				return nil, nil, nil
+			},
+			reauthorizeGoogleFn: func(ctx context.Context, userID uuid.UUID, userInfo *google.UserProfile, oauthToken *google.AuthToken) error {
+				gotUserID = userID
+				if userInfo != profile || oauthToken != token {
+					t.Fatalf("unexpected reauthorization arguments")
+				}
+				return nil
+			},
+			deleteSessionFn: func(ctx context.Context, sessionToken string) error {
+				t.Fatal("session should not be deleted during reauthorization")
+				return nil
+			},
+		},
+		OAuthGatewayFuncs{
+			AuthCodeURLFn: func(state string) string { return "" },
+			ExchangeFn: func(ctx context.Context, code string) (*google.AuthToken, error) {
+				if code != "oauth-code" {
+					t.Fatalf("unexpected OAuth code: %s", code)
+				}
+				return token, nil
+			},
+		},
+		UserInfoFetcherFunc(func(ctx context.Context, gotToken *google.AuthToken) (*google.UserProfile, error) {
+			return profile, nil
+		}),
+	)
+
+	if err := usecase.CompleteGoogleReauthorization(ctx, "oauth-code", "session-token"); err != nil {
+		t.Fatalf("CompleteGoogleReauthorization returned error: %v", err)
+	}
+	if gotUserID != userID {
+		t.Fatalf("unexpected reauthorized user: %s", gotUserID)
 	}
 }

@@ -36,7 +36,7 @@ const handleGlobalAuthError = (error: unknown) => {
         // Google 再認可要求は Adjusta のログイン失効とは別概念なので redirect しない
         getDefaultStore().set(authErrorAtom, {
             isOpen: true,
-            message: 'Googleアカウントの再認可が必要です。再度ログインしてください。',
+            message: 'Googleアカウントの再認可が必要です。',
         });
     }
 };
@@ -50,9 +50,11 @@ const makeQueryClient = () =>
             queries: {
                 staleTime: 30_000,
                 refetchOnWindowFocus: false,
-                // 401 はリトライしても成功しないため即エラー確定し、redirect までの遅延を削る
+                // セッション切れとGoogle再認可要求はリトライしても成功しない
                 retry: (failureCount, error) =>
-                    !isUnauthorizedAPIError(error) && failureCount < 1,
+                    !isUnauthorizedAPIError(error) &&
+                    !isGoogleReauthorizationRequiredError(error) &&
+                    failureCount < 1,
             },
         },
     });

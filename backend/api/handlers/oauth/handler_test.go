@@ -13,6 +13,7 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	apiCookie "github.com/koo-arch/adjusta-backend/api/cookie"
+	"github.com/koo-arch/adjusta-backend/api/respond"
 	"github.com/koo-arch/adjusta-backend/api/sessionctx"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	usecaseAuth "github.com/koo-arch/adjusta-backend/internal/usecase/auth"
@@ -24,6 +25,10 @@ type fakeOAuthUsecase struct {
 	completeResult             *usecaseAuth.GoogleSignInResult
 	completeErr                error
 	loginState                 string
+	reauthorizeCalled          bool
+	reauthorizeCode            string
+	reauthorizeSessionToken    string
+	reauthorizeErr             error
 	logoutCalled               bool
 	logoutToken                string
 	logoutErr                  error
@@ -41,6 +46,13 @@ func (f *fakeOAuthUsecase) CompleteGoogleSignIn(ctx context.Context, code string
 		return f.completeResult, f.completeErr
 	}
 	return &usecaseAuth.GoogleSignInResult{SessionToken: "session-token", UserEmail: "user@example.com"}, nil
+}
+
+func (f *fakeOAuthUsecase) CompleteGoogleReauthorization(ctx context.Context, code, sessionToken string) error {
+	f.reauthorizeCalled = true
+	f.reauthorizeCode = code
+	f.reauthorizeSessionToken = sessionToken
+	return f.reauthorizeErr
 }
 
 func (f *fakeOAuthUsecase) Logout(ctx context.Context, sessionToken string) error {
@@ -105,6 +117,77 @@ func TestGoogleCallbackHandlerStoresSessionAndRedirects(t *testing.T) {
 	decodeOAuthResponse(t, sessionResponse, &sessionBody)
 	if sessionBody.Token != "session-token" {
 		t.Fatalf("unexpected session token: %s", sessionBody.Token)
+	}
+}
+
+func TestGoogleReauthorizationKeepsSessionAndRedirectsBack(t *testing.T) {
+	usecase := &fakeOAuthUsecase{}
+	router := newOAuthTestRouter(usecase)
+	seedResponse := performOAuthRequest(router, "/test/session?token=session-token")
+
+	startResponse := performOAuthRequestWithCookies(
+		router,
+		"/api/auth/google/reauthorize?return_to="+url.QueryEscape("/events?page=2"),
+		seedResponse.Result().Cookies(),
+	)
+	if startResponse.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("unexpected start status: %d", startResponse.Code)
+	}
+	location, err := url.Parse(startResponse.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("failed to parse reauthorization redirect: %v", err)
+	}
+	state := location.Query().Get("state")
+	if state == "" {
+		t.Fatal("expected OAuth state")
+	}
+
+	callbackResponse := performOAuthRequestWithCookies(
+		router,
+		"/auth/google/callback?code=oauth-code&state="+url.QueryEscape(state),
+		startResponse.Result().Cookies(),
+	)
+	if callbackResponse.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("unexpected callback status: %d", callbackResponse.Code)
+	}
+	if callbackResponse.Header().Get("Location") != "/events?page=2" {
+		t.Fatalf("unexpected callback redirect: %s", callbackResponse.Header().Get("Location"))
+	}
+	if !usecase.reauthorizeCalled || usecase.reauthorizeCode != "oauth-code" || usecase.reauthorizeSessionToken != "session-token" {
+		t.Fatalf("unexpected reauthorization call: %+v", usecase)
+	}
+
+	sessionResponse := performOAuthRequestWithCookies(router, "/test/session", callbackResponse.Result().Cookies())
+	var sessionBody struct {
+		Token string `json:"token"`
+	}
+	decodeOAuthResponse(t, sessionResponse, &sessionBody)
+	if sessionBody.Token != "session-token" {
+		t.Fatalf("session token changed during reauthorization: %s", sessionBody.Token)
+	}
+}
+
+func TestGoogleReauthorizationRejectsExternalReturnURL(t *testing.T) {
+	usecase := &fakeOAuthUsecase{}
+	router := newOAuthTestRouter(usecase)
+	seedResponse := performOAuthRequest(router, "/test/session?token=session-token")
+
+	startResponse := performOAuthRequestWithCookies(
+		router,
+		"/api/auth/google/reauthorize?return_to="+url.QueryEscape("https://evil.example/path"),
+		seedResponse.Result().Cookies(),
+	)
+	location, err := url.Parse(startResponse.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("failed to parse reauthorization redirect: %v", err)
+	}
+	callbackResponse := performOAuthRequestWithCookies(
+		router,
+		"/auth/google/callback?code=oauth-code&state="+url.QueryEscape(location.Query().Get("state")),
+		startResponse.Result().Cookies(),
+	)
+	if callbackResponse.Header().Get("Location") != "/" {
+		t.Fatalf("unexpected callback redirect: %s", callbackResponse.Header().Get("Location"))
 	}
 }
 
@@ -214,6 +297,13 @@ func newOAuthTestRouter(usecase OAuthUsecase) *gin.Engine {
 	sessionStore := sessionctx.NewCookieSessionStore(apiCookie.NewManager("", false))
 	handler := NewHandler(usecase, "/", sessionStore)
 	router.GET("/auth/google/login", handler.GoogleLoginHandler)
+	router.GET("/api/auth/google/reauthorize", func(c *gin.Context) {
+		if _, ok := sessionStore.SessionToken(c); !ok {
+			respond.Unauthorized(c, "unauthorized")
+			return
+		}
+		handler.GoogleReauthorizationHandler(c)
+	})
 	router.GET("/auth/google/callback", handler.GoogleCallbackHandler())
 	router.GET("/auth/logout", handler.LogoutHandler)
 	router.GET("/test/session", func(c *gin.Context) {

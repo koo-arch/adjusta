@@ -11,6 +11,7 @@ import (
 )
 
 type fakeSignInReader struct {
+	readUserByIDFn        func(ctx context.Context, userID uuid.UUID) (*repoUser.User, error)
 	findUserByEmailFn     func(ctx context.Context, email string) (*repoUser.User, error)
 	findAccountByUserIDFn func(ctx context.Context, userID uuid.UUID) (*repoAccount.Account, error)
 }
@@ -106,7 +107,7 @@ type fakeAuthUserRepository struct {
 }
 
 func (r *fakeAuthUserRepository) Read(ctx context.Context, id uuid.UUID) (*repoUser.User, error) {
-	return nil, nil
+	return r.reader.readUserByIDFn(ctx, id)
 }
 
 func (r *fakeAuthUserRepository) FindByEmail(ctx context.Context, email string) (*repoUser.User, error) {

@@ -2,6 +2,7 @@ package googleoauth
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 
@@ -49,10 +50,7 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*google
 	refreshedToken, err := oauth2.ReuseTokenSource(token, tm.client.TokenSource(ctx, token)).Token()
 	if err != nil {
 		log.Printf("failed to get new token: %v", err)
-		if strings.Contains(err.Error(), "invalid_token") {
-			return nil, internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
-		}
-		if strings.Contains(err.Error(), "insufficient_scope") {
+		if isGoogleReauthorizationRequired(err) {
 			return nil, internalErrors.NewGoogleReauthorizationRequiredError("Googleアカウントの再認可が必要です")
 		}
 		if strings.Contains(err.Error(), "network error") {
@@ -73,6 +71,22 @@ func (tm *TokenManager) GetToken(ctx context.Context, userID uuid.UUID) (*google
 	}
 
 	return buildGoogleAuthToken(refreshedToken), nil
+}
+
+func isGoogleReauthorizationRequired(err error) bool {
+	var retrieveErr *oauth2.RetrieveError
+	if errors.As(err, &retrieveErr) {
+		switch retrieveErr.ErrorCode {
+		case "invalid_grant", "invalid_token", "insufficient_scope":
+			return true
+		}
+	}
+
+	// TokenSource implementations may not preserve oauth2.RetrieveError.
+	message := err.Error()
+	return strings.Contains(message, "invalid_grant") ||
+		strings.Contains(message, "invalid_token") ||
+		strings.Contains(message, "insufficient_scope")
 }
 
 func buildGoogleAuthToken(token *oauth2.Token) *google.AuthToken {

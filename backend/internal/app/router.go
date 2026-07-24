@@ -39,6 +39,7 @@ func registerRoutes(router *gin.Engine, deps *dependencies) {
 	auth := router.Group("/api")
 	auth.Use(deps.sessionMiddleware.SessionRenewal(), deps.authMiddleware.AuthUser())
 	{
+		auth.GET("/auth/google/reauthorize", deps.oauthHandler.GoogleReauthorizationHandler)
 		auth.GET("/users/me", deps.userHandler.GetCurrentUserHandler())
 		auth.GET("/account/list", deps.accountHandler.FetchAccountsHandler())
 		auth.GET("/user-calendars", deps.accountHandler.ListCalendarSettingsHandler())
