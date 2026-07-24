@@ -1,8 +1,9 @@
 import React from 'react';
 import { unstable_rethrow } from 'next/navigation';
 import { User } from 'lucide-react';
-import { requireUser } from '@/lib/server/api';
+import { isGoogleReauthorizationServerError, requireUser } from '@/lib/server/api';
 import UserButton from '@/features/auth/components/UserButton';
+import ReauthorizationUserMenuFallback from '@/features/auth/components/ReauthorizationUserMenuFallback';
 import type { AuthUser } from '@/features/auth/types';
 
 // requireUser の redirect はストリーミング開始後でも機能する
@@ -14,6 +15,9 @@ const UserMenu = async () => {
     } catch (error) {
         // 401 → session-expired の NEXT_REDIRECT は Next に処理させる
         unstable_rethrow(error);
+        if (isGoogleReauthorizationServerError(error)) {
+            return <ReauthorizationUserMenuFallback />;
+        }
     }
 
     if (!user) {

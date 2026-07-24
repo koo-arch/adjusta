@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 
+	"github.com/google/uuid"
 	repoSession "github.com/koo-arch/adjusta-backend/internal/domain/session"
 	repoUser "github.com/koo-arch/adjusta-backend/internal/domain/user"
 	"github.com/koo-arch/adjusta-backend/internal/google"
@@ -13,7 +14,9 @@ type SignInTransaction interface {
 }
 
 type SessionAuthenticator interface {
+	AuthenticateSession(ctx context.Context, sessionToken string) (*repoUser.User, error)
 	SignInWithGoogle(ctx context.Context, userInfo *google.UserProfile, oauthToken *google.AuthToken) (*repoSession.Session, *repoUser.User, error)
+	ReauthorizeGoogle(ctx context.Context, userID uuid.UUID, userInfo *google.UserProfile, oauthToken *google.AuthToken) error
 	DeleteSession(ctx context.Context, sessionToken string) error
 }
 

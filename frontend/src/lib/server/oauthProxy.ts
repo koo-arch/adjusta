@@ -27,7 +27,7 @@ export const proxyOAuthRequest = async (request: Request, path: string) => {
         const location = backendResponse.headers.get('location');
         const response =
             location && redirectStatuses.has(backendResponse.status)
-                ? NextResponse.redirect(location, backendResponse.status)
+                ? NextResponse.redirect(new URL(location, request.url), backendResponse.status)
                 : new NextResponse(backendResponse.body, {
                       status: backendResponse.status,
                       statusText: backendResponse.statusText,

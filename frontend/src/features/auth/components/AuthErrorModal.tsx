@@ -10,33 +10,31 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { useLogout } from '@/features/auth/hooks/useLogout';
 import { authErrorAtom } from '@/features/auth/store/error';
 
 const AuthErrorModal = () => {
-    const { logout } = useLogout();
     const [{ isOpen, message }, setAuthError] = useAtom(authErrorAtom);
 
-    const handleClose = async () => {
+    const handleClose = () => {
         setAuthError({ isOpen: false, message: '' });
-        // logout 成功時は useLogout 内の assign('/login') が遷移する(backend が cookie 破棄済み)。
-        // 完了を await してから遷移することで、unload による logout リクエスト中断も避ける
-        const ok = await logout();
-        if (!ok) {
-            // logout API 失敗時も cookie を失効させて /login に確実に着地させる
-            window.location.assign('/api/auth/session-expired');
-        }
+    };
+
+    const handleReauthorize = () => {
+        const returnTo = `${window.location.pathname}${window.location.search}`;
+        setAuthError({ isOpen: false, message: '' });
+        window.location.assign(`/api/auth/google/reauthorize?return_to=${encodeURIComponent(returnTo)}`);
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && void handleClose()}>
-            <DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+            <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>認証エラー</DialogTitle>
+                    <DialogTitle>Google連携の再認可</DialogTitle>
                     <DialogDescription>{message}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button onClick={() => void handleClose()}>ログイン画面へ</Button>
+                    <Button variant="outline" onClick={handleClose}>あとで</Button>
+                    <Button onClick={handleReauthorize}>Googleを再認可する</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

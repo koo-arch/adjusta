@@ -50,6 +50,32 @@ func (uc *OAuthUsecase) CompleteGoogleSignIn(ctx context.Context, code string) (
 	}, nil
 }
 
+func (uc *OAuthUsecase) CompleteGoogleReauthorization(ctx context.Context, code, sessionToken string) error {
+	user, err := uc.authenticator.AuthenticateSession(ctx, sessionToken)
+	if err != nil {
+		return err
+	}
+
+	oauthToken, err := uc.gateway.Exchange(ctx, code)
+	if err != nil {
+		log.Printf("failed to exchange oauth token during reauthorization: %v", err)
+		return internalErrors.NewBadGatewayError("Google再認可のトークン取得に失敗しました")
+	}
+
+	userInfo, err := uc.userInfo.FetchGoogleUserInfo(ctx, oauthToken)
+	if err != nil {
+		log.Printf("failed to fetch user info during reauthorization: %v", err)
+		return internalErrors.NormalizeAPIError(err, "Google再認可のユーザー情報取得に失敗しました")
+	}
+
+	if err := uc.authenticator.ReauthorizeGoogle(ctx, user.ID, userInfo, oauthToken); err != nil {
+		log.Printf("failed to persist google reauthorization: %v", err)
+		return internalErrors.NormalizeAPIError(err, "Google再認可情報の保存に失敗しました")
+	}
+
+	return nil
+}
+
 func (uc *OAuthUsecase) Logout(ctx context.Context, sessionToken string) error {
 	if err := uc.authenticator.DeleteSession(ctx, sessionToken); err != nil {
 		log.Printf("failed to delete session: %v", err)

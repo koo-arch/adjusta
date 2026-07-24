@@ -3,6 +3,8 @@ package oauth
 import (
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/koo-arch/adjusta-backend/api/respond"
@@ -33,6 +35,18 @@ func (oh *Handler) GoogleLoginHandler(c *gin.Context) {
 
 	url := oh.oauthUsecase.GoogleLoginURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func (oh *Handler) GoogleReauthorizationHandler(c *gin.Context) {
+	returnTo := safeReturnPath(c.Query("return_to"), oh.redirectURLAfterLogin)
+	state, err := oh.cookieSessionStore.IssueGoogleReauthorizationState(c, returnTo)
+	if err != nil {
+		log.Printf("failed to save google reauthorization state: %v", err)
+		respond.Internal(c, "認証状態の保存に失敗しました")
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, oh.oauthUsecase.GoogleLoginURL(state))
 }
 
 func (oh *Handler) LogoutHandler(c *gin.Context) {
@@ -93,6 +107,35 @@ func (oh *Handler) GoogleCallbackHandler() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
+		if oh.cookieSessionStore.IsGoogleReauthorization(c) {
+			sessionToken, ok := oh.cookieSessionStore.SessionToken(c)
+			if !ok || sessionToken == "" {
+				if clearErr := oh.cookieSessionStore.ClearOAuthState(c); clearErr != nil {
+					log.Printf("failed to clear google reauthorization state: %v", clearErr)
+				}
+				respond.Unauthorized(c, "認証情報がありません")
+				return
+			}
+
+			returnTo := safeReturnPath(oh.cookieSessionStore.OAuthReturnTo(c), oh.redirectURLAfterLogin)
+			if err := oh.oauthUsecase.CompleteGoogleReauthorization(ctx, code, sessionToken); err != nil {
+				log.Printf("failed to complete google reauthorization: %v", err)
+				if clearErr := oh.cookieSessionStore.ClearOAuthState(c); clearErr != nil {
+					log.Printf("failed to clear google reauthorization state after error: %v", clearErr)
+				}
+				respond.Error(c, err, "Google再認可に失敗しました")
+				return
+			}
+			if err := oh.cookieSessionStore.ClearOAuthState(c); err != nil {
+				log.Printf("failed to clear google reauthorization state: %v", err)
+				respond.Internal(c, "認証状態の保存に失敗しました")
+				return
+			}
+
+			c.Redirect(http.StatusTemporaryRedirect, returnTo)
+			return
+		}
+
 		signInResult, err := oh.oauthUsecase.CompleteGoogleSignIn(ctx, code)
 		if err != nil {
 			log.Printf("failed to complete google sign in: %v", err)
@@ -108,4 +151,12 @@ func (oh *Handler) GoogleCallbackHandler() gin.HandlerFunc {
 
 		c.Redirect(http.StatusTemporaryRedirect, oh.redirectURLAfterLogin)
 	}
+}
+
+func safeReturnPath(raw, fallback string) string {
+	parsed, err := url.Parse(raw)
+	if raw == "" || err != nil || parsed.IsAbs() || parsed.Host != "" || !strings.HasPrefix(parsed.Path, "/") || strings.HasPrefix(raw, "//") {
+		return fallback
+	}
+	return parsed.RequestURI()
 }
