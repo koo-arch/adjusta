@@ -1,7 +1,7 @@
 'use client'
 import React from 'react';
 import { useSetAtom } from 'jotai';
-import { Badge } from '@/components/ui/badge';
+import StatusBadge from '@/components/common/StatusBadge/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,16 +16,16 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { GOOGLE_CONNECTION_STATUS } from '@/features/auth/connectionStatus';
 import { useAccounts } from '@/features/auth/hooks/useAccounts';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { authErrorAtom } from '@/features/auth/store/error';
-import { isGoogleReauthorizationRequiredError } from '@/lib/api/errors';
 
 const ConnectionStatus = () => {
-    const { account, isLoading, error, refetch } = useAccounts();
+    const { connectionState, refetch } = useAccounts();
     const setAuthError = useSetAtom(authErrorAtom);
 
-    if (isLoading) {
+    if (connectionState.kind === 'loading') {
         return (
             <div className="space-y-2">
                 <Skeleton className="h-5 w-24" />
@@ -34,14 +34,12 @@ const ConnectionStatus = () => {
         );
     }
 
-    if (isGoogleReauthorizationRequiredError(error)) {
+    if (connectionState.kind === 'reauthorization_required') {
+        const status = GOOGLE_CONNECTION_STATUS[connectionState.kind];
+
         return (
             <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <Badge className="border-transparent bg-yellow-500 text-white hover:bg-yellow-500">
-                        再認可が必要
-                    </Badge>
-                </div>
+                <StatusBadge label={status.label} color={status.color} textSize="sm" />
                 <p className="text-sm text-muted-foreground">
                     Google アカウントへのアクセス許可が失効しています。再認可すると引き続き Google
                     カレンダーと連携できます。
@@ -61,7 +59,7 @@ const ConnectionStatus = () => {
         );
     }
 
-    if (error) {
+    if (connectionState.kind === 'load_failed') {
         return (
             <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">連携状態を取得できませんでした。</p>
@@ -72,13 +70,15 @@ const ConnectionStatus = () => {
         );
     }
 
+    const status = GOOGLE_CONNECTION_STATUS[connectionState.kind];
+
     return (
         <div className="space-y-2">
             <div className="flex items-center gap-2">
-                <Badge className="border-transparent bg-green-500 text-white hover:bg-green-500">
-                    連携中
-                </Badge>
-                {account && <span className="text-sm text-muted-foreground">{account.email}</span>}
+                <StatusBadge label={status.label} color={status.color} textSize="sm" />
+                <span className="text-sm text-muted-foreground">
+                    {connectionState.account.email}
+                </span>
             </div>
             <p className="text-sm text-muted-foreground">
                 Google カレンダーの予定の取得と、確定した予定・候補日程の登録に利用しています。

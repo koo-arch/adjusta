@@ -11,7 +11,6 @@ import { useAccounts } from '@/features/auth/hooks/useAccounts';
 import { useCalendarSettings } from '@/features/auth/hooks/useCalendarSettings';
 import { useCandidateSyncSetting } from '@/features/auth/hooks/useCandidateSyncSetting';
 import { useUpdateCalendarSetting } from '@/features/auth/hooks/useUpdateCalendarSetting';
-import { isGoogleReauthorizationRequiredError } from '@/lib/api/errors';
 import type { CalendarSetting, UserCalendarRole } from '@/features/auth/types';
 
 const roleBadges: Record<UserCalendarRole, { label: string; className: string }> = {
@@ -98,12 +97,12 @@ const CalendarSettingRow: React.FC<CalendarSettingRowProps> = ({
 
 const CalendarSettingsSection = () => {
     const { calendarSettings, isLoading, error, refetch } = useCalendarSettings();
-    const { error: accountError } = useAccounts();
+    const { connectionState } = useAccounts();
     const { update } = useUpdateCalendarSetting();
     const candidateSync = useCandidateSyncSetting();
 
     // 再認可が必要な間は設定変更を無効化し、Google 連携セクションの再認可導線を優先する(screen-design 5.8)
-    const reauthRequired = isGoogleReauthorizationRequiredError(accountError);
+    const reauthRequired = connectionState.kind === 'reauthorization_required';
 
     const settings = calendarSettings ? sortSettings(calendarSettings) : [];
     const primaryId = settings.find((setting) => setting.role === 'primary')?.id ?? '';
