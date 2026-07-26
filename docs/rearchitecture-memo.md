@@ -225,12 +225,14 @@ MVP で扱う `sync_status` は、`not_synced` / `pending_sync` / `synced` / `sy
 - `user_calendars`
 - `events`
 - `proposed_dates`
+- `outbox_messages`
 
 必要に応じて後続で以下を拡張対象とする。
 
 - `email_templates`
 - `operation_logs`
-- `sync_jobs` または同等の補助テーブル
+
+`outbox_messages` は Google Calendar 同期を非同期処理基盤へ安全に配送する Transactional Outbox として扱う。業務データの更新と Outbox Message 作成を同一 transaction に含め、処理基盤への配送と Google Calendar API 呼び出しは transaction 外で行う。初期実装の配送 adapter には Cloud Tasks を使用する。
 
 ### 5.4 現在の到達度（2026-07-07 時点）
 

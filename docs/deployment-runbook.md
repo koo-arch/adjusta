@@ -1,6 +1,6 @@
 # Productionデプロイ手順書
 
-最終更新: 2026-07-14
+最終更新: 2026-07-26
 
 Adjustaのproduction環境を新規に構築し、その後も自分でデプロイ・確認・復旧できるようにするための操作手順書。
 
@@ -25,6 +25,10 @@ Browser
             └─ Cloud Run: adjusta-api
                  ├─ Neon PostgreSQL
                  ├─ Google OAuth / Calendar API
+                 ├─ Cloud Tasks: google-calendar-sync
+                 │    └─ OIDC → /internal/tasks/google-calendar-sync
+                 ├─ Cloud Scheduler: outbox-dispatch
+                 │    └─ OIDC → /internal/tasks/outbox-dispatch
                  └─ Secret Manager
 
 GitHub Actions
@@ -46,7 +50,10 @@ Cloud Runに独立した「Cloud Runプロジェクト」があるわけでは�
 | Artifact Registry repository | `adjusta` |
 | Cloud Run service | `adjusta-api` |
 | Cloud Run URL | `https://adjusta-api-1001878278191.asia-northeast1.run.app` |
+| Cloud Tasks queue | `google-calendar-sync` |
+| Cloud Scheduler job | `outbox-dispatch` |
 | Runtime service account | `adjusta-runtime@adjusta.iam.gserviceaccount.com` |
+| Task invoker service account | `adjusta-tasks-invoker@adjusta.iam.gserviceaccount.com` |
 | Deploy service account | `adjusta-deploy@adjusta.iam.gserviceaccount.com` |
 | Vercel URL | `https://adjusta.vercel.app` |
 | Application DB schema | `adjusta` |
@@ -127,9 +134,13 @@ export PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" \
 export REGION="asia-northeast1"
 export REPOSITORY="adjusta"
 export CLOUD_RUN_SERVICE="adjusta-api"
+export CLOUD_TASKS_QUEUE="google-calendar-sync"
+export OUTBOX_DISPATCH_JOB="outbox-dispatch"
 export RUNTIME_SA="adjusta-runtime"
+export TASKS_INVOKER_SA="adjusta-tasks-invoker"
 export DEPLOY_SA="adjusta-deploy"
 export RUNTIME_SA_EMAIL="${RUNTIME_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
+export TASKS_INVOKER_SA_EMAIL="${TASKS_INVOKER_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 export DEPLOY_SA_EMAIL="${DEPLOY_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 export GITHUB_REPOSITORY="koo-arch/adjusta"
 export WIF_POOL="github"
@@ -186,6 +197,8 @@ Neonのprojectと接続方法は[Projects](https://neon.com/docs/manage/projects
 ```bash
 gcloud services enable \
   artifactregistry.googleapis.com \
+  cloudscheduler.googleapis.com \
+  cloudtasks.googleapis.com \
   iam.googleapis.com \
   iamcredentials.googleapis.com \
   run.googleapis.com \
@@ -199,7 +212,7 @@ Google Calendar APIも、GCP Consoleの`APIs & Services > Library`から有効�
 
 ```bash
 gcloud services list --enabled \
-  --filter='config.name:(artifactregistry.googleapis.com OR iamcredentials.googleapis.com OR run.googleapis.com OR secretmanager.googleapis.com OR sts.googleapis.com)'
+  --filter='config.name:(artifactregistry.googleapis.com OR cloudscheduler.googleapis.com OR cloudtasks.googleapis.com OR iamcredentials.googleapis.com OR run.googleapis.com OR secretmanager.googleapis.com OR sts.googleapis.com)'
 ```
 
 表示に列挙したAPIがすべて含まれ、GCP Console上でGoogle Calendar APIも有効になっている。
@@ -230,6 +243,9 @@ Cloud Runでbackendを実行するidentityと、GitHub Actionsがデプロイに
 gcloud iam service-accounts create "$RUNTIME_SA" \
   --display-name="Adjusta runtime"
 
+gcloud iam service-accounts create "$TASKS_INVOKER_SA" \
+  --display-name="Adjusta Cloud Tasks invoker"
+
 gcloud iam service-accounts create "$DEPLOY_SA" \
   --display-name="Adjusta deploy"
 ```
@@ -248,6 +264,14 @@ gcloud artifacts repositories add-iam-policy-binding "$REPOSITORY" \
 
 gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA_EMAIL" \
   --member="serviceAccount:${DEPLOY_SA_EMAIL}" \
+  --role="roles/iam.serviceAccountUser"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
+  --role="roles/cloudtasks.enqueuer"
+
+gcloud iam service-accounts add-iam-policy-binding "$TASKS_INVOKER_SA_EMAIL" \
+  --member="serviceAccount:${RUNTIME_SA_EMAIL}" \
   --role="roles/iam.serviceAccountUser"
 ```
 
@@ -284,6 +308,48 @@ AdjustaではVercelのserver-side proxyから呼び出すため、Cloud Run serv
 - Cloud Run serviceのregionとruntime service accountが想定どおり
 
 別環境では、以後の`https://adjusta-api-1001878278191.asia-northeast1.run.app`をすべて`$BACKEND_URL`の実値へ置き換える。
+
+### 4.5 Cloud Tasks queueを作成する
+
+Google Calendar同期用queueをCloud Runと同じregionに作成する。
+
+```bash
+gcloud tasks queues create "$CLOUD_TASKS_QUEUE" \
+  --location="$REGION"
+```
+
+task handlerのOIDC audienceとURLに使用するCloud Run URLを確認する。
+
+```bash
+export CLOUD_TASKS_HANDLER_URL="${BACKEND_URL}/internal/tasks/google-calendar-sync"
+printf '%s\n' "$CLOUD_TASKS_HANDLER_URL"
+```
+
+task invoker service accountへCloud Run Invokerを付与する。`adjusta-api`はVercel proxy向けに公開されているため、task handler自身もOIDC tokenのissuer、audience、service account emailを検証する。
+
+```bash
+gcloud run services add-iam-policy-binding "$CLOUD_RUN_SERVICE" \
+  --region="$REGION" \
+  --member="serviceAccount:${TASKS_INVOKER_SA_EMAIL}" \
+  --role="roles/run.invoker"
+```
+
+queueを確認する。
+
+```bash
+gcloud tasks queues describe "$CLOUD_TASKS_QUEUE" \
+  --location="$REGION"
+```
+
+完了条件:
+
+- queueのstateが`RUNNING`
+- queueとCloud Run serviceが同じregionにある
+- runtime service accountがCloud Tasksへenqueueできる
+- task invoker service accountが作成されている
+- task handler URLが`$BACKEND_URL`配下の想定pathになっている
+
+Cloud TasksからCloud Runを呼び出す構成は[Executing asynchronous tasks](https://docs.cloud.google.com/run/docs/triggering/using-tasks)を参照する。
 
 ## 5. Vercel frontendを作成する
 
@@ -500,6 +566,10 @@ Environment variablesへ登録する。
 | `GCP_ARTIFACT_REPOSITORY` | `adjusta` |
 | `CLOUD_RUN_SERVICE` | `adjusta-api` |
 | `CLOUD_RUN_SERVICE_ACCOUNT` | `adjusta-runtime@adjusta.iam.gserviceaccount.com` |
+| `CLOUD_TASKS_QUEUE` | `google-calendar-sync` |
+| `CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT` | `adjusta-tasks-invoker@adjusta.iam.gserviceaccount.com` |
+| `CLOUD_TASKS_HANDLER_URL` | `https://adjusta-api-1001878278191.asia-northeast1.run.app/internal/tasks/google-calendar-sync` |
+| `CLOUD_TASKS_OIDC_AUDIENCE` | `https://adjusta-api-1001878278191.asia-northeast1.run.app` |
 | `DATABASE_URL_SECRET` | `adjusta-database-url` |
 | `SESSION_SECRET_SECRET` | `adjusta-session-secret` |
 | `GOOGLE_CLIENT_SECRET_SECRET` | `adjusta-google-client-secret` |
@@ -517,6 +587,17 @@ Environment secretsへ登録する。
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | `adjusta-deploy@adjusta.iam.gserviceaccount.com` |
 
 OAuth client IDは秘密値ではないが、client secretは必ずSecret Managerだけへ置く。GitHub environmentsの保護規則は[Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)を参照する。
+
+backend deploy workflowは、Cloud Run revisionへ次の対応で環境変数を渡す。
+
+| Cloud Run環境変数 | GitHub environmentの値 |
+| --- | --- |
+| `CLOUD_TASKS_PROJECT_ID` | `GCP_PROJECT_ID` |
+| `CLOUD_TASKS_LOCATION` | `GCP_REGION` |
+| `CLOUD_TASKS_QUEUE` | `CLOUD_TASKS_QUEUE` |
+| `CLOUD_TASKS_HANDLER_URL` | `CLOUD_TASKS_HANDLER_URL` |
+| `CLOUD_TASKS_OIDC_AUDIENCE` | `CLOUD_TASKS_OIDC_AUDIENCE` |
+| `CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT` | `CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT` |
 
 別環境では、`GOOGLE_REDIRECT_URI`、`REDIRECT_URL_AFTER_LOGIN`、`CORS_ALLOW_ORIGINS`へその環境の`$FRONTEND_URL`を使用する。Cloud Run URLはGitHub environmentへ直接登録せず、Vercelの`INTERNAL_BACKEND_URL`へ登録する。
 
@@ -567,6 +648,38 @@ atlas migrate apply \
 - Cloud Runのlatest ready revisionがhello imageではなく`adjusta-backend` imageを使用
 - Cloud Run URLへ未認証で到達でき、`/api/users/me`が`401`を返す
 
+### 10.1 Outbox dispatcherの定期実行を作成する
+
+backend deploy後、未配送のOutbox Messageを再送するdispatcherを1分ごとに起動する。Google Calendar同期そのものはCloud Tasksが実行し、Cloud Schedulerは`dispatched_at IS NULL`かつ`available_at`を過ぎたOutbox Messageのenqueueだけを依頼する。
+
+```bash
+gcloud scheduler jobs create http "$OUTBOX_DISPATCH_JOB" \
+  --location="$REGION" \
+  --schedule="* * * * *" \
+  --uri="${BACKEND_URL}/internal/tasks/outbox-dispatch" \
+  --http-method=POST \
+  --oidc-service-account-email="$TASKS_INVOKER_SA_EMAIL" \
+  --oidc-token-audience="$BACKEND_URL"
+```
+
+作成直後に1回手動実行し、Cloud Run logsで認証とレスポンスを確認する。
+
+```bash
+gcloud scheduler jobs run "$OUTBOX_DISPATCH_JOB" \
+  --location="$REGION"
+
+gcloud scheduler jobs describe "$OUTBOX_DISPATCH_JOB" \
+  --location="$REGION"
+```
+
+完了条件:
+
+- jobのstateが`ENABLED`
+- scheduleが1分間隔である
+- URIが`$BACKEND_URL/internal/tasks/outbox-dispatch`である
+- OIDC service accountが`$TASKS_INVOKER_SA_EMAIL`である
+- dispatcherが対象なしの場合も2xxを返す
+
 ## 11. Vercelを再デプロイする
 
 `INTERNAL_BACKEND_URL`をproductionへ追加した後、Vercel DashboardのDeploymentsからmainの最新deploymentをRedeployする。以後はmainへのpush/mergeでfrontendが自動デプロイされる。
@@ -583,6 +696,10 @@ Cloud RunのURLとrevisionを確認する。
 gcloud run services describe "$CLOUD_RUN_SERVICE" \
   --region="$REGION" \
   --format='yaml(status.url,status.latestReadyRevisionName)'
+
+gcloud tasks queues describe "$CLOUD_TASKS_QUEUE" \
+  --location="$REGION" \
+  --format='yaml(name,state,rateLimits,retryConfig)'
 ```
 
 未認証のユーザーAPIは`401`を返せば、Cloud Runへ到達できている。
@@ -614,7 +731,7 @@ WHERE table_schema IN ('adjusta', 'public')
 ORDER BY table_schema, table_name;
 ```
 
-`public`にはAtlasの履歴以外のアプリケーションテーブルを置かない。
+`public`にはAtlasの履歴以外のアプリケーションテーブルを置かず、`adjusta.outbox_messages`が存在することを確認する。
 
 ### 12.2 OAuthとcookie確認
 
@@ -641,7 +758,12 @@ ORDER BY table_schema, table_name;
 - 確定日時を登録・変更できる
 - イベントを削除できる
 - アカウント画面で候補日程同期をON/OFFできる
-- ONの場合はGoogle Calendarへ候補日程が一度だけ同期される
+- ONの場合、イベント保存APIがGoogle Calendar同期完了を待たずに成功する
+- 保存直後は対象Event / ProposedDateが`pending_sync`になり、`adjusta.outbox_messages`に行が作成される
+- Cloud Tasksへの配送後にOutbox Messageの`dispatched_at`が設定される
+- Cloud Tasks処理後にGoogle Calendarへ候補日程が一度だけ作成され、対象レコードが`synced`、Outbox Messageの`processed_at`が設定される
+- 一時的なGoogle Calendar API失敗時は`sync_failed`とエラー内容が保存され、Cloud Tasksの再試行で復旧できる
+- イベント詳細表示だけではGoogle Calendar API呼び出しや新しいOutbox Message作成が発生しない
 - ログアウト後に認証必須画面へ戻れない
 
 ## 13. 通常のデプロイ
@@ -688,7 +810,20 @@ gcloud run revisions list \
   --region="$REGION"
 ```
 
-Vercelは対象deploymentの`Build Logs`と`Runtime Logs`、Neonは`Monitoring`とSQL Editorを確認する。ログへcookie、Authorization header、DB URL、OAuth codeを出さない。
+Cloud Tasks queueの状態とtaskを確認する。
+
+```bash
+gcloud tasks queues describe "$CLOUD_TASKS_QUEUE" \
+  --location="$REGION"
+
+gcloud tasks list \
+  --queue="$CLOUD_TASKS_QUEUE" \
+  --location="$REGION"
+```
+
+Neon SQL Editorでは`adjusta.outbox_messages`の`dispatch_attempts`、`dispatched_at`、`processed_at`、`last_dispatch_error`を確認する。payloadやエラーにtokenなどの秘密値を保存しない。
+
+Vercelは対象deploymentの`Build Logs`と`Runtime Logs`、Neonは`Monitoring`とSQL Editorを確認する。ログへcookie、Authorization header、DB URL、OAuth code、Cloud TasksのOIDC tokenを出さない。
 
 ## 15. ロールバック
 
@@ -703,6 +838,22 @@ gcloud run services update-traffic "$CLOUD_RUN_SERVICE" \
 ```
 
 DB migrationはCloud Runのrollbackでは戻らない。破壊的migrationを同じreleaseに含めず、旧revisionが新schemaで動作できる状態を維持する。データを戻す必要がある場合は、影響を確認した専用migrationとして扱う。
+
+Cloud Tasks対応revisionから旧revisionへ戻す場合は、先にqueueをpauseして未処理taskが旧handlerへ配送されないようにする。
+
+```bash
+gcloud tasks queues pause "$CLOUD_TASKS_QUEUE" \
+  --location="$REGION"
+```
+
+修正版がtask handlerを処理できることを確認してからqueueをresumeする。
+
+```bash
+gcloud tasks queues resume "$CLOUD_TASKS_QUEUE" \
+  --location="$REGION"
+```
+
+queueのpurgeは未処理同期依頼を失うため、通常のrollbackでは実行しない。`outbox_messages`を正本として、未完了行を再enqueueできる状態を維持する。
 
 ### Vercel
 

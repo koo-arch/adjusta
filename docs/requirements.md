@@ -86,29 +86,30 @@ Adjusta の初期開発における対象範囲は以下とする。
 3. アプリ上で自身のカレンダー予定を確認する
 4. 日程調整イベントを作成する
 5. 複数の候補日程を選択する
-6. 候補日程同期が有効な場合、候補日程を Google Calendar に仮予定として登録する
-7. 候補日程を含むメール文面を作成する
-8. ユーザーがメール文面をコピーして相手へ送信する
-9. 相手からの返信をもとに確定日程を選択する
-10. 確定日程を Google Calendar に本予定として登録する
-11. 不要になった候補予定を削除または整理する
+6. イベントと候補日程をアプリ DB に保存する
+7. 候補日程同期が有効な場合、Cloud Tasks を介して候補日程を Google Calendar に仮予定として非同期登録する
+8. 候補日程を含むメール文面を作成する
+9. ユーザーがメール文面をコピーして相手へ送信する
+10. 相手からの返信をもとに確定日程を選択する
+11. 確定状態をアプリ DB に保存する
+12. Cloud Tasks を介して確定日程を Google Calendar に本予定として非同期登録し、不要になった候補予定を整理する
 
 ### 4.2 候補日程編集フロー
 
 1. ユーザーが作成済みイベントの編集画面を開く
 2. 基本情報または候補日程を変更する
-3. 候補日程同期が有効な場合、追加された候補日程を Google Calendar に作成する
-4. 候補日程同期が有効な場合、変更された候補日程に対応する Google Calendar の予定を更新する
-5. 候補日程同期が有効な場合、削除された候補日程に対応する Google Calendar の予定を削除する
-6. アプリ側のデータベースを更新する
+3. アプリ DB の業務データと OutboxMessage を同一トランザクションで更新する
+4. DB 保存完了をユーザーへ返す
+5. 候補日程同期が有効な場合、Cloud Tasks を介して追加・変更・削除を Google Calendar に非同期反映する
 
 ### 4.3 日程確定フロー
 
 1. ユーザーがイベント詳細画面を開く
 2. 候補日程の中から確定日程を選択する
-3. 選択された日程を確定済みとして保存する
-4. Google Calendar 上で確定予定を登録または更新する
-5. 確定されなかった候補予定を削除または不要な予定として整理する
+3. 選択された日程を確定済みとしてアプリ DB に保存し、OutboxMessage を作成する
+4. DB 保存完了をユーザーへ返す
+5. Cloud Tasks を介して Google Calendar 上の確定予定を非同期登録または更新する
+6. 確定されなかった候補予定を非同期で削除または不要な予定として整理する
 
 ## 5. 機能要件
 
@@ -169,6 +170,7 @@ Google Calendar API を利用するため、アクセストークンおよび必
 #### 要件
 
 - 候補日程同期が有効な場合、候補日程ごとに Google Calendar の予定を作成する
+- Google Calendar への作成は Cloud Tasks を介して非同期実行する
 - 作成した Google Calendar イベント ID をアプリ側に保存する
 - 候補予定のタイトルは、表示上の優先順位を用いて `イベント名【第1候補】` の形式とする
 - 候補日程の優先順位を変更した場合は、Google Calendar 上の候補予定タイトルにも反映する
@@ -182,6 +184,7 @@ Google Calendar API を利用するため、アクセストークンおよび必
 #### 要件
 
 - 確定日程を Google Calendar に登録する
+- Google Calendar への登録は Cloud Tasks を介して非同期実行する
 - 候補予定として作成済みの Google Calendar イベントがある場合、それを更新して確定予定として扱えるようにする
 - 確定対象以外の候補予定は削除または整理する
 - 確定後に再調整する場合にも対応できる設計とする
@@ -207,7 +210,7 @@ Google Calendar API を利用するため、アクセストークンおよび必
 - 候補日程は複数登録できる
 - 候補日程には開始日時・終了日時を持たせる
 - 候補日程には優先順位を持たせる
-- 候補日程同期が有効な場合、登録後の同期処理で Google Calendar に候補予定を作成する
+- 候補日程同期が有効な場合、DB 保存後に Cloud Tasks を介して Google Calendar に候補予定を作成する
 
 ### 5.3.2 イベント一覧表示
 
@@ -291,7 +294,7 @@ Google Calendar API を利用するため、アクセストークンおよび必
 #### 要件
 
 - 削除対象の候補日程を UI 上で明示する
-- 登録済み候補日程を削除した場合、対応する Google Calendar イベントも削除する
+- 登録済み候補日程を削除した場合、Cloud Tasks を介して対応する Google Calendar イベントも削除する
 - 未登録の selected date はフロントエンド上から削除する
 
 ## 5.5 日程確定機能
@@ -307,7 +310,7 @@ Google Calendar API を利用するため、アクセストークンおよび必
 - 確定されなかった候補日程は ProposedDate.status = not\_selected とする
 - Event.status は confirmed とする
 - Event.confirmed\_date\_id に、確定された ProposedDate.id を設定する
-- Event.confirmed\_google\_event\_id に、メインカレンダー上に作成した確定予定の Google Calendar Event ID を保存する
+- 非同期同期の成功後、Event.confirmed\_google\_event\_id にメインカレンダー上へ作成した確定予定の Google Calendar Event ID を保存する
 - 確定後も再調整できる余地を残す
 
 ### 5.5.2 確定後の候補予定整理
@@ -390,6 +393,8 @@ Google Calendar API を利用するため、アクセストークンおよび必
 - Google Calendar API の一時的な失敗に備え、エラーハンドリングを行う
 - Google Calendar との同期に失敗した場合、ユーザーに分かる形で通知する
 - DB 更新と Google Calendar 更新の整合性に注意する
+- Google Calendar 同期は Cloud Tasks を介して非同期実行し、外部 API の完了をユーザー向け API レスポンスの条件にしない
+- DB 更新と同期依頼は Transactional Outbox パターンにより同一トランザクションで記録する
 
 ## 6.3 保守性
 
@@ -597,6 +602,33 @@ WHERE role = 'primary';
 - 作成日時
 - 更新日時
 
+### 7.1.9 OutboxMessage
+
+Google Calendar 同期など、DB 更新後に非同期実行する処理の依頼を表す。
+
+主な属性:
+
+- ID
+- イベント種別
+- 集約種別
+- 集約 ID
+- ペイロード
+- 配送試行回数
+- 実行可能日時
+- 最終配送エラー
+- 配送日時
+- 処理終了日時
+- 作成日時
+- 更新日時
+
+### 補足
+
+- DB 更新と OutboxMessage 作成は同一トランザクションで行う
+- Cloud Tasks には OutboxMessage ID を渡し、同期内容の正本は Event / ProposedDate とする
+- OutboxMessage は監査ログではなく、非同期処理基盤への配送と処理済み判定に必要な情報を管理する
+- Google Calendar 同期の成否・最終同期日時・同期エラーは Event / ProposedDate に保存し、OutboxMessage には保存しない
+- 同一 OutboxMessage が複数回処理されても結果が重複しないよう、同期処理は冪等にする
+
 ## 7.2 リレーション概要
 
 - User は 1つの Account を持つ
@@ -608,6 +640,7 @@ WHERE role = 'primary';
 - Event は複数の ProposedDate を持つ
 - Event は確定済み ProposedDate を一つ持つことができる
 - Event.confirmed\_date\_id は ProposedDate.id を参照する
+- Event などの集約更新時に、必要な OutboxMessage を同一トランザクションで作成する
 - User は複数の EmailTemplate を持つ
 
 ## 8. Enum 定義
@@ -995,40 +1028,42 @@ Google Calendar 側で Adjusta 管理下の予定が削除または変更され�
 
 ## 12.3 同期タイミング
 
-初期実装では、同期タイミングをイベント詳細画面にアクセスしたときとする。
+Google Calendar 同期は、アプリ DB への保存完了後に Cloud Tasks を介してバックグラウンド実行する。
 
 ### 要件
 
-- イベント詳細画面を開いた際に、対象 Event / ProposedDate の同期状態を確認する
-- UserCalendar.sync\_proposed\_dates = true の場合、Event または ProposedDate の sync\_status が not\_synced / pending\_sync / sync\_failed の候補日程について、Adjusta 専用カレンダーへの create / update / recreate を試みる
-- Event と ProposedDate の sync\_status がともに synced の候補日程は、詳細画面を開くたびに Google Calendar API へ更新せず、DB の状態をそのまま表示する
-- UserCalendar.sync\_proposed\_dates = false の場合、イベント詳細画面アクセス時も Google Calendar への候補予定同期は行わない
+- Event / ProposedDate の作成・更新・確定・削除により Google Calendar 同期が必要になった場合、業務データの更新と OutboxMessage の作成を同一 DB トランザクションで行う
+- ユーザー向け API は DB トランザクションの commit 完了をもって保存成功とし、Google Calendar API の完了を待たずに応答する
+- 同期対象の Event / ProposedDate は、OutboxMessage 作成時に sync\_status = pending\_sync とする
+- DB commit 後、OutboxMessage ID を非同期処理基盤へ配送する。初期実装の配送先には Cloud Tasks を使用する
+- 配送に失敗した OutboxMessage は DB に保持し、Cloud Scheduler から定期起動する Outbox dispatcher が再配送する
+- Cloud Tasks から呼び出された同期処理は、OutboxMessage ID をもとに DB の最新状態を読み、必要な create / update / recreate を行う
+- UserCalendar.sync\_proposed\_dates = false の場合、候補予定を Google Calendar へ新規作成・更新・再作成する OutboxMessage は作成しない
 - Google Calendar 側だけで候補予定が削除または変更された場合、通常の詳細表示では再作成・上書きを行わない
 - Adjusta 側で対象 Event または ProposedDate が変更されて再同期が必要になった場合は、Adjusta 側の内容を正として Google Calendar の候補予定を更新し、削除済みの場合は再作成する
 - Adjusta 専用カレンダーが削除されていた場合、必要に応じて再作成する
-- 同期処理に失敗した場合でも、イベント詳細画面自体は可能な範囲で表示する
+- イベント詳細取得では Google Calendar API を呼ばず、DB に保存されたデータと同期状態を返す
 - 同期失敗時にはユーザーに同期状態を表示する
 - 同期成功時は Event / ProposedDate の sync_status, last_synced_at, last_sync_error を更新する
 - 同期失敗時は該当 Event / ProposedDate を sync_failed とし、last_sync_error を更新する
-
-### 暫定方針
-
-- 初期実装ではイベント詳細アクセス時の同期を基本とする
-- 詳細アクセス時は同期が必要な候補日程だけを処理し、Event と ProposedDate がともに同期済みの場合は Google Calendar API 呼び出しを行わない
-- 将来的には手動同期ボタン、定期同期、バックグラウンドジョブによる同期を検討する
+- OutboxMessage の processed_at は同期結果を表さず、consumer がその OutboxMessage の処理を終了したことだけを表す
+- 一時エラーで Cloud Tasks に再試行させる場合は processed_at を更新せず、再試行しても解決しないエラーでは Event / ProposedDate に同期失敗を保存したうえで processed_at を更新する
+- Cloud Tasks の再送により同一 OutboxMessage が複数回実行されても、Google Calendar の予定を重複作成しない
+- 同一 OutboxMessage の配送が既に受理済みの場合、配送先からの重複エラーを配送成功相当として扱う
+- 同一 Event に対する古い OutboxMessage は、DB の最新状態またはバージョンを確認し、新しい変更を古い内容で上書きしない
 
 ## 12.4 操作別同期方針
 
 | 操作          | Google Calendar 側の処理                                             | DB 側の処理                                                                                     |
 | ----------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | 専用カレンダー初期化  | Adjusta 専用カレンダーを作成または再利用                                         | Calendar / UserCalendar に保存                                                                 |
-| 候補日程追加      | 設定が有効な場合、Adjusta 専用カレンダーにイベント作成                                  | ProposedDate 作成                                                                             |
-| 候補日程更新      | 設定が有効な場合、対応イベントを Adjusta 側の内容で更新                                 | ProposedDate 更新                                                                             |
-| 候補日程削除      | 対応イベントを削除またはステータス変更                                              | ProposedDate を削除または無効化                                                                      |
+| 候補日程追加      | Cloud Tasks 経由で、設定が有効な場合に Adjusta 専用カレンダーへイベント作成                    | ProposedDate 作成、pending\_sync 設定、OutboxMessage 作成                                      |
+| 候補日程更新      | Cloud Tasks 経由で、対応イベントを Adjusta 側の最新内容で更新                              | ProposedDate 更新、pending\_sync 設定、OutboxMessage 作成                                      |
+| 候補日程削除      | Cloud Tasks 経由で、対応イベントを削除またはステータス変更                                  | ProposedDate を削除または無効化し、OutboxMessage を作成                                        |
 | 候補予定の外部削除検知 | Adjusta 側の内容で再作成                                                 | Google Calendar Event ID を更新                                                                |
 | 候補予定の外部変更検知 | Adjusta 側の内容で上書き                                                 | 必要に応じて同期状態を更新                                                                               |
-| 日程確定        | primary\_calendar\_id が指すメインカレンダーに確定予定を作成し、専用カレンダー上の候補予定はステータス変更 | Event.status / ProposedDate.status / confirmed\_date\_id / confirmed\_google\_event\_id を更新 |
-| イベント削除      | 関連する候補予定・確定予定を削除またはステータス変更                                       | Event 削除または無効化                                                                              |
+| 日程確定        | Cloud Tasks 経由でメインカレンダーに確定予定を作成し、専用カレンダー上の候補予定はステータス変更       | Event.status / ProposedDate.status / confirmed\_date\_id を更新し、OutboxMessage を作成。同期成功後に confirmed\_google\_event\_id を更新 |
+| イベント削除      | Cloud Tasks 経由で関連する候補予定・確定予定を削除またはステータス変更                          | Event を削除または無効化し、OutboxMessage を作成                                                 |
 
 ## 12.5 同期状態の管理
 
@@ -1072,9 +1107,12 @@ Google Calendar API と DB 更新は完全な分散トランザクションに�
 - Adjusta 側の DB を正とする
 - Google Calendar 同期に失敗した場合でも、Adjusta 側の状態は保持する
 - 同期失敗時には再同期できるようにする
+- DB 更新と OutboxMessage 作成を同一トランザクションに含め、同期依頼の記録漏れを防ぐ
+- 非同期処理基盤への配送は DB transaction の外で行い、失敗時は未処理の OutboxMessage から再送する
+- Cloud Tasks と同期 handler は少なくとも一度実行される前提で設計し、同一 OutboxMessage の重複処理を許容する
 - Google Calendar イベント ID が無効になった場合は、再作成して ID を更新する
 - Google Calendar 側の外部変更を取り込むのではなく、Adjusta 側の状態で復元する
-- 同期状態や最終同期日時を保存できる設計を検討する
+- 同期状態、最終同期日時、直近の同期エラーを保存する
 
 ## 13. 削除・ログ・追跡性の方針
 
@@ -1114,7 +1152,7 @@ Account / Session 関連の削除方針は、認証ライブラリやセキュ�
 
 ## 13.3 同期ログ
 
-初期実装では、Google Calendar 同期ログ専用テーブルも持たない。
+初期実装では、Google Calendar 同期ログ専用テーブルは持たない。ただし、非同期処理の配送状態を管理する OutboxMessage は持つ。
 
 ### 方針
 
@@ -1123,6 +1161,7 @@ Account / Session 関連の削除方針は、認証ライブラリやセキュ�
 - Event / ProposedDate に last\_synced\_at を持たせる
 - Event / ProposedDate に last\_sync\_error を持たせる
 - Google Calendar 同期に失敗した場合は、対象レコードに sync\_failed とエラー内容を保存する
+- OutboxMessage は配送と再試行に必要な状態だけを保持し、同期結果の長期的な監査ログとしては扱わない
 - 同期処理の詳細な履歴が必要になった場合、将来的に SyncLog テーブルを追加する
 
 ## 13.4 将来的なログ拡張
