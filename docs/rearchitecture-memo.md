@@ -330,7 +330,7 @@ Phase 3 以降についても、backend は未着手というより大枠の再�
 - 残る usecase 専用 store / adapter を見直し、単なる repository 操作の言い換えになっているものは domain repository interface を直接扱える形へ寄せる
 - domain model とほぼ同じ usecase Record を見直し、必要なものだけ残す
 - proposed date / event の状態遷移ルールや同期方針を、usecase から domain へさらに引き上げる
-- `backend/internal/usecase/events` は draft / confirmation / sync / google などの関心が増えているため、まず同一 package 内でファイル prefix による責務整理を進める。依存関係が十分薄くなった段階で、サブドメイン単位の package 分割も検討する
+- **解消済み(2026-07-27)**: Google Calendar 同期処理を `backend/internal/usecase/googlecalendar` へ分離した。`events` はイベント更新と outbox message の記録、`googlecalendar` は message を起点とした外部同期を担う
 - 環境変数供給経路は DB 系とアプリ固有設定で分かれているため、必要になれば root `.env` + compose にさらに寄せる
 - frontend では API server data と draft state の責務分離をさらに進める(再認可表示導線と middleware の整理は 4.1.8 で完了)
 
@@ -340,7 +340,7 @@ Phase 3 以降についても、backend は未着手というより大枠の再�
 2. frontend の API server data と draft state の責務分離を進める
 3. 残る過剰 adapter を薄くし、transaction callback で tx scope の domain repository bundle を扱う形へ寄せる
 4. domain rule と usecase orchestration の境界を再確認する
-5. `events` usecase は draft / confirmation / sync / google のファイル責務を明確にし、将来的なサブドメイン package 分割に備える
+5. `events` と `googlecalendar` usecase の境界を維持し、外部同期固有の orchestration を `events` へ戻さない
 6. versioned migrationはアプリの新旧revisionが並行しても成立するexpand/contractを基本とし、破壊的変更を単一デプロイで行わない
 7. Google 連携状態 API の責務を整理する。現実装の `GET /api/account/list` は accounts の一覧や `expires_at` / `scope` ではなく Google プロフィールを返し、`GET /api/users/me` と責務が重複している。1 ユーザー 1 Google 連携の現状では `/account/list` という命名も実態と合わないため、廃止・改名または連携状態専用 API(`provider` / `email` / `status` など必要最小限の DTO)への再定義を判断し、frontend の `fetchAccount` / `useAccounts` と API テストを合わせて更新する。access token の `expires_at` は refresh 可能なため、単独で再認可要否を判定しない
 
