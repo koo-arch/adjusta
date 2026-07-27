@@ -11,6 +11,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/outboxmessage"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/predicate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
@@ -155,6 +156,33 @@ func (f TraverseEvent) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.EventQuery", q)
 }
 
+// The OutboxMessageFunc type is an adapter to allow the use of ordinary function as a Querier.
+type OutboxMessageFunc func(context.Context, *ent.OutboxMessageQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f OutboxMessageFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.OutboxMessageQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.OutboxMessageQuery", q)
+}
+
+// The TraverseOutboxMessage type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseOutboxMessage func(context.Context, *ent.OutboxMessageQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseOutboxMessage) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseOutboxMessage) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.OutboxMessageQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.OutboxMessageQuery", q)
+}
+
 // The ProposedDateFunc type is an adapter to allow the use of ordinary function as a Querier.
 type ProposedDateFunc func(context.Context, *ent.ProposedDateQuery) (ent.Value, error)
 
@@ -272,6 +300,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.CalendarQuery, predicate.Calendar, calendar.OrderOption]{typ: ent.TypeCalendar, tq: q}, nil
 	case *ent.EventQuery:
 		return &query[*ent.EventQuery, predicate.Event, event.OrderOption]{typ: ent.TypeEvent, tq: q}, nil
+	case *ent.OutboxMessageQuery:
+		return &query[*ent.OutboxMessageQuery, predicate.OutboxMessage, outboxmessage.OrderOption]{typ: ent.TypeOutboxMessage, tq: q}, nil
 	case *ent.ProposedDateQuery:
 		return &query[*ent.ProposedDateQuery, predicate.ProposedDate, proposeddate.OrderOption]{typ: ent.TypeProposedDate, tq: q}, nil
 	case *ent.SessionQuery:

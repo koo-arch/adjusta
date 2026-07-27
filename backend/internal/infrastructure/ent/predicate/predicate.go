@@ -15,6 +15,9 @@ type Calendar func(*sql.Selector)
 // Event is the predicate function for event builders.
 type Event func(*sql.Selector)
 
+// OutboxMessage is the predicate function for outboxmessage builders.
+type OutboxMessage func(*sql.Selector)
+
 // ProposedDate is the predicate function for proposeddate builders.
 type ProposedDate func(*sql.Selector)
 

@@ -538,7 +538,7 @@ WHERE deleted_at IS NULL;
 | proposed_dates.start_time | 日程検索 |
 | proposed_dates.status | 候補日程状態による絞り込み |
 | proposed_dates.sync_status | 同期状態による再同期対象検索 |
-| outbox_messages(available_at) WHERE dispatched_at IS NULL | 未配送かつ配送可能な Outbox Message 取得 |
+| outbox_messages(available_at) WHERE dispatched_at IS NULL AND processed_at IS NULL | 未配送・未処理かつ配送可能な Outbox Message 取得 |
 | outbox_messages(processed_at) | 処理済み Outbox Message の保持期限管理 |
 | outbox_messages(aggregate_type, aggregate_id, created_at) | 対象集約ごとの処理順序と最新依頼の確認 |
 

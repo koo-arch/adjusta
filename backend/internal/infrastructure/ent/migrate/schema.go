@@ -123,6 +123,47 @@ var (
 			},
 		},
 	}
+	// OutboxMessagesColumns holds the columns for the "outbox_messages" table.
+	OutboxMessagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "message_type", Type: field.TypeString},
+		{Name: "aggregate_type", Type: field.TypeString},
+		{Name: "aggregate_id", Type: field.TypeUUID},
+		{Name: "payload", Type: field.TypeJSON},
+		{Name: "dispatch_attempts", Type: field.TypeInt, Default: 0},
+		{Name: "available_at", Type: field.TypeTime},
+		{Name: "dispatched_at", Type: field.TypeTime, Nullable: true},
+		{Name: "processed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_dispatch_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
+	}
+	// OutboxMessagesTable holds the schema information for the "outbox_messages" table.
+	OutboxMessagesTable = &schema.Table{
+		Name:       "outbox_messages",
+		Columns:    OutboxMessagesColumns,
+		PrimaryKey: []*schema.Column{OutboxMessagesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "outboxmessage_available_at",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxMessagesColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "dispatched_at IS NULL AND processed_at IS NULL",
+				},
+			},
+			{
+				Name:    "outboxmessage_processed_at",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxMessagesColumns[10]},
+			},
+			{
+				Name:    "outboxmessage_aggregate_type_aggregate_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxMessagesColumns[4], OutboxMessagesColumns[5], OutboxMessagesColumns[1]},
+			},
+		},
+	}
 	// ProposedDatesColumns holds the columns for the "proposed_dates" table.
 	ProposedDatesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
@@ -304,6 +345,7 @@ var (
 		AccountsTable,
 		CalendarsTable,
 		EventsTable,
+		OutboxMessagesTable,
 		ProposedDatesTable,
 		SessionsTable,
 		UsersTable,

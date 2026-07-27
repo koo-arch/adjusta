@@ -9,6 +9,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/outboxmessage"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/schema"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
@@ -89,6 +90,43 @@ func init() {
 	eventDescID := eventFields[0].Descriptor()
 	// event.DefaultID holds the default value on creation for the id field.
 	event.DefaultID = eventDescID.Default.(func() uuid.UUID)
+	outboxmessageMixin := schema.OutboxMessage{}.Mixin()
+	outboxmessageMixinFields1 := outboxmessageMixin[1].Fields()
+	_ = outboxmessageMixinFields1
+	outboxmessageFields := schema.OutboxMessage{}.Fields()
+	_ = outboxmessageFields
+	// outboxmessageDescCreatedAt is the schema descriptor for created_at field.
+	outboxmessageDescCreatedAt := outboxmessageMixinFields1[0].Descriptor()
+	// outboxmessage.DefaultCreatedAt holds the default value on creation for the created_at field.
+	outboxmessage.DefaultCreatedAt = outboxmessageDescCreatedAt.Default.(func() time.Time)
+	// outboxmessageDescUpdatedAt is the schema descriptor for updated_at field.
+	outboxmessageDescUpdatedAt := outboxmessageMixinFields1[1].Descriptor()
+	// outboxmessage.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	outboxmessage.DefaultUpdatedAt = outboxmessageDescUpdatedAt.Default.(func() time.Time)
+	// outboxmessage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	outboxmessage.UpdateDefaultUpdatedAt = outboxmessageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// outboxmessageDescMessageType is the schema descriptor for message_type field.
+	outboxmessageDescMessageType := outboxmessageFields[1].Descriptor()
+	// outboxmessage.MessageTypeValidator is a validator for the "message_type" field. It is called by the builders before save.
+	outboxmessage.MessageTypeValidator = outboxmessageDescMessageType.Validators[0].(func(string) error)
+	// outboxmessageDescAggregateType is the schema descriptor for aggregate_type field.
+	outboxmessageDescAggregateType := outboxmessageFields[2].Descriptor()
+	// outboxmessage.AggregateTypeValidator is a validator for the "aggregate_type" field. It is called by the builders before save.
+	outboxmessage.AggregateTypeValidator = outboxmessageDescAggregateType.Validators[0].(func(string) error)
+	// outboxmessageDescPayload is the schema descriptor for payload field.
+	outboxmessageDescPayload := outboxmessageFields[4].Descriptor()
+	// outboxmessage.DefaultPayload holds the default value on creation for the payload field.
+	outboxmessage.DefaultPayload = outboxmessageDescPayload.Default.(map[string]interface{})
+	// outboxmessageDescDispatchAttempts is the schema descriptor for dispatch_attempts field.
+	outboxmessageDescDispatchAttempts := outboxmessageFields[5].Descriptor()
+	// outboxmessage.DefaultDispatchAttempts holds the default value on creation for the dispatch_attempts field.
+	outboxmessage.DefaultDispatchAttempts = outboxmessageDescDispatchAttempts.Default.(int)
+	// outboxmessage.DispatchAttemptsValidator is a validator for the "dispatch_attempts" field. It is called by the builders before save.
+	outboxmessage.DispatchAttemptsValidator = outboxmessageDescDispatchAttempts.Validators[0].(func(int) error)
+	// outboxmessageDescID is the schema descriptor for id field.
+	outboxmessageDescID := outboxmessageFields[0].Descriptor()
+	// outboxmessage.DefaultID holds the default value on creation for the id field.
+	outboxmessage.DefaultID = outboxmessageDescID.Default.(func() uuid.UUID)
 	proposeddateMixin := schema.ProposedDate{}.Mixin()
 	proposeddateHooks := schema.ProposedDate{}.Hooks()
 	proposeddate.Hooks[0] = proposeddateHooks[0]
