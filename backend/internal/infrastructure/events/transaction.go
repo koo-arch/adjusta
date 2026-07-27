@@ -20,10 +20,11 @@ func NewEventTransaction(uow infraRepository.UnitOfWork) usecaseEvents.EventTran
 func (t *eventTransaction) DoEvent(ctx context.Context, fn func(repos usecaseEvents.EventTxRepositories) error) error {
 	return t.uow.Do(ctx, func(repos infraRepository.Repositories) error {
 		return fn(usecaseEvents.EventTxRepositories{
-			Calendar:     repos.Calendar,
-			Event:        repos.Event,
-			ProposedDate: repos.ProposedDate,
-			UserCalendar: repos.UserCalendar,
+			Calendar:      repos.Calendar,
+			Event:         repos.Event,
+			OutboxMessage: repos.OutboxMessage,
+			ProposedDate:  repos.ProposedDate,
+			UserCalendar:  repos.UserCalendar,
 		})
 	})
 }

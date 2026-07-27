@@ -21,5 +21,6 @@ type Event struct {
 	SyncStatus             value.SyncStatus
 	LastSyncedAt           *time.Time
 	LastSyncError          *string
+	DeletedAt              *time.Time
 	ProposedDates          []*repoProposedDate.ProposedDate
 }

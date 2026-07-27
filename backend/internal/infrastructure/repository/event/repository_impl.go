@@ -11,6 +11,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/mixins"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 	infraerr "github.com/koo-arch/adjusta-backend/internal/infrastructure/repository/infraerr"
 )
@@ -33,6 +34,9 @@ func NewEventRepository(client *ent.Client) *EventRepositoryImpl {
 }
 
 func (r *EventRepositoryImpl) Read(ctx context.Context, id uuid.UUID, opt EventReadOptions) (*repoEvent.Event, error) {
+	if opt.IncludeDeleted {
+		ctx = mixins.SkipSoftDelete(ctx)
+	}
 	query := r.client.Event.Query()
 
 	if opt.WithProposedDates {
@@ -363,6 +367,7 @@ func toEvent(entity *ent.Event) *repoEvent.Event {
 		SyncStatus:             value.SyncStatus(entity.SyncStatus),
 		LastSyncedAt:           entity.LastSyncedAt,
 		LastSyncError:          entity.LastSyncError,
+		DeletedAt:              entity.DeletedAt,
 		ProposedDates:          toEventProposedDates(entity.Edges.ProposedDates),
 	}
 }
@@ -389,6 +394,7 @@ func toEventProposedDates(entities []*ent.ProposedDate) []*repoProposedDate.Prop
 			SyncStatus:    value.SyncStatus(entity.SyncStatus),
 			LastSyncedAt:  entity.LastSyncedAt,
 			LastSyncError: entity.LastSyncError,
+			DeletedAt:     entity.DeletedAt,
 		})
 	}
 	return dates

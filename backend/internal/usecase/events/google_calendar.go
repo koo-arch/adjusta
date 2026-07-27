@@ -2,12 +2,10 @@ package events
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/google/uuid"
-	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
 	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 	"github.com/koo-arch/adjusta-backend/internal/repoerr"
 )
@@ -47,29 +45,4 @@ func (uc *Usecase) FetchAllGoogleEvents(ctx context.Context, userID uuid.UUID, e
 	}
 
 	return result.Events, nil
-}
-
-func (uc *Usecase) upsertConfirmedGoogleEvent(ctx context.Context, userID uuid.UUID, calendarID string, storedEvent *domainEvent.Event, confirmation ConfirmationRequest) (*string, error) {
-	existingGoogleEventID := domainEvent.ResolveReusableGoogleEventID(
-		confirmation.ID,
-		storedEvent.ConfirmedGoogleEventID,
-		confirmation.GoogleEventID,
-	)
-
-	googleEventID, err := uc.googleCalendar.UpsertEvent(
-		ctx,
-		userID,
-		calendarID,
-		existingGoogleEventID,
-		storedEvent.Title,
-		storedEvent.Location,
-		storedEvent.Description,
-		*confirmation.Start,
-		*confirmation.End,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upsert google event: %w", err)
-	}
-
-	return &googleEventID, nil
 }

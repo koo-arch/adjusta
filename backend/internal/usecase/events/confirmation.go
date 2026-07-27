@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
@@ -13,8 +12,7 @@ import (
 )
 
 func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, confirmation ConfirmationRequest) error {
-	var committedErr error
-
+	var outboxMessageID uuid.UUID
 	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		storedEvent, err := repos.Event.FindByIDAndUser(ctx, userID, eventID, domainEvent.EventReadOptions{
 			WithProposedDates: false,
@@ -27,26 +25,13 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 		}
 
-		storedCalendar, err := repos.Calendar.Read(ctx, storedEvent.PrimaryCalendarID)
-		if err != nil {
-			log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
-			return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
-		}
-
-		googleEventID, err := uc.upsertConfirmedGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
-		if err != nil {
-			log.Printf("failed to handle google event for account: %s, error: %v", email, err)
-			if syncErr := uc.recordEventSyncFailure(ctx, repos, storedEvent.ID, err); syncErr != nil {
-				log.Printf("failed to mark sync failure for account: %s, error: %v", email, syncErr)
-				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
-			}
-			committedErr = internalErrors.NormalizeAPIError(err, "サーバーでエラーが発生しました")
-			return nil
-		}
-
-		if err := uc.confirmEventDate(ctx, repos, googleEventID, confirmation, storedEvent); err != nil {
+		if err := uc.confirmEventDate(ctx, repos, confirmation, storedEvent); err != nil {
 			log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 			return mapUsecaseError(err, internalErrors.InternalErrorMessage)
+		}
+		outboxMessageID, err = enqueueGoogleCalendarSync(ctx, repos, storedEvent.ID)
+		if err != nil {
+			return fmt.Errorf("failed to enqueue confirmed event sync: %w", err)
 		}
 
 		return nil
@@ -55,14 +40,11 @@ func (uc *Usecase) FinalizeProposedDate(ctx context.Context, userID uuid.UUID, e
 		log.Printf("failed running finalize proposed date transaction: %v", err)
 		return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
-	if committedErr != nil {
-		return committedErr
-	}
-
+	uc.dispatchOutboxMessage(ctx, outboxMessageID)
 	return nil
 }
 
-func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositories, googleEventID *string, confirmation ConfirmationRequest, storedEvent *domainEvent.Event) error {
+func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositories, confirmation ConfirmationRequest, storedEvent *domainEvent.Event) error {
 	confirmDate, err := toDomainConfirmationRequest(confirmation)
 	if err != nil {
 		return err
@@ -80,11 +62,11 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 
 	confirmDateID := confirmation.ID
 	if confirmation.ID == nil {
-		dateOptions := buildProposedDateMutation(domainEvent.NewConfirmedProposedDateChange(
+		dateOptions := confirmedProposedDateUpdate(
 			&changeSet.Create.Start,
 			&changeSet.Create.End,
 			&changeSet.Create.Priority,
-		))
+		)
 
 		createOptions, err := toProposedDateCreateOptions(dateOptions)
 		if err != nil {
@@ -99,11 +81,11 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 	}
 
 	if confirmation.ID != nil {
-		dateOptions := buildProposedDateMutation(domainEvent.NewConfirmedProposedDateChange(
+		dateOptions := confirmedProposedDateUpdate(
 			nil,
 			nil,
 			&changeSet.Update.Priority,
-		))
+		)
 
 		if _, err := repos.ProposedDate.Update(ctx, *confirmation.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date error: %w", err)
@@ -114,7 +96,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 		return fmt.Errorf("failed to update proposed date statuses: %w", err)
 	}
 
-	eventOptions := mergeEventChange(EventMutation{}, domainEvent.NewSyncedEventChange(changeSet.Status, *confirmDateID, *googleEventID, time.Now()))
+	eventOptions := confirmedEventPendingUpdate(*confirmDateID)
 	if _, err := repos.Event.Update(ctx, storedEvent.ID, eventOptions); err != nil {
 		return fmt.Errorf("failed to update event status error: %w", err)
 	}
@@ -124,7 +106,7 @@ func (uc *Usecase) confirmEventDate(ctx context.Context, repos EventTxRepositori
 
 func (uc *Usecase) markUnselectedProposedDates(ctx context.Context, repos EventTxRepositories, proposedDateIDs []uuid.UUID) error {
 	for _, proposedDateID := range proposedDateIDs {
-		if _, err := repos.ProposedDate.Update(ctx, proposedDateID, buildProposedDateMutation(domainEvent.NewNotSelectedProposedDateChange())); err != nil {
+		if _, err := repos.ProposedDate.Update(ctx, proposedDateID, notSelectedProposedDateUpdate()); err != nil {
 			return err
 		}
 	}

@@ -16,6 +16,7 @@ type EventCreateOptions struct {
 
 type EventReadOptions struct {
 	WithProposedDates bool
+	IncludeDeleted    bool
 }
 
 type EventFilterOptions struct {

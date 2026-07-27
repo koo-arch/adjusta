@@ -24,7 +24,10 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 		}
 	}()
 
-	deps := buildDependencies(client, cfg)
+	deps, err := buildDependencies(client, cfg)
+	if err != nil {
+		return fmt.Errorf("failed building dependencies: %w", err)
+	}
 	router := newRouter(cfg, deps)
 
 	server := &http.Server{

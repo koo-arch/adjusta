@@ -18,5 +18,4 @@ type EventTransaction interface {
 
 type GoogleCalendarGateway interface {
 	FetchEvents(ctx context.Context, userID uuid.UUID, calendars []*EventCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error)
-	UpsertEvent(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error)
 }

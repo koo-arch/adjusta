@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	repoEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	repoOutboxMessage "github.com/koo-arch/adjusta-backend/internal/domain/outboxmessage"
 	repoProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	repoUserCalendar "github.com/koo-arch/adjusta-backend/internal/domain/usercalendar"
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
@@ -57,24 +58,63 @@ func (f *fakeGoogleCalendarGateway) UpsertEvent(ctx context.Context, userID uuid
 	return f.upsertEventFn(ctx, userID, calendarID, existingGoogleEventID, title, location, description, start, end)
 }
 
+func (f *fakeGoogleCalendarGateway) DeleteEvent(context.Context, uuid.UUID, string, string) error {
+	return nil
+}
+
 func fakeReposFromReader(reader *fakeEventReader) EventTxRepositories {
 	calendarRepo := &fakeCalendarRepository{reader: reader, calendars: map[uuid.UUID]*repoCalendar.Calendar{}}
 	return EventTxRepositories{
-		Calendar:     calendarRepo,
-		Event:        &fakeEventRepository{reader: reader},
-		ProposedDate: &fakeProposedDateRepository{},
-		UserCalendar: &fakeUserCalendarRepository{reader: reader, calendarRepo: calendarRepo},
+		Calendar:      calendarRepo,
+		Event:         &fakeEventRepository{reader: reader},
+		OutboxMessage: &fakeOutboxMessageRepository{},
+		ProposedDate:  &fakeProposedDateRepository{},
+		UserCalendar:  &fakeUserCalendarRepository{reader: reader, calendarRepo: calendarRepo},
 	}
 }
 
 func fakeReposFromTxStore(store *fakeEventTxStore) EventTxRepositories {
 	calendarRepo := &fakeCalendarRepository{store: store, calendars: map[uuid.UUID]*repoCalendar.Calendar{}}
 	return EventTxRepositories{
-		Calendar:     calendarRepo,
-		Event:        &fakeEventRepository{store: store},
-		ProposedDate: &fakeProposedDateRepository{store: store},
-		UserCalendar: &fakeUserCalendarRepository{store: store, calendarRepo: calendarRepo},
+		Calendar:      calendarRepo,
+		Event:         &fakeEventRepository{store: store},
+		OutboxMessage: &fakeOutboxMessageRepository{},
+		ProposedDate:  &fakeProposedDateRepository{store: store},
+		UserCalendar:  &fakeUserCalendarRepository{store: store, calendarRepo: calendarRepo},
 	}
+}
+
+type fakeOutboxMessageRepository struct{}
+
+func (f *fakeOutboxMessageRepository) Create(_ context.Context, opt repoOutboxMessage.CreateOptions) (*repoOutboxMessage.Message, error) {
+	return &repoOutboxMessage.Message{
+		ID:            uuid.New(),
+		MessageType:   opt.MessageType,
+		AggregateType: opt.AggregateType,
+		AggregateID:   opt.AggregateID,
+		Payload:       opt.Payload,
+		AvailableAt:   opt.AvailableAt,
+	}, nil
+}
+
+func (f *fakeOutboxMessageRepository) Read(context.Context, uuid.UUID) (*repoOutboxMessage.Message, error) {
+	return nil, errors.New("Read should not be called")
+}
+
+func (f *fakeOutboxMessageRepository) ListDispatchable(context.Context, time.Time, int) ([]*repoOutboxMessage.Message, error) {
+	return nil, errors.New("ListDispatchable should not be called")
+}
+
+func (f *fakeOutboxMessageRepository) MarkDispatched(context.Context, uuid.UUID, time.Time) error {
+	return errors.New("MarkDispatched should not be called")
+}
+
+func (f *fakeOutboxMessageRepository) RecordDispatchFailure(context.Context, uuid.UUID, string) error {
+	return errors.New("RecordDispatchFailure should not be called")
+}
+
+func (f *fakeOutboxMessageRepository) MarkProcessed(context.Context, uuid.UUID, time.Time) error {
+	return errors.New("MarkProcessed should not be called")
 }
 
 type fakeCalendarRepository struct {
