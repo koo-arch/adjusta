@@ -145,6 +145,7 @@ func buildPaginationOutput(page, perPage, totalItems int) PaginationOutput {
 
 func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventReq DraftCreationRequest) (*EventDraftDetailOutput, error) {
 	var response *EventDraftDetailOutput
+	var outboxMessageID uuid.UUID
 
 	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		storedCalendar, err := uc.loadPrimaryCalendar(ctx, repos, userID, email)
@@ -173,18 +174,23 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		}
 
 		if candidateCalendar.SyncProposedDates {
-			storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventSyncChange()))
+			storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, eventSyncPendingUpdate())
 			if err != nil {
 				log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
 				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 			}
 
 			for i, storedDate := range storedDates {
-				storedDates[i], err = repos.ProposedDate.Update(ctx, storedDate.ID, buildProposedDateMutation(domainEvent.NewPendingProposedDateSyncChange()))
+				storedDates[i], err = repos.ProposedDate.Update(ctx, storedDate.ID, proposedDateSyncPendingUpdate())
 				if err != nil {
 					log.Printf("failed to mark proposed date sync pending for account: %s, error: %v", email, err)
 					return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 				}
+			}
+			outboxMessageID, err = enqueueGoogleCalendarSync(ctx, repos, storedEvent.ID)
+			if err != nil {
+				log.Printf("failed to enqueue event sync for account: %s, error: %v", email, err)
+				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
 			}
 		}
 
@@ -195,7 +201,7 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			Description:   storedEvent.Description,
 			Status:        storedEvent.Status,
 			SyncStatus:    storedEvent.SyncStatus,
-			GoogleEventID: domainEvent.ResolveGoogleEventID(storedEvent.ConfirmedGoogleEventID),
+			GoogleEventID: googleEventIDOrEmpty(storedEvent.ConfirmedGoogleEventID),
 			ProposedDates: buildProposedDateOutputs(storedDates),
 		}
 
@@ -205,13 +211,13 @@ func (uc *Usecase) CreateDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		log.Printf("failed running create drafted event transaction: %v", err)
 		return nil, mapUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
+	uc.dispatchOutboxMessage(ctx, outboxMessageID)
 
 	return response, nil
 }
 
 func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, eventID uuid.UUID, email string, eventReq DraftUpdateRequest) error {
-	var committedErr error
-
+	var outboxMessageID uuid.UUID
 	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		if _, err := uc.loadPrimaryCalendar(ctx, repos, userID, email); err != nil {
 			return err
@@ -238,7 +244,10 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 			Description: &eventReq.Description,
 		}
 		if eventReq.Status != value.StatusConfirmed {
-			eventOptions = mergeEventChange(eventOptions, domainEvent.NewDraftEventChange(&eventReq.Status, candidateCalendar.SyncProposedDates))
+			syncUpdate := draftEventUpdate(&eventReq.Status, candidateCalendar.SyncProposedDates)
+			eventOptions.Status = syncUpdate.Status
+			eventOptions.SyncStatus = syncUpdate.SyncStatus
+			eventOptions.ClearLastSyncError = syncUpdate.ClearLastSyncError
 		}
 		storedEvent, err = repos.Event.Update(ctx, storedEvent.ID, eventOptions)
 		if err != nil {
@@ -256,12 +265,6 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 		}
 
 		if eventReq.Status == value.StatusConfirmed {
-			storedCalendar, err := repos.Calendar.Read(ctx, storedEvent.PrimaryCalendarID)
-			if err != nil {
-				log.Printf("failed to get primary calendar for account: %s, error: %v", email, err)
-				return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
-			}
-
 			confirmDate := eventReq.ProposedDates[0]
 			googleEventID := ""
 			if confirmDate.GoogleEventID != nil {
@@ -275,18 +278,7 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 				Priority:      confirmDate.Priority,
 			}
 
-			confirmedGoogleEventID, err := uc.upsertConfirmedGoogleEvent(ctx, userID, storedCalendar.GoogleCalendarID, storedEvent, confirmation)
-			if err != nil {
-				log.Printf("failed to handle google event for account: %s, error: %v", email, err)
-				if syncErr := uc.recordEventSyncFailure(ctx, repos, storedEvent.ID, err); syncErr != nil {
-					log.Printf("failed to mark sync failure for account: %s, error: %v", email, syncErr)
-					return internalErrors.NewInternalError(internalErrors.InternalErrorMessage)
-				}
-				committedErr = internalErrors.NormalizeAPIError(err, "Googleカレンダー更新時にエラーが発生しました")
-				return nil
-			}
-
-			if err := uc.confirmEventDate(ctx, repos, confirmedGoogleEventID, confirmation, storedEvent); err != nil {
+			if err := uc.confirmEventDate(ctx, repos, confirmation, storedEvent); err != nil {
 				log.Printf("failed to confirm event date for account: %s, error: %v", email, err)
 				return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 			}
@@ -295,6 +287,12 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 		if err := uc.updateProposedDates(ctx, repos, eventReq, storedEvent, existingDates, candidateCalendar.SyncProposedDates); err != nil {
 			return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 		}
+		if candidateCalendar.SyncProposedDates || eventReq.Status == value.StatusConfirmed {
+			outboxMessageID, err = enqueueGoogleCalendarSync(ctx, repos, storedEvent.ID)
+			if err != nil {
+				return fmt.Errorf("failed to enqueue event sync: %w", err)
+			}
+		}
 
 		return nil
 	})
@@ -302,20 +300,18 @@ func (uc *Usecase) UpdateDraftedEvents(ctx context.Context, userID uuid.UUID, ev
 		log.Printf("failed running update drafted event transaction: %v", err)
 		return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
-	if committedErr != nil {
-		return committedErr
-	}
-
+	uc.dispatchOutboxMessage(ctx, outboxMessageID)
 	return nil
 }
 
 func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, email string, eventID uuid.UUID) error {
+	var outboxMessageID uuid.UUID
 	err := uc.tx.DoEvent(ctx, func(repos EventTxRepositories) error {
 		if _, err := uc.loadPrimaryCalendar(ctx, repos, userID, email); err != nil {
 			return err
 		}
 
-		if _, err := repos.Event.Update(ctx, eventID, mergeEventChange(EventMutation{}, domainEvent.NewPendingEventSyncChange())); err != nil {
+		if _, err := repos.Event.Update(ctx, eventID, eventSyncPendingUpdate()); err != nil {
 			log.Printf("failed to mark event sync pending for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError("イベント削除時にエラーが発生しました")
 		}
@@ -324,6 +320,11 @@ func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, em
 			log.Printf("failed to delete event for account: %s, error: %v", email, err)
 			return internalErrors.NewInternalError("イベント削除時にエラーが発生しました")
 		}
+		messageID, err := enqueueGoogleCalendarSync(ctx, repos, eventID)
+		if err != nil {
+			return fmt.Errorf("failed to enqueue event deletion sync: %w", err)
+		}
+		outboxMessageID = messageID
 
 		return nil
 	})
@@ -331,6 +332,7 @@ func (uc *Usecase) DeleteDraftedEvents(ctx context.Context, userID uuid.UUID, em
 		log.Printf("failed running delete drafted event transaction: %v", err)
 		return mapUsecaseError(err, internalErrors.InternalErrorMessage)
 	}
+	uc.dispatchOutboxMessage(ctx, outboxMessageID)
 
 	return nil
 }
@@ -342,19 +344,19 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventTxReposit
 	}
 
 	changeSet := domainEvent.PlanProposedDateChanges(requestedDates, toDomainExistingDateList(existingDates))
-	buildChange := func(start, end *time.Time, priority *int, status *value.ProposedDateStatus) domainEvent.ProposedDateChange {
-		return domainEvent.NewDraftProposedDateChange(start, end, priority, status, syncProposedDates)
+	buildUpdate := func(start, end *time.Time, priority *int, status *value.ProposedDateStatus) ProposedDateMutation {
+		return draftProposedDateUpdate(start, end, priority, status, syncProposedDates)
 	}
 
 	for _, date := range changeSet.Updates {
-		dateOptions := buildProposedDateMutation(buildChange(&date.Start, &date.End, &date.Priority, nil))
+		dateOptions := buildUpdate(&date.Start, &date.End, &date.Priority, nil)
 		if _, err := repos.ProposedDate.Update(ctx, date.ID, dateOptions); err != nil {
 			return fmt.Errorf("failed to update proposed date for account: %s, error: %w", date.ID, err)
 		}
 	}
 
 	for _, dateID := range changeSet.Deletes {
-		if _, err := repos.ProposedDate.Update(ctx, dateID, buildProposedDateMutation(buildChange(nil, nil, nil, nil))); err != nil {
+		if _, err := repos.ProposedDate.Update(ctx, dateID, buildUpdate(nil, nil, nil, nil)); err != nil {
 			return fmt.Errorf("failed to update proposed date sync state for account: %s, error: %w", dateID, err)
 		}
 		if err := repos.ProposedDate.SoftDelete(ctx, dateID); err != nil {
@@ -363,7 +365,7 @@ func (uc *Usecase) updateProposedDates(ctx context.Context, repos EventTxReposit
 	}
 
 	for _, date := range changeSet.Creates {
-		dateOptions := buildProposedDateMutation(buildChange(&date.Start, &date.End, &date.Priority, nil))
+		dateOptions := buildUpdate(&date.Start, &date.End, &date.Priority, nil)
 		createOptions, err := toProposedDateCreateOptions(dateOptions)
 		if err != nil {
 			return err

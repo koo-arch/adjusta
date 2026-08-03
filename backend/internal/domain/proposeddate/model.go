@@ -18,4 +18,5 @@ type ProposedDate struct {
 	SyncStatus    value.SyncStatus
 	LastSyncedAt  *time.Time
 	LastSyncError *string
+	DeletedAt     *time.Time
 }

@@ -2,69 +2,53 @@ package events
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	domainEvent "github.com/koo-arch/adjusta-backend/internal/domain/event"
+	domainProposedDate "github.com/koo-arch/adjusta-backend/internal/domain/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/domain/value"
-	internalErrors "github.com/koo-arch/adjusta-backend/internal/errors"
 )
 
-func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
+func TestFinalizeProposedDateStoresPendingConfirmationWithoutCallingGoogle(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	userID := uuid.New()
-	calendarID := uuid.New()
 	eventID := uuid.New()
+	confirmedDateID := uuid.New()
 	start := time.Now().UTC().Add(3 * time.Hour)
 	end := start.Add(time.Hour)
-
-	var failureMutation EventMutation
+	var eventMutation EventMutation
 
 	uc := NewUsecase(
 		EventTxRepositories{},
 		&fakeEventTransaction{
 			store: &fakeEventTxStore{
 				t: t,
-				findEventByIDFn: func(ctx context.Context, gotUserID, gotEventID uuid.UUID, withProposedDates bool) (*domainEvent.Event, error) {
-					if gotUserID != userID || gotEventID != eventID {
-						t.Fatalf("unexpected find event args: %s %s", gotUserID, gotEventID)
-					}
-					return &domainEvent.Event{
-						ID:                eventID,
-						PrimaryCalendarID: calendarID,
-						Title:             "Finalize",
-						Status:            value.StatusActive,
-					}, nil
+				findEventByIDFn: func(context.Context, uuid.UUID, uuid.UUID, bool) (*domainEvent.Event, error) {
+					return &domainEvent.Event{ID: eventID, UserID: userID, Status: value.StatusActive}, nil
 				},
-				readCalendarFn: func(ctx context.Context, gotCalendarID uuid.UUID) (*EventCalendar, error) {
-					if gotCalendarID != calendarID {
-						t.Fatalf("unexpected calendar id: %s", gotCalendarID)
-					}
-					return &EventCalendar{
-						ID:               calendarID,
-						GoogleCalendarID: "primary-calendar",
-					}, nil
+				listProposedDatesByEventFn: func(context.Context, uuid.UUID) ([]*domainProposedDate.ProposedDate, error) {
+					return nil, nil
 				},
-				updateEventFn: func(ctx context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
+				createProposedDateFn: func(context.Context, ProposedDateMutation, uuid.UUID) (*domainProposedDate.ProposedDate, error) {
+					return &domainProposedDate.ProposedDate{ID: confirmedDateID, EventID: eventID}, nil
+				},
+				updateEventFn: func(_ context.Context, id uuid.UUID, opt EventMutation) (*domainEvent.Event, error) {
 					if id != eventID {
 						t.Fatalf("unexpected event id: %s", id)
 					}
-					failureMutation = opt
-					return &domainEvent.Event{ID: eventID}, nil
+					eventMutation = opt
+					return &domainEvent.Event{ID: id}, nil
 				},
 			},
 		},
 		&fakeGoogleCalendarGateway{
-			fetchEventsFn: func(ctx context.Context, userID uuid.UUID, calendars []*EventCalendar, startTime, endTime time.Time) (*GoogleEventFetchResult, error) {
-				t.Fatalf("FetchEvents should not be called")
-				return nil, nil
-			},
-			upsertEventFn: func(ctx context.Context, userID uuid.UUID, calendarID string, existingGoogleEventID *string, title, location, description string, start, end time.Time) (string, error) {
-				return "", errors.New("google unavailable")
+			upsertEventFn: func(context.Context, uuid.UUID, string, *string, string, string, string, time.Time, time.Time) (string, error) {
+				t.Fatal("Google Calendar must not be called by the confirmation request")
+				return "", nil
 			},
 		},
 	)
@@ -73,13 +57,16 @@ func TestFinalizeProposedDateMarksSyncFailedOnGoogleError(t *testing.T) {
 		Start: &start,
 		End:   &end,
 	})
-	if !internalErrors.IsKind(err, internalErrors.KindInternal) {
-		t.Fatalf("expected internal error, got %v", err)
+	if err != nil {
+		t.Fatalf("FinalizeProposedDate returned error: %v", err)
 	}
-	if failureMutation.SyncStatus == nil || *failureMutation.SyncStatus != value.SyncStatusFailed {
-		t.Fatalf("unexpected failure sync status: %#v", failureMutation.SyncStatus)
+	if eventMutation.Status == nil || *eventMutation.Status != value.StatusConfirmed {
+		t.Fatalf("unexpected event status: %#v", eventMutation.Status)
 	}
-	if failureMutation.LastSyncError == nil || *failureMutation.LastSyncError == "" {
-		t.Fatalf("expected last sync error to be recorded, got %#v", failureMutation.LastSyncError)
+	if eventMutation.SyncStatus == nil || *eventMutation.SyncStatus != value.SyncStatusPending {
+		t.Fatalf("unexpected sync status: %#v", eventMutation.SyncStatus)
+	}
+	if eventMutation.ConfirmedDateID == nil || *eventMutation.ConfirmedDateID != confirmedDateID {
+		t.Fatalf("unexpected confirmed date id: %#v", eventMutation.ConfirmedDateID)
 	}
 }

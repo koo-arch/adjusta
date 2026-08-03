@@ -21,6 +21,7 @@ Adjusta は、Google Calendar と連携し、日程調整における候補日�
 * 日程調整イベント
 * 候補日程
 * Google Calendar 同期状態
+* 非同期処理の Outbox
 * enum 定義
 * 制約・インデックス
 * Soft Delete 方針
@@ -110,6 +111,8 @@ user_calendars は、単なる中間テーブルではなく、role、is_visible
 
 詳細な履歴が必要になった場合は、将来的に SyncLog / AuditLog を追加する。
 
+ただし、Cloud Tasks への配送と再試行を保証するため、ログではなく処理キューの永続状態として outbox_messages を持つ。outbox_messages は長期的な監査履歴の保存には使用しない。
+
 ---
 
 ## 3. ER図
@@ -129,6 +132,7 @@ user_calendars は、単なる中間テーブルではなく、role、is_visible
 | events - proposed_dates | 1つのイベントは複数の候補日程を持つ |
 | events.confirmed_date_id - proposed_dates.id | イベントは確定済み候補日程を1つ参照する |
 | events.primary_calendar_id - calendars.id | イベントは確定予定の登録先カレンダーを参照する |
+| events - outbox_messages | Event の変更に伴う非同期同期依頼を集約 ID で関連付ける |
 
 
 ---
@@ -144,6 +148,7 @@ user_calendars は、単なる中間テーブルではなく、role、is_visible
 | user_calendars | ユーザーとカレンダーの関連および用途を管理する |
 | events | 日程調整イベントを管理する |
 | proposed_dates | イベントに対する候補日程を管理する |
+| outbox_messages | 非同期処理基盤へ配送するメッセージと配送・処理済み情報を管理する |
 
 
 ---
@@ -361,6 +366,40 @@ google_calendar_id は単独 UNIQUE とする。
 
 ---
 
+### 5.8 outbox_messages
+
+DB 更新後に非同期実行する Google Calendar 同期依頼を、Transactional Outbox として管理する。
+
+| カラム名 | 型 | NULL | 制約 | 説明 |
+| --- | --- | --- | --- | --- |
+| id | uuid | NO | PK | Outbox Message ID |
+| message_type | varchar | NO |  | 非同期処理の種別 |
+| aggregate_type | varchar | NO |  | 対象集約の種別。初期実装では event |
+| aggregate_id | uuid | NO |  | 対象集約の ID |
+| payload | jsonb | NO |  | 操作種別や同期判定に必要な最小限の補助情報 |
+| dispatch_attempts | integer | NO | DEFAULT 0 | 非同期処理基盤への配送試行回数 |
+| available_at | timestamp | NO |  | 配送または再配送が可能になる日時 |
+| dispatched_at | timestamp | YES |  | 非同期処理基盤への配送成功日時 |
+| processed_at | timestamp | YES |  | consumer が Outbox Message の処理を終了した日時。同期結果は表さない |
+| last_dispatch_error | text | YES |  | 非同期処理基盤への直近の配送エラー |
+| created_at | timestamp | NO |  | 作成日時 |
+| updated_at | timestamp | NO |  | 更新日時 |
+
+#### 補足
+
+* 業務データの更新と outbox_messages の作成は同一 DB transaction で行う。
+* Cloud Tasks には outbox_messages.id だけを渡し、Google Calendar へ同期する内容は処理時に events / proposed_dates の最新状態から構築する。
+* payload に Event / ProposedDate の完全なスナップショットは保存しない。
+* aggregate_id は汎用 Outbox と削除後の処理を考慮し、初期実装では外部キーにしない。
+* 配送先固有のメッセージ ID やタスク名は保存せず、infrastructure adapter が outbox_messages.id から安定して導出する。
+* 配送先が同一 Outbox Message を受理済みの場合、重複エラーは配送成功相当として dispatched_at を更新し、last_dispatch_error をクリアする。
+* 同一 Outbox Message の再実行を許容し、Google Calendar 同期処理側で冪等性を保証する。
+* Google Calendar 同期の成否、最終同期日時、同期エラー、Google Event ID は events / proposed_dates に保存し、outbox_messages には保存しない。
+* processed_at は同期成功を意味せず、再試行を含む処理が終了したことだけを表す。
+* processed_at が設定された Outbox Message は監査ログとして永続保持せず、運用で定めた保持期間後に削除できる。
+
+---
+
 ## 6. enum 定義
 
 ### 6.1 UserCalendarRole
@@ -431,7 +470,6 @@ events と proposed_dates で共通の enum として扱う。
 | external_missing | Google Calendar 側で削除されている状態 |
 | external_modified | Google Calendar 側で変更されている状態 |
 
-
 ## 7. リレーション定義
 
 | 親 | 子 | 関係 | 説明 |
@@ -444,6 +482,7 @@ events と proposed_dates で共通の enum として扱う。
 | calendars | events | 1:N | 1つのカレンダーは複数イベントの確定予定登録先になり得る |
 | events | proposed_dates | 1:N | 1つのイベントは複数候補日程を持つ |
 | events | proposed_dates | 1:1 | confirmed_date_id により確定日程を参照する |
+| events | outbox_messages | 1:N相当 | aggregate_type = event、aggregate_id = events.id により論理的に関連する。外部キーは持たない |
 
 
 ---
@@ -499,6 +538,9 @@ WHERE deleted_at IS NULL;
 | proposed_dates.start_time | 日程検索 |
 | proposed_dates.status | 候補日程状態による絞り込み |
 | proposed_dates.sync_status | 同期状態による再同期対象検索 |
+| outbox_messages(available_at) WHERE dispatched_at IS NULL AND processed_at IS NULL | 未配送・未処理かつ配送可能な Outbox Message 取得 |
+| outbox_messages(processed_at) | 処理済み Outbox Message の保持期限管理 |
+| outbox_messages(aggregate_type, aggregate_id, created_at) | 対象集約ごとの処理順序と最新依頼の確認 |
 
 
 ---
@@ -512,10 +554,11 @@ WHERE deleted_at IS NULL;
 | events.status | confirmed に更新する |
 | events.confirmed_date_id | 確定した proposed_dates.id を設定する |
 | events.confirmed_google_event_id | メインカレンダー上に作成した確定予定の Google Calendar Event ID を保存する |
-| events.sync_status | 同期結果に応じて synced または sync_failed に更新する |
+| events.sync_status | DB 保存時に pending_sync とし、非同期処理の結果に応じて synced または sync_failed に更新する |
 | 確定対象の proposed_dates.status | confirmed に更新する |
 | 非確定の proposed_dates.status | not_selected に更新する |
-| proposed_dates.sync_status | 候補予定側の同期結果に応じて更新する |
+| proposed_dates.sync_status | DB 保存時に pending_sync とし、候補予定側の非同期処理結果に応じて更新する |
+| outbox_messages | 日程確定の DB 更新と同一 transaction で同期依頼を作成する |
 
 
 #### 補足
@@ -546,6 +589,11 @@ events と proposed_dates には、Google Calendar との同期状態を管理�
 | last_synced_at | 最終同期日時 |
 | last_sync_error | 最後の同期エラー内容 |
 
+Google Calendar 同期が必要な DB 更新では、対象レコードを pending_sync にし、同じ transaction 内で outbox_messages を作成する。ユーザー向け API は transaction の commit 完了後に応答し、Google Calendar API の完了を待たない。
+
+非同期処理基盤への配送は DB transaction の外で行う。初期実装では Cloud Tasks adapter が配送を担当する。配送に失敗した場合は dispatched_at を NULL のまま保持して dispatch_attempts と last_dispatch_error を更新し、Cloud Scheduler から定期起動する Outbox dispatcher が再送する。
+
+Google Calendar 同期の成否は events / proposed_dates の sync_status、last_synced_at、last_sync_error に保存する。outbox_messages.processed_at は consumer が処理を終了したことだけを表し、同期成功・失敗の判定には使用しない。
 
 ### 10.3 候補予定
 
@@ -572,13 +620,15 @@ Google Calendar 側で Adjusta 管理下の予定が削除または変更され�
 * Google Calendar 側で削除された候補予定は、必要に応じて再作成する
 * Google Calendar 側で変更された候補予定は、Adjusta 側の内容で上書きする
 * Google Calendar イベント ID が無効になった場合は、再作成して ID を更新する
-* 初期実装ではイベント詳細画面アクセス時に候補予定ごとの再同期を試みる
+* 初期実装では infrastructure adapter が outbox_messages を Cloud Tasks へ配送し、Cloud Tasks から呼び出された同期 handler で候補予定ごとの同期を試みる
 * user_calendars.sync_proposed_dates = true の場合のみ、Adjusta 専用カレンダーへの create / update / recreate を行う
-* user_calendars.sync_proposed_dates = false の場合、イベント詳細画面アクセス時も Google Calendar への候補予定同期は行わない
+* user_calendars.sync_proposed_dates = false の場合、候補予定を Google Calendar へ同期する outbox_messages は作成しない
 * 候補予定の同期に成功した場合、proposed_dates.sync_status = synced とし、last_synced_at を更新し、last_sync_error をクリアする
 * 候補予定の同期に失敗した場合、proposed_dates.sync_status = sync_failed とし、last_sync_error を更新する
-* イベント詳細画面で候補予定の同期に失敗しても、イベント詳細レスポンス自体は返却する
-* 非 confirmed の events は、候補予定の詳細画面同期結果に応じて sync_status を synced または sync_failed に更新する
+* イベント詳細取得では Google Calendar API を呼ばず、DB に保存された同期状態を返す
+* 非 confirmed の events は、Cloud Tasks による候補予定の同期結果に応じて sync_status を synced または sync_failed に更新する
+* 同一 outbox_messages が複数回実行されても Google Calendar の予定を重複作成しない
+* 同一 Event の古い Outbox Message を処理する場合は DB の最新状態またはバージョンを確認し、新しい変更を古い内容で上書きしない
 
 ---
 

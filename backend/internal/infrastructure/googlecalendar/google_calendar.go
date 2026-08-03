@@ -167,7 +167,7 @@ func (gcm *GoogleCalendarManager) DeleteGoogleEvents(calendarService *Client, ca
 
 		err := calendarService.DeleteEvent(calendarID, event.Id)
 		if err != nil {
-			if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == 410 {
+			if gErr, ok := err.(*googleapi.Error); ok && (gErr.Code == 404 || gErr.Code == 410) {
 				// 410エラーはリソースが既に削除されているため、無視
 				fmt.Printf("Warning: Event ID %s is already deleted.\n", event.Id)
 				continue

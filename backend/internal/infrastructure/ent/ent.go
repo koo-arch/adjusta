@@ -15,6 +15,7 @@ import (
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/account"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/calendar"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/event"
+	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/outboxmessage"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/proposeddate"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/session"
 	"github.com/koo-arch/adjusta-backend/internal/infrastructure/ent/user"
@@ -79,13 +80,14 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			account.Table:      account.ValidColumn,
-			calendar.Table:     calendar.ValidColumn,
-			event.Table:        event.ValidColumn,
-			proposeddate.Table: proposeddate.ValidColumn,
-			session.Table:      session.ValidColumn,
-			user.Table:         user.ValidColumn,
-			usercalendar.Table: usercalendar.ValidColumn,
+			account.Table:       account.ValidColumn,
+			calendar.Table:      calendar.ValidColumn,
+			event.Table:         event.ValidColumn,
+			outboxmessage.Table: outboxmessage.ValidColumn,
+			proposeddate.Table:  proposeddate.ValidColumn,
+			session.Table:       session.ValidColumn,
+			user.Table:          user.ValidColumn,
+			usercalendar.Table:  usercalendar.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

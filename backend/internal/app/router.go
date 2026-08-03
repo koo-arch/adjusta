@@ -35,6 +35,10 @@ func registerRoutes(router *gin.Engine, deps *dependencies) {
 	router.GET("/auth/google/login", deps.oauthHandler.GoogleLoginHandler)
 	router.GET("/auth/google/callback", deps.oauthHandler.GoogleCallbackHandler())
 	router.GET("/auth/logout", deps.oauthHandler.LogoutHandler)
+	if deps.internalTaskHandler != nil {
+		router.POST("/internal/tasks/google-calendar-sync", deps.internalTaskHandler.ProcessGoogleCalendarSync)
+		router.POST("/internal/tasks/outbox-dispatch", deps.internalTaskHandler.DispatchOutbox)
+	}
 
 	auth := router.Group("/api")
 	auth.Use(deps.sessionMiddleware.SessionRenewal(), deps.authMiddleware.AuthUser())

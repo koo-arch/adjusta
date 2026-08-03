@@ -52,10 +52,17 @@ go test -race ./...
 3. 次回の同期操作で失敗状態から復旧できる
 4. 保存済みGoogle Event IDがある場合は新規作成せず更新する
 5. Google側で予定が削除されていた場合は再作成し、新しいEvent IDを保存する
-6. 同期済みの候補日程を詳細画面で再取得してもGoogle Calendar APIを呼ばない
+6. イベント詳細を取得しても同期状態にかかわらずGoogle Calendar APIを呼ばない
 7. 同じ同期操作を繰り返しても予定を重複作成しない
 8. 候補日程同期がOFFの場合はGoogle Calendar APIを呼ばない
 9. token失効時は再認可が必要なエラーとして扱う
+10. 業務データとOutbox Messageが同一transactionで保存され、どちらか一方だけが残らない
+11. 非同期処理基盤への配送失敗時に`dispatched_at`がNULLのまま、`dispatch_attempts`と`last_dispatch_error`が更新され、再配送できる
+12. 同一Outbox Messageの重複配送を冪等に処理できる
+13. 同一Eventの古いOutbox Messageが新しい変更を上書きしない
+14. task handlerがOutbox Message IDからDBの最新状態を読み、処理終了時に`processed_at`を更新する
+15. Outbox Message IDから導出した配送IDが処理基盤で受理済みの場合、重複エラーを配送成功相当として扱う
+16. 一時エラーでは`processed_at`を更新せず、再試行不能なエラーでは対象データへ`sync_failed`を保存して`processed_at`を更新する
 
 Google側への作成成功後、DBへのEvent ID保存に失敗する境界は、Google APIとDBを単一transactionにできないため別途対策が必要になる。安定した冪等性キーまたは照合方法を設計するまでは、既知の未保証ケースとして扱う。
 

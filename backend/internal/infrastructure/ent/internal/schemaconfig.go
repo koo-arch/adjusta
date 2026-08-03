@@ -7,13 +7,14 @@ import "context"
 // SchemaConfig represents alternative schema names for all tables
 // that can be passed at runtime.
 type SchemaConfig struct {
-	Account      string // Account table.
-	Calendar     string // Calendar table.
-	Event        string // Event table.
-	ProposedDate string // ProposedDate table.
-	Session      string // Session table.
-	User         string // User table.
-	UserCalendar string // UserCalendar table.
+	Account       string // Account table.
+	Calendar      string // Calendar table.
+	Event         string // Event table.
+	OutboxMessage string // OutboxMessage table.
+	ProposedDate  string // ProposedDate table.
+	Session       string // Session table.
+	User          string // User table.
+	UserCalendar  string // UserCalendar table.
 }
 
 type schemaCtxKey struct{}

@@ -9,6 +9,7 @@ import (
 	repoCalendar "github.com/koo-arch/adjusta-backend/internal/domain/calendar"
 	infraGoogleOAuth "github.com/koo-arch/adjusta-backend/internal/infrastructure/googleoauth"
 	usecaseEvents "github.com/koo-arch/adjusta-backend/internal/usecase/events"
+	"google.golang.org/api/calendar/v3"
 )
 
 type eventGateway struct {
@@ -17,7 +18,7 @@ type eventGateway struct {
 	oauthClient         *infraGoogleOAuth.Client
 }
 
-func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, calendarManager *GoogleCalendarManager, oauthClient *infraGoogleOAuth.Client) usecaseEvents.GoogleCalendarGateway {
+func NewEventGateway(googleTokenProvider usecaseEvents.GoogleTokenProvider, calendarManager *GoogleCalendarManager, oauthClient *infraGoogleOAuth.Client) *eventGateway {
 	return &eventGateway{
 		googleTokenProvider: googleTokenProvider,
 		calendarManager:     calendarManager,
@@ -114,6 +115,21 @@ func (g *eventGateway) UpsertEvent(ctx context.Context, userID uuid.UUID, calend
 	}
 
 	return upsertedEvent.Id, nil
+}
+
+func (g *eventGateway) DeleteEvent(ctx context.Context, userID uuid.UUID, calendarID, googleEventID string) error {
+	if googleEventID == "" {
+		return nil
+	}
+	calendarService, err := g.newCalendarService(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return normalizeGoogleAPIError(g.calendarManager.DeleteGoogleEvents(
+		calendarService,
+		calendarID,
+		[]*calendar.Event{{Id: googleEventID}},
+	))
 }
 
 func (g *eventGateway) newCalendarService(ctx context.Context, userID uuid.UUID) (*Client, error) {
