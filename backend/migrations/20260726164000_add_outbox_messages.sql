@@ -6,7 +6,7 @@ CREATE TABLE "adjusta"."outbox_messages" (
   "message_type" character varying NOT NULL,
   "aggregate_type" character varying NOT NULL,
   "aggregate_id" uuid NOT NULL,
-  "payload" jsonb NOT NULL DEFAULT '{}',
+  "payload" jsonb NOT NULL,
   "dispatch_attempts" bigint NOT NULL DEFAULT 0,
   "available_at" timestamptz NOT NULL,
   "dispatched_at" timestamptz NULL,
